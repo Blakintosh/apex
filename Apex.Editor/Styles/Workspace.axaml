@@ -36,39 +36,47 @@
   <Style Selector="Border.flat.solid">
     <Setter Property="Background" Value="{DynamicResource BgPaneBrush}"/>
   </Style>
-  <!-- A splitter that is also the hairline between two panes in the card: 1 px drawn, 11 px to grab. It lights in the
-       accent colour, 3 px wide, under the pointer and while dragged, so the edge says it moves. -->
+  <!-- A splitter that is also the hairline between two panes in the card: a strip 8 px wide (MainWindow.HandleGutter), all of
+       it grabbable, with the 1 px line in its middle. Under the pointer and while dragged the line is the accent colour,
+       3 px wide, so the edge says it moves. -->
   <Style Selector="GridSplitter.hairline">
     <Setter Property="Background" Value="{DynamicResource LineBrush}"/>
-    <Setter Property="MinWidth" Value="1"/>
-    <Setter Property="MinHeight" Value="1"/>
     <Setter Property="Template">
       <ControlTemplate>
-        <Border Background="Transparent" Margin="-5">
-          <Border Name="PART_Line" Background="{TemplateBinding Background}" Margin="5"/>
+        <Border Background="Transparent">
+          <Border Name="PART_Line" Background="{TemplateBinding Background}"/>
         </Border>
       </ControlTemplate>
     </Setter>
   </Style>
+  <Style Selector="GridSplitter.hairline.col /template/ Border#PART_Line">
+    <Setter Property="Margin" Value="3,0,4,0"/>
+  </Style>
+  <Style Selector="GridSplitter.hairline.row /template/ Border#PART_Line">
+    <Setter Property="Margin" Value="0,3,0,4"/>
+  </Style>
   <Style Selector="GridSplitter.hairline:pointerover /template/ Border#PART_Line, GridSplitter.hairline:pressed /template/ Border#PART_Line">
     <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-    <Setter Property="Margin" Value="4"/>
+  </Style>
+  <Style Selector="GridSplitter.hairline.col:pointerover /template/ Border#PART_Line, GridSplitter.hairline.col:pressed /template/ Border#PART_Line">
+    <Setter Property="Margin" Value="2,0,3,0"/>
+  </Style>
+  <Style Selector="GridSplitter.hairline.row:pointerover /template/ Border#PART_Line, GridSplitter.hairline.row:pressed /template/ Border#PART_Line">
+    <Setter Property="Margin" Value="0,2,0,3"/>
   </Style>
 
-  <!-- The preview's corner: a grip where the column's hairline meets the preview's, 16 px to grab. -->
+  <!-- The preview's corner grip: the left end of the preview's edge, 28 px of it, over that splitter. A pill at rest, so it
+       is seen; the accent colour under the pointer. -->
   <Style Selector="Border.cornergrip">
-    <Setter Property="Width" Value="16"/>
-    <Setter Property="Height" Value="16"/>
-    <Setter Property="Margin" Value="-8,0,0,0"/>
+    <Setter Property="Width" Value="28"/>
     <Setter Property="HorizontalAlignment" Value="Left"/>
-    <Setter Property="VerticalAlignment" Value="Center"/>
     <Setter Property="ZIndex" Value="20"/>
     <Setter Property="Cursor" Value="BottomLeftCorner"/>
     <Setter Property="Background" Value="Transparent"/>
     <Setter Property="Child">
       <Template>
-        <Border Width="8" Height="8" CornerRadius="4" HorizontalAlignment="Center" VerticalAlignment="Center"
-                Background="{DynamicResource LineStrongBrush}" BorderBrush="{DynamicResource BgPaneBrush}" BorderThickness="1.5"/>
+        <Border Width="18" Height="4" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{DynamicResource TextFaintBrush}"/>
       </Template>
     </Setter>
   </Style>
@@ -115,19 +123,12 @@
     <Setter Property="BoxShadow" Value="{DynamicResource ShadowFocus}"/>
   </Style>
 
-  <!-- Splitters live in the 6 px gutter, with 4 px more to grab on either side: a faint line until hovered. -->
+  <!-- Splitters live in the 6 px gutter: invisible until hovered. -->
   <Style Selector="GridSplitter.gutter">
     <Setter Property="Background" Value="Transparent"/>
-    <Setter Property="Template">
-      <ControlTemplate>
-        <Border Background="Transparent" Margin="-4">
-          <Border Name="PART_Line" Background="{TemplateBinding Background}" Margin="4" CornerRadius="{StaticResource RadiusXs}"/>
-        </Border>
-      </ControlTemplate>
-    </Setter>
   </Style>
-  <Style Selector="GridSplitter.gutter:pointerover /template/ Border#PART_Line, GridSplitter.gutter:pressed /template/ Border#PART_Line">
-    <Setter Property="Background" Value="{DynamicResource AccentDimHoverBrush}"/>
+  <Style Selector="GridSplitter.gutter:pointerover">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
   </Style>
 
   <!-- Small glyph buttons in pane headers and toolbars (⋯ ⤢ ⧉ + ‹ ›). -->
@@ -736,7 +737,7 @@
     <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
   </Style>
   <Style Selector="RadioButton.linktab">
-    <Setter Property="Padding" Value="0,3,0,4"/>
+    <Setter Property="Padding" Value="0,2,0,3"/>
     <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
   </Style>
   <Style Selector="RadioButton.viewtab:pointerover, RadioButton.linktab:pointerover">

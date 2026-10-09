@@ -268,7 +268,7 @@
           <Grid Name="CardBody">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" MinWidth="420"/>
-              <ColumnDefinition Width="1"/>
+              <ColumnDefinition Width="8"/>
               <ColumnDefinition Width="360" MinWidth="0"/>
             </Grid.ColumnDefinitions>
 
@@ -333,25 +333,23 @@
               </Panel>
             </Border>
 
-            <GridSplitter Grid.Column="1" Name="RightSplitter" Classes="hairline" IsEnabled="{Binding !IsInstallMissing}" ResizeDirection="Columns"/>
+            <GridSplitter Grid.Column="1" Name="RightSplitter" Classes="hairline col" IsEnabled="{Binding !IsInstallMissing}" ResizeDirection="Columns"/>
 
             <!-- Right column: Preview over Inspector; the hairline between them is their splitter. -->
             <Grid Grid.Column="2" Name="RightStack" IsEnabled="{Binding !IsInstallMissing}">
               <Grid.RowDefinitions>
                 <RowDefinition Height="236"/>
-                <RowDefinition Height="1"/>
+                <RowDefinition Height="8"/>
                 <RowDefinition Height="*"/>
               </Grid.RowDefinitions>
               <Border Grid.Row="0" Name="PreviewLayer" Classes="flat">
                 <views:PreviewDockView Name="DockedPreview"/>
               </Border>
-              <Border Grid.Row="1" Background="{DynamicResource LineBrush}"/>
-              <GridSplitter Grid.Row="1" Name="PreviewSplitter" Classes="hairline" IsEnabled="{Binding !IsInstallMissing}" ResizeDirection="Rows"/>
-              <!-- Where the two hairlines meet: one drag sizes the column and the preview together. -->
+              <GridSplitter Grid.Row="1" Name="PreviewSplitter" Classes="hairline row" IsEnabled="{Binding !IsInstallMissing}" ResizeDirection="Rows"/>
+              <!-- At the left end of the preview's edge, beside the column's: one drag sizes both together. -->
               <Border Grid.Row="1" Name="PreviewCorner" Classes="cornergrip" IsVisible="{Binding #PreviewSplitter.IsVisible}"
                       IsEnabled="{Binding !IsInstallMissing}"
-                      PointerPressed="Corner_PointerPressed" PointerMoved="Corner_PointerMoved" PointerReleased="Corner_PointerReleased"
-                      DoubleTapped="Corner_DoubleTapped" AutomationProperties.Name="Resize the preview"
+                      PointerPressed="Corner_PointerPressed" PointerMoved="Corner_PointerMoved" PointerReleased="Corner_PointerReleased" AutomationProperties.Name="Resize the preview"
                       ToolTip.Tip="Drag to resize the preview's width and height together; double-click for 16:9"/>
               <Border Grid.Row="2" Name="InspectorLayer" Classes="flat">
                 <views:InspectorView/>

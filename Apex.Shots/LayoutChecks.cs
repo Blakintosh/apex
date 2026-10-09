@@ -28,6 +28,7 @@ public partial class Program
     {
         var sessionRoot = Path.Combine(Path.GetTempPath(), "apex-shots-layout-" + Guid.NewGuid().ToString("N")[..8]);
         PaneFitChecks(sessionRoot);
+        PaneHandleChecks(sessionRoot + "-handles");
         var vm = new MainViewModel(sessionRoot);
         // The window's 1,100 px minimum: the narrowest editor there is (475 px beside the default Explorer, 248, and right
         // column, 360), which the tab row and header have to fit.
@@ -43,7 +44,7 @@ public partial class Program
         {
             Application.Current!.RequestedThemeVariant = ThemeVariant.Dark;
             window.Close();
-            foreach (var dir in new[] { sessionRoot, sessionRoot + "-panes" })
+            foreach (var dir in new[] { sessionRoot, sessionRoot + "-panes", sessionRoot + "-handles" })
                 try { Directory.Delete(dir, recursive: true); } catch (IOException) { }
         }
         LimiterChecks();
@@ -99,6 +100,79 @@ public partial class Program
         Check($"layout: reopened wide, the saved widths are back (Explorer {explorer.Bounds.Width:0}, right column {right.Bounds.Width:0} px)",
             Math.Abs(explorer.Bounds.Width - 426) < 2 && Math.Abs(right.Bounds.Width - 900) < 1);
         wide.Close();
+    }
+
+    /// <summary>
+    /// The resize handles take the pointer a few pixels either side of their line, and the preview's corner sizes both axes.
+    /// Real input at offsets from each hairline: what the pointer lands on, and what a drag from there does.
+    /// </summary>
+    private static void PaneHandleChecks(string sessionRoot)
+    {
+        var vm = new MainViewModel(sessionRoot);
+        vm.OpenByName("mtl_marble_03");
+        var window = new MainWindow { DataContext = vm, Width = 1400, Height = 800 };
+        window.Show();
+        Settle(window);
+        try
+        {
+            var right = window.FindControl<Grid>("RightStack")!;
+            var rightSplitter = window.FindControl<GridSplitter>("RightSplitter")!;
+            var previewSplitter = window.FindControl<GridSplitter>("PreviewSplitter")!;
+            var explorerSplitter = window.FindControl<GridSplitter>("ExplorerSplitter")!;
+            var corner = window.FindControl<Border>("PreviewCorner")!;
+            var row = right.RowDefinitions[0];
+
+            Check($"handles: a fresh preview is 16:9 of its column (render {right.Bounds.Width - 20:0} x {row.ActualHeight - 48:0})",
+                Math.Abs((right.Bounds.Width - 20) * 9 / 16 - (row.ActualHeight - 48)) < 1.5);
+
+            static Point Centre(Visual v, Visual root) => BoundsIn(v, root).Center;
+            bool Lands(Point at, Visual handle) => window.InputHitTest(at) is Visual hit && (hit == handle || handle.IsVisualAncestorOf(hit));
+
+            var rc = Centre(rightSplitter, window);
+            var pc = Centre(previewSplitter, window);
+            var ec = Centre(explorerSplitter, window);
+            foreach (var d in new[] { -3, 3 })
+            {
+                Check($"handles: {d:+0;-0} px from the editor's edge is its handle", Lands(rc + new Point(d, 40), rightSplitter));
+                Check($"handles: {d:+0;-0} px from the preview's edge is its handle", Lands(pc + new Point(-60, d), previewSplitter));
+                Check($"handles: {d * 2 / 3:+0;-0} px from the Explorer's edge is its handle", Lands(ec + new Point(d * 2 / 3, 40), explorerSplitter));
+            }
+            Check("handles: the corner is what the pointer lands on at the junction", Lands(Centre(corner, window), corner));
+
+            var width = right.Bounds.Width;
+            var from = rc + new Point(-3, 40);
+            window.MouseMove(from);
+            window.MouseDown(from, MouseButton.Left);
+            for (var dx = -5; dx >= -50; dx -= 5)
+                window.MouseMove(from + new Point(dx, 0));
+            window.MouseUp(from + new Point(-50, 0), MouseButton.Left);
+            Settle(window);
+            Check($"handles: dragging 3 px off the editor's edge widens the column ({width:0} -> {right.Bounds.Width:0})", right.Bounds.Width > width + 40);
+
+            var height = row.ActualHeight;
+            var start = Centre(corner, window);
+            window.MouseMove(start);
+            window.MouseDown(start, MouseButton.Left);
+            for (var i = 1; i <= 10; i++)
+                window.MouseMove(start + new Point(-6 * i, 5 * i));
+            window.MouseUp(start + new Point(-60, 50), MouseButton.Left);
+            Settle(window);
+            Check($"handles: dragging the corner sizes both ({width + 50:0} x {height:0} -> {right.Bounds.Width:0} x {row.ActualHeight:0})",
+                right.Bounds.Width > width + 90 && row.ActualHeight > height + 40);
+            Check($"handles: the corner's sizes are saved ({vm.Settings.RightColumnWidth:0}, {vm.Settings.PreviewPaneHeight:0})",
+                Math.Abs(vm.Settings.RightColumnWidth - right.Bounds.Width) < 2 && vm.Settings.PreviewPaneHeight is { } h && Math.Abs(h - row.ActualHeight) < 2);
+
+            corner = window.FindControl<Border>("PreviewCorner")!;
+            var again = Centre(corner, window);
+            DoubleClickPoint(window, again);
+            Settle(window);
+            Check("handles: double-clicking the corner goes back to 16:9",
+                vm.Settings.PreviewPaneHeight is null && Math.Abs((right.Bounds.Width - 20) * 9 / 16 - (row.ActualHeight - 48)) < 1.5);
+        }
+        finally
+        {
+            window.Close();
+        }
     }
 
     private static void HeaderAndTabRowChecks(Window window, MainViewModel vm, string outDir)

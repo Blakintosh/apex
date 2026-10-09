@@ -15,7 +15,7 @@ namespace Apex.Editor.Services;
 public sealed class UiSettings
 {
     public double ExplorerWidth { get; set; } = 248;
-    public double RightColumnWidth { get; set; } = 360;
+    public double RightColumnWidth { get; set; } = 352;
     /// <summary>The docked preview's height once the user has set one; null follows the column's width at 16:9.</summary>
     public double? PreviewPaneHeight { get; set; }
     public bool ExplorerVisible { get; set; } = true;

@@ -260,6 +260,9 @@ public partial class MainWindow : Window, IShellView
     // The docked preview is the pane's 38 px header over a render inset 10 px on every other side; its default height
     // is the render at 16:9 for the column's width.
     private const double PreviewHeader = 38, PreviewInset = 10;
+    // The strip each hairline splitter takes between its panes: the line is drawn in the middle of it, and all of it grabs.
+    // (A splitter's grab can't be a margin spilling past its bounds: input only reaches what is inside them.)
+    private const double HandleGutter = 8;
 
     private static double PreviewHeightFor(Services.UiSettings s, double columnWidth) =>
         Math.Clamp(s.PreviewPaneHeight ?? Math.Round(PreviewHeader + PreviewInset + (columnWidth - 2 * PreviewInset) * 9 / 16), 120, 1200);
@@ -295,6 +298,12 @@ public partial class MainWindow : Window, IShellView
         _cornerStart = e.GetPosition(CardBody);
         _cornerWidth = RightColumn.ActualWidth;
         _cornerHeight = PreviewRow.ActualHeight;
+        if (e.ClickCount == 2)
+        {
+            ResetPreviewHeight();
+            e.Handled = true;
+            return;
+        }
         e.Pointer.Capture((IInputElement)sender!);
         e.Handled = true;
     }
@@ -320,14 +329,13 @@ public partial class MainWindow : Window, IShellView
     }
 
     /// <summary>Double-click: the height goes back to following the width at 16:9.</summary>
-    private void Corner_DoubleTapped(object? sender, TappedEventArgs e)
+    private void ResetPreviewHeight()
     {
         if (Vm is not { } vm)
             return;
         vm.Settings.PreviewPaneHeight = null;
         vm.SaveSettings();
         ApplyLayout();
-        e.Handled = true;
     }
 
     private void ApplyLayout()
@@ -355,7 +363,7 @@ public partial class MainWindow : Window, IShellView
             if (room > 0)
             {
                 var over = (vm.ShowExplorer ? explorerWidth : CollapsedSidebar) + SidebarGutter + CardChrome + EditorMin
-                           + (showRight ? rightWidth + 1 : 0) - room;
+                           + (showRight ? rightWidth + HandleGutter : 0) - room;
                 if (over > 0 && showRight && !previewLayout)
                 {
                     var take = Math.Min(over, rightWidth - RightMin);
@@ -385,7 +393,7 @@ public partial class MainWindow : Window, IShellView
 
             RightStack.IsVisible = showRight;
             RightSplitter.IsVisible = showRight;
-            RightGutter.Width = new GridLength(showRight ? 1 : 0);
+            RightGutter.Width = new GridLength(showRight ? HandleGutter : 0);
 
             if (previewLayout)
             {
@@ -394,7 +402,7 @@ public partial class MainWindow : Window, IShellView
                 var editorWidth = 760.0;
                 if (room > 0)
                     editorWidth = Math.Clamp(room - (vm.ShowExplorer ? explorerWidth : CollapsedSidebar) - SidebarGutter - CardChrome
-                                             - (showRight ? RightMin + 1 : 0), EditorMin, 760);
+                                             - (showRight ? RightMin + HandleGutter : 0), EditorMin, 760);
                 EditorColumn.Width = new GridLength(editorWidth);
                 EditorColumn.MinWidth = EditorMin;
                 RightColumn.MinWidth = RightMin;
@@ -418,7 +426,7 @@ public partial class MainWindow : Window, IShellView
             PreviewLayer.IsVisible = docked;
             InspectorLayer.IsVisible = inspector;
             PreviewSplitter.IsVisible = docked && inspector && vm.HasPreview;
-            PreviewGutter.Height = new GridLength(docked && inspector ? 1 : 0);
+            PreviewGutter.Height = new GridLength(docked && inspector ? HandleGutter : 0);
             if (!docked)
             {
                 PreviewRow.Height = new GridLength(0);
