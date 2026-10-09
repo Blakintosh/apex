@@ -64,7 +64,11 @@ public partial class MainWindow : Window, IShellView
         // Each splitter saves only the size it sets. The others may be fitted to a narrow window right now (ApplyLayout);
         // saving those would make a small window shrink the layout for good.
         ExplorerSplitter.DragCompleted += (_, _) => SavePaneSize(ExplorerSplitter);
-        RightSplitter.DragCompleted += (_, _) => SavePaneSize(RightSplitter);
+        RightSplitter.DragCompleted += (_, _) =>
+        {
+            SavePaneSize(RightSplitter);
+            ApplyLayout(); // an unset preview height follows the new width
+        };
         PreviewSplitter.DragCompleted += (_, _) => SavePaneSize(PreviewSplitter);
         // Saved pane widths come from whatever window they were dragged in: refit them whenever the room changes.
         Workspace.SizeChanged += (_, e) =>
@@ -250,8 +254,15 @@ public partial class MainWindow : Window, IShellView
         var s = vm.Settings;
         ExplorerColumn.Width = new GridLength(Math.Clamp(s.ExplorerWidth, ExplorerMin, 600));
         RightColumn.Width = new GridLength(Math.Clamp(s.RightColumnWidth, RightMin, 900));
-        PreviewRow.Height = new GridLength(Math.Clamp(s.PreviewHeight, 120, 1200));
+        PreviewRow.Height = new GridLength(PreviewHeightFor(s, RightColumn.Width.Value));
     }
+
+    // The docked preview is the pane's 38 px header over a render inset 10 px on every other side; its default height
+    // is the render at 16:9 for the column's width.
+    private const double PreviewHeader = 38, PreviewInset = 10;
+
+    private static double PreviewHeightFor(Services.UiSettings s, double columnWidth) =>
+        Math.Clamp(s.PreviewPaneHeight ?? Math.Round(PreviewHeader + PreviewInset + (columnWidth - 2 * PreviewInset) * 9 / 16), 120, 1200);
 
     /// <summary>The size the user just dragged with <paramref name="splitter"/> becomes the saved preference.</summary>
     private void SavePaneSize(GridSplitter splitter)
@@ -264,10 +275,59 @@ public partial class MainWindow : Window, IShellView
         else if (splitter == RightSplitter && vm.IsEditLayout && RightColumn.Width.IsAbsolute)
             s.RightColumnWidth = RightColumn.Width.Value;
         else if (splitter == PreviewSplitter && vm.IsEditLayout && PreviewRow.Height.IsAbsolute && vm.HasPreview)
-            s.PreviewHeight = PreviewRow.Height.Value;
+            s.PreviewPaneHeight = PreviewRow.Height.Value;
         else
             return;
         vm.SaveSettings();
+    }
+
+    // ── Preview corner handle ────────────────────────────────────────────────
+    // The junction of the column's splitter and the preview's: one drag sets both. Positions are read in the card body's
+    // frame, which the resize doesn't move, so the sizes follow the pointer's total travel rather than accumulating deltas.
+
+    private Point _cornerStart;
+    private double _cornerWidth, _cornerHeight;
+
+    private void Corner_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(CardBody).Properties.IsLeftButtonPressed || !RightColumn.Width.IsAbsolute)
+            return;
+        _cornerStart = e.GetPosition(CardBody);
+        _cornerWidth = RightColumn.ActualWidth;
+        _cornerHeight = PreviewRow.ActualHeight;
+        e.Pointer.Capture((IInputElement)sender!);
+        e.Handled = true;
+    }
+
+    private void Corner_PointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (e.Pointer.Captured != sender)
+            return;
+        var travel = e.GetPosition(CardBody) - _cornerStart;
+        var maxWidth = Math.Min(900, CardBody.Bounds.Width - EditorMin - 1);
+        RightColumn.Width = new GridLength(Math.Clamp(_cornerWidth - travel.X, RightMin, Math.Max(RightMin, maxWidth)));
+        var maxHeight = Math.Max(120, RightStack.Bounds.Height - 120);
+        PreviewRow.Height = new GridLength(Math.Clamp(_cornerHeight + travel.Y, 120, maxHeight));
+    }
+
+    private void Corner_PointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (e.Pointer.Captured != sender)
+            return;
+        e.Pointer.Capture(null);
+        SavePaneSize(RightSplitter);
+        SavePaneSize(PreviewSplitter);
+    }
+
+    /// <summary>Double-click: the height goes back to following the width at 16:9.</summary>
+    private void Corner_DoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (Vm is not { } vm)
+            return;
+        vm.Settings.PreviewPaneHeight = null;
+        vm.SaveSettings();
+        ApplyLayout();
+        e.Handled = true;
     }
 
     private void ApplyLayout()
@@ -376,7 +436,7 @@ public partial class MainWindow : Window, IShellView
             }
             else
             {
-                PreviewRow.Height = new GridLength(Math.Clamp(s.PreviewHeight, 120, 1200));
+                PreviewRow.Height = new GridLength(PreviewHeightFor(s, previewLayout ? RightColumn.ActualWidth : rightWidth));
                 InspectorRow.Height = new GridLength(1, GridUnitType.Star);
             }
         }

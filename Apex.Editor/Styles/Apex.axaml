@@ -327,6 +327,8 @@
 
   <!-- ── Splitters ──────────────────────────────────────────────── -->
   <Style Selector="GridSplitter">
+    <!-- Above the panes beside it, which are later siblings and would otherwise take the pointer from the grab margin. -->
+    <Setter Property="ZIndex" Value="10"/>
     <Setter Property="Background" Value="{DynamicResource BgWindowBrush}"/>
     <Setter Property="MinWidth" Value="0"/>
     <Setter Property="MinHeight" Value="0"/>

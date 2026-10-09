@@ -347,6 +347,12 @@
               </Border>
               <Border Grid.Row="1" Background="{DynamicResource LineBrush}"/>
               <GridSplitter Grid.Row="1" Name="PreviewSplitter" Classes="hairline" IsEnabled="{Binding !IsInstallMissing}" ResizeDirection="Rows"/>
+              <!-- Where the two hairlines meet: one drag sizes the column and the preview together. -->
+              <Border Grid.Row="1" Name="PreviewCorner" Classes="cornergrip" IsVisible="{Binding #PreviewSplitter.IsVisible}"
+                      IsEnabled="{Binding !IsInstallMissing}"
+                      PointerPressed="Corner_PointerPressed" PointerMoved="Corner_PointerMoved" PointerReleased="Corner_PointerReleased"
+                      DoubleTapped="Corner_DoubleTapped" AutomationProperties.Name="Resize the preview"
+                      ToolTip.Tip="Drag to resize the preview's width and height together; double-click for 16:9"/>
               <Border Grid.Row="2" Name="InspectorLayer" Classes="flat">
                 <views:InspectorView/>
               </Border>

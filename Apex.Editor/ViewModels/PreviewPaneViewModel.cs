@@ -705,6 +705,22 @@ public sealed partial class MaterialPreviewViewModel : ObservableObject, IPrevie
     }
 }
 
+// ── Inheritance ──────────────────────────────────────────────────────────────
+
+/// <summary>A derived asset has only the properties it overrides; the rest are its parents'.</summary>
+internal static class PreviewInheritance
+{
+    /// <summary>The value of <paramref name="key"/> on <paramref name="record"/> or the nearest ancestor that fills it; "" when none does.</summary>
+    public static string Value(AssetRecord record, Func<string, string, AssetRecord?> resolve, string key)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var cur = record; cur is not null && seen.Add(cur.Name); cur = cur.Parent is { } p ? resolve(record.Type, p) : null)
+            if (cur.Properties.GetValueOrDefault(key, "") is { } v && !string.IsNullOrWhiteSpace(v))
+                return v;
+        return "";
+    }
+}
+
 // ── Model ────────────────────────────────────────────────────────────────────
 
 /// <summary>
@@ -874,12 +890,12 @@ public sealed partial class ModelPreviewViewModel : ObservableObject, IPreviewCo
             {
                 if (prop.FileKind != PropertyFileKind.Model)
                     continue;
-                var value = _record.Properties.GetValueOrDefault(prop.Key, "");
+                var value = PreviewInheritance.Value(_record, _resolve, prop.Key);
                 if (!string.IsNullOrWhiteSpace(value))
                     return value;
             }
         }
-        return _record.Properties.GetValueOrDefault("filename", "");
+        return PreviewInheritance.Value(_record, _resolve, "filename");
     }
 
     public void Dispose()
@@ -1492,12 +1508,12 @@ public sealed partial class AnimPreviewViewModel : ObservableObject, IPreviewCon
             {
                 if (prop.FileKind != PropertyFileKind.Anim)
                     continue;
-                var value = _record.Properties.GetValueOrDefault(prop.Key, "");
+                var value = PreviewInheritance.Value(_record, _resolve, prop.Key);
                 if (!string.IsNullOrWhiteSpace(value))
                     return value;
             }
         }
-        return _record.Properties.GetValueOrDefault("filename", "");
+        return PreviewInheritance.Value(_record, _resolve, "filename");
     }
 
     public void Dispose()

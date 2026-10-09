@@ -7,7 +7,7 @@
     <ApplicationIcon>Assets\apex.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AssemblyName>Apex</AssemblyName>
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
     <RootNamespace>Apex.Editor</RootNamespace>
     <!-- Preview-simulator modules are called through function pointers (Services/Extensions/Simulation). -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
