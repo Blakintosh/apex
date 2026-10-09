@@ -1,7 +1,7 @@
 # Launch-and-check for a built Apex.exe on a machine with the mod tools installed. Read-only: settings (a copy of
 # yours), the session journal and logs go to a temp folder, and nothing is saved. Checks through UI Automation that the
 # window opens, the install is found and loaded, an asset opens and the xanim preview appears; times each step.
-# Usage: .\smoke.ps1 [-Exe artifacts\apex-0.2.1-win-x64\bin\Apex.exe] [-Asset vm_alien_blaster_fire] [-Shot out.png]
+# Usage: .\smoke.ps1 [-Exe artifacts\apex-0.2.2-win-x64\bin\Apex.exe] [-Asset vm_alien_blaster_fire] [-Shot out.png]
 param(
     [string]$Exe,
     [string]$Asset = 'vm_alien_blaster_fire',
