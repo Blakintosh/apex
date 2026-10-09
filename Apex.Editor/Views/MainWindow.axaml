@@ -1,0 +1,667 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Apex.Editor.ViewModels"
+        xmlns:views="using:Apex.Editor.Views"
+        xmlns:controls="using:Apex.Editor.Controls"
+        xmlns:c="using:Apex.Editor.Commands"
+        x:Class="Apex.Editor.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="{Binding WindowTitle}"
+        Icon="/Assets/apex.ico"
+        Width="1600" Height="1000"
+        MinWidth="1100" MinHeight="640"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource BgWindowBrush}"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="40">
+
+  <!-- No key bindings here: every shortcut is a command in Commands/CommandCatalog.cs, dispatched by
+       MainWindow.TryRunShortcut. -->
+
+  <Panel>
+  <!-- Mica tint: over the system backdrop when Mica is active (see code-behind); otherwise the
+       window background above is the solid fallback and this layer is transparent. -->
+  <Border Name="MicaTint" Background="Transparent"/>
+
+  <Grid>
+
+    <!-- ── Workspace: the Explorer sidebar sits on the window; the editor and its right column are one card ── -->
+    <Grid Name="Workspace">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="248" MinWidth="0"/>
+        <ColumnDefinition Width="6"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+
+      <!-- Sidebar: identity and the session's verbs on top, the Explorer, and what just happened at the foot. -->
+      <DockPanel Grid.Column="0" Name="Sidebar">
+        <DockPanel DockPanel.Dock="Top" Name="TopBarLeft" Height="44" Margin="14,0,6,0" Background="Transparent" LastChildFill="False"
+                   PointerPressed="TopBar_PointerPressed">
+          <!-- The mark opens the app menu: what belongs to Apex rather than to the workspace (the theme, updates, about).
+               It looks as it does at rest; only hover, press and focus show it's a button. First in the row, on screen and
+               in Tab order. Without an install it is the mark alone, like the rest of the row. -->
+          <Button Name="AppMenuButton" Classes="appmark" DockPanel.Dock="Left" VerticalAlignment="Center"
+                  IsEnabled="{Binding !IsInstallMissing}"
+                  AutomationProperties.Name="Apex" ToolTip.Tip="Theme, updates and about Apex">
+            <Button.Flyout>
+              <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                <MenuItem c:Cmd.Id="view.themeSystem" ToggleType="Radio" GroupName="theme"/>
+                <MenuItem c:Cmd.Id="view.themeGraphite" ToggleType="Radio" GroupName="theme"/>
+                <MenuItem c:Cmd.Id="view.themeSlate" ToggleType="Radio" GroupName="theme"/>
+                <MenuItem c:Cmd.Id="view.themeLight" ToggleType="Radio" GroupName="theme"/>
+                <Separator/>
+                <!-- Updates: how the last check went, and Check now, which keeps the menu open and updates the line in
+                     place. Blackbird's Help > Updates is its sibling; the copy is the shared Updater's. While there is
+                     an update the line names it and opens the update control's flyout. -->
+                <MenuItem Name="UpdatesMenu" Header="Updates">
+                  <MenuItem Name="UpdateStatusItem" Classes="updatestatus" MinWidth="200"
+                            Header="{Binding Updates.MenuStatus}"
+                            IsEnabled="{Binding Updates.IsShown}"
+                            Click="UpdateStatus_Click"
+                            ToolTip.Tip="{Binding Updates.MenuStatusTip}" ToolTip.ShowOnDisabled="True">
+                    <MenuItem.Icon>
+                      <Panel>
+                        <controls:GlyphIcon Classes="updateglyph" Glyph="check" Size="13" IsVisible="{Binding Updates.IsUpToDate}"/>
+                        <controls:GlyphIcon Classes="updateglyph" Glyph="warning" Size="13" IsVisible="{Binding Updates.MenuShowsWarning}"/>
+                        <controls:GlyphIcon Classes="updateglyph" Classes.pending="{Binding Updates.IsPending}" Glyph="arrow-down" Size="13"
+                                            IsVisible="{Binding Updates.MenuShowsArrow}"/>
+                      </Panel>
+                    </MenuItem.Icon>
+                  </MenuItem>
+                  <MenuItem Name="CheckNowItem" Header="{Binding Updates.CheckNowText}"
+                            Command="{Binding Updates.CheckNowCommand}" StaysOpenOnClick="True"
+                            IsVisible="{Binding Updates.ShowsCheckNow}"/>
+                </MenuItem>
+                <Separator/>
+                <MenuItem c:Cmd.Id="app.about"/>
+              </MenuFlyout>
+            </Button.Flyout>
+            <!-- About Apex: the version and what Apex is, in the update control's flyout style. -->
+            <FlyoutBase.AttachedFlyout>
+              <Flyout Placement="BottomEdgeAlignedLeft">
+                <StackPanel Name="AboutPanel" Margin="4" Spacing="2" MaxWidth="400">
+                  <TextBlock Name="AboutTitle" Text="{x:Static vm:MainViewModel.AboutTitle}" FontSize="{StaticResource FontSizeMd}" FontWeight="SemiBold"/>
+                  <TextBlock Text="{x:Static vm:MainViewModel.AboutLine}" Classes="dim" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap"/>
+                </StackPanel>
+              </Flyout>
+            </FlyoutBase.AttachedFlyout>
+            <StackPanel Name="SidebarIdentity" Orientation="Horizontal" Spacing="8">
+              <!-- The mark: the panther, from the same master as the window's icon (tools/make-icon.py). -->
+              <Image Name="SidebarMark" Source="/Assets/apex-logo.png" Width="24" Height="24"
+                     RenderOptions.BitmapInterpolationMode="HighQuality"/>
+              <TextBlock Name="SidebarTitle" Text="Apex" FontSize="{StaticResource FontSizeBase}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+          <StackPanel DockPanel.Dock="Right" Name="SidebarActions" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+            <Button Name="UndoButton" Classes="icon" Content="↶" c:Cmd.Id="edit.undo" IsEnabled="{Binding CanUndoActive}" IsVisible="{Binding !IsInstallMissing}"/>
+            <Button Name="RedoButton" Classes="icon" Content="↷" c:Cmd.Id="edit.redo" IsEnabled="{Binding CanRedoActive}" IsVisible="{Binding !IsInstallMissing}"/>
+            <Button Classes="icon" Content="+" AutomationProperties.Name="New asset or GDT" ToolTip.Tip="New asset or GDT"
+                    IsVisible="{Binding !IsInstallMissing}">
+              <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                  <MenuItem c:Cmd.Id="asset.new"/>
+                  <MenuItem c:Cmd.Id="gdt.new"/>
+                </MenuFlyout>
+              </Button.Flyout>
+            </Button>
+            <Button Name="LayoutButton" Classes="icon" Content="layout" ToolTip.Tip="Panes and the preview layout"
+                    AutomationProperties.Name="Layout" IsVisible="{Binding !IsInstallMissing}">
+              <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                  <MenuItem c:Cmd.Id="view.maximizePreview"/>
+                  <Separator/>
+                  <MenuItem c:Cmd.Id="view.explorer"/>
+                  <MenuItem c:Cmd.Id="view.inspector"/>
+                  <MenuItem c:Cmd.Id="view.previewWindow"/>
+                </MenuFlyout>
+              </Button.Flyout>
+            </Button>
+          </StackPanel>
+        </DockPanel>
+
+        <!-- Foot: what just happened, and that the assets are samples when they are. -->
+        <StackPanel DockPanel.Dock="Bottom" Name="SidebarFoot" Margin="14,6,10,10" Spacing="2">
+          <Button Classes="link danger" HorizontalAlignment="Left" IsVisible="{Binding !!ProblemTotal}" c:Cmd.Id="explorer.showProblems"
+                  AutomationProperties.Name="{Binding ProblemTotalText}"
+                  ToolTip.Tip="{c:Tip explorer.showProblems, Detail='Validation problems in loaded GDTs'}">
+            <TextBlock FontSize="{StaticResource FontSizeSm}" Text="{Binding ProblemTotalText}"/>
+          </Button>
+          <TextBlock Name="MockDataText" Text="Mock data" Classes="faint" FontSize="{StaticResource FontSizeSm}"
+                     IsVisible="{Binding IsMockData}" ToolTip.Tip="Generated sample assets, not a Black Ops III install"/>
+          <TextBlock Text="{Binding Status}" Classes="faint" FontSize="{StaticResource FontSizeSm}"
+                     TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
+                     AutomationProperties.LiveSetting="Polite"
+                     AutomationProperties.Name="{Binding Status}"/>
+        </StackPanel>
+
+        <Panel>
+          <Border Name="ExplorerLayer" Classes="flat" Margin="8,0,2,0" IsEnabled="{Binding !IsInstallMissing}">
+            <views:AssetBrowserView Name="Browser"/>
+          </Border>
+          <!-- Collapsed Explorer: the sidebar narrows to its verbs; the strip below them brings it back (or Ctrl+B). -->
+          <Button Name="ExplorerStrip" Classes="edgestrip" c:Cmd.Id="view.explorer" IsVisible="False"/>
+        </Panel>
+      </DockPanel>
+      <GridSplitter Grid.Column="1" Name="ExplorerSplitter" Classes="gutter" IsEnabled="{Binding !IsInstallMissing}" ResizeDirection="Columns"/>
+
+      <!-- ── The card ── -->
+      <Border Grid.Column="2" Name="Card" Classes="card" Margin="0,8,8,8">
+        <DockPanel>
+          <!-- Top row: open tabs · Go to · the session · window buttons. Its empty part drags the window. -->
+          <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
+            <Grid Name="TopBar" Height="44" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Background="Transparent"
+                  PointerPressed="TopBar_PointerPressed">
+              <Grid ColumnDefinitions="*,Auto" Margin="8,0,0,0">
+                <ListBox Name="TabList" Classes="doctabs" ItemsSource="{Binding OpenTabs}" SelectedItem="{Binding ActiveTab}"
+                         ClipToBounds="True" VerticalAlignment="Center" HorizontalAlignment="Left">
+                  <ListBox.Styles>
+                    <Style Selector="ListBoxItem" x:DataType="vm:AssetEditorViewModel">
+                      <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
+                    </Style>
+                  </ListBox.Styles>
+                  <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <controls:TabStripPanel/>
+                    </ItemsPanelTemplate>
+                  </ListBox.ItemsPanel>
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:AssetEditorViewModel">
+                      <!-- Only the active tab keeps room for its ✕; another tab shows it over its end while the pointer is
+                           on it (Styles/Shell.axaml), so inactive tabs are as narrow as their names and more of them fit.
+                           Spaced by margins, not Spacing, so that ✕ can overlap the content before it. -->
+                      <StackPanel Orientation="Horizontal" Background="Transparent"
+                                  ToolTip.Tip="{Binding Name}" PointerReleased="Tab_PointerReleased">
+                        <StackPanel.ContextMenu>
+                          <ContextMenu>
+                            <!-- These act on the tab right-clicked, not the active one: their own commands, the catalog's names. -->
+                            <MenuItem Command="{Binding CloseCommand}" c:Cmd.Id="tab.close"/>
+                            <MenuItem Command="{Binding Owner.CloseOtherTabsCommand}" CommandParameter="{Binding}" c:Cmd.Id="tab.closeOthers"/>
+                            <Separator/>
+                            <MenuItem Command="{Binding Owner.RevealTabInTreeCommand}" CommandParameter="{Binding}" c:Cmd.Id="asset.reveal"/>
+                          </ContextMenu>
+                        </StackPanel.ContextMenu>
+                        <controls:GlyphIcon Glyph="{Binding Glyph}" Foreground="{Binding TypeBrush}" Size="13" VerticalAlignment="Center"/>
+                        <!-- Capped so a dozen tabs still fit; the full name is the tab's tooltip. -->
+                        <TextBlock Text="{Binding Name, Converter={x:Static views:MiddleTrim.Tab}}" FontSize="{StaticResource FontSizeSm}"
+                                   VerticalAlignment="Center" MaxWidth="180" TextTrimming="CharacterEllipsis" Margin="7,0,0,0"
+                                   Classes.previewtab="{Binding IsPreview}"/>
+                        <!-- Same mark as the Explorer's rows: this asset has edits in this session. -->
+                        <Ellipse Width="5" Height="5" Fill="{DynamicResource MarkBrush}" VerticalAlignment="Center" Margin="7,0,0,0"
+                                 IsVisible="{Binding !!Changes.Count}" ToolTip.Tip="Changed this session"/>
+                        <controls:GlyphIcon Glyph="warning" Size="11" Foreground="{DynamicResource DangerBrush}" VerticalAlignment="Center" Margin="7,0,0,0"
+                                            IsVisible="{Binding !!ProblemCount}" ToolTip.Tip="This asset has validation problems"/>
+                        <Button Classes="tabclose" Content="✕" Command="{Binding CloseCommand}"
+                                AutomationProperties.Name="{c:Name tab.close}" ToolTip.Tip="{c:Tip tab.close}"/>
+                      </StackPanel>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+                <Button Grid.Column="1" Name="TabOverflowButton" Classes="menu" Margin="4,0,6,0" IsVisible="False"
+                        ToolTip.Tip="{c:Tip tab.all, Detail='In strip order'}" Click="TabOverflow_Click">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Name="TabOverflowText" FontSize="{StaticResource FontSizeSm}" Classes="dim"/>
+                    <controls:GlyphIcon Glyph="chevron-down" Size="12" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Button>
+              </Grid>
+
+              <!-- The command box is a button: it opens Quick Open, where > runs commands and @ jumps to a property. It says so
+                   in the short form of the sentence every description of the palette uses (CommandCatalog.PaletteSentence is its tooltip). -->
+              <Button Grid.Column="1" Name="CommandBox" Classes="commandbox" c:Cmd.Id="go.asset" Margin="12,0,8,0" IsVisible="{Binding !IsInstallMissing}"
+                      AutomationProperties.Name="{x:Static c:CommandCatalog.PaletteSentence}"
+                      ToolTip.Tip="{x:Static c:CommandCatalog.PaletteSentence}">
+                <DockPanel>
+                  <controls:GlyphIcon DockPanel.Dock="Left" Glyph="search" Size="14" Foreground="{DynamicResource TextFaintBrush}"
+                                      VerticalAlignment="Center" Margin="0,0,8,0"/>
+                  <TextBlock DockPanel.Dock="Right" Name="QuickOpenKey" Text="{c:Gesture go.asset}" Classes="faint"
+                             FontSize="{StaticResource FontSizeXs}" VerticalAlignment="Center"/>
+                  <TextBlock Name="CommandBoxText" Classes="faint" FontSize="{StaticResource FontSizeBase}" VerticalAlignment="Center"
+                             Text="{x:Static c:CommandCatalog.PaletteBoxText}" TextTrimming="CharacterEllipsis"/>
+                </DockPanel>
+              </Button>
+
+              <!-- Updates: shown only while there is an update for the user (downloading, ready, installing on close,
+                   installed, or failed to download or install). Checking and its outcome live in the app menu's Updates. -->
+              <Button Grid.Column="2" Name="UpdateButton" Classes="menu" Margin="0,0,8,0" IsVisible="{Binding Updates.IsShown}"
+                      AutomationProperties.Name="{Binding Updates.ChipText}" ToolTip.Tip="{Binding Updates.Title}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <controls:GlyphIcon Classes="updateglyph" Classes.pending="{Binding Updates.IsPending}" Glyph="arrow-down" Size="13" VerticalAlignment="Center" IsVisible="{Binding Updates.ShowsArrow}"/>
+                  <controls:GlyphIcon Classes="updateglyph" Glyph="warning" Size="13" VerticalAlignment="Center" IsVisible="{Binding Updates.IsFailed}"/>
+                  <TextBlock Text="{Binding Updates.ChipText}" FontSize="{StaticResource FontSizeSm}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <Button.Flyout>
+                  <Flyout Placement="BottomEdgeAlignedRight" Closed="UpdateFlyout_Closed">
+                    <views:UpdatePanel DataContext="{Binding Updates}"/>
+                  </Flyout>
+                </Button.Flyout>
+              </Button>
+
+              <!-- The session: how many changes aren't in the GDTs yet, and Save. The count reviews them; the tooltip says the rest. -->
+              <Border Grid.Column="3" Name="SessionChip" Classes="sessionpill" Margin="0,0,4,0" IsVisible="{Binding !IsInstallMissing}">
+                <StackPanel Orientation="Horizontal" Spacing="2">
+                  <Button Name="SessionCountButton" Classes="menu" Command="{Binding ReviewChangesCommand}" IsEnabled="{Binding HasSessionChanges}" Padding="7,2"
+                          ToolTip.Tip="{Binding SessionChipTip}" AutomationProperties.Name="{Binding SessionStateText}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <Ellipse Width="6" Height="6" VerticalAlignment="Center"
+                               Fill="{DynamicResource MarkBrush}" IsVisible="{Binding !!SessionEditCount}"/>
+                      <Ellipse Width="6" Height="6" VerticalAlignment="Center"
+                               Fill="{DynamicResource TextFaintBrush}" IsVisible="{Binding !SessionEditCount}"/>
+                      <TextBlock FontSize="{StaticResource FontSizeBase}" Foreground="{DynamicResource TextSoftBrush}"
+                                 Text="{Binding SessionPillText}"/>
+                    </StackPanel>
+                  </Button>
+                  <Button Name="ChipSaveButton" Classes="accent" c:Cmd.Id="file.saveAll" IsVisible="{Binding HasSessionChanges}">
+                    <TextBlock Text="Save"/>
+                  </Button>
+                </StackPanel>
+              </Border>
+
+              <StackPanel Grid.Column="4" Name="CaptionButtons" Orientation="Horizontal" IsVisible="False" Margin="4,0,2,0" VerticalAlignment="Center">
+                <Button Classes="captionbtn" Content="─" Click="Minimize_Click" ToolTip.Tip="Minimize" AutomationProperties.Name="Minimize"/>
+                <Button Classes="captionbtn" Content="▢" Click="Maximize_Click" ToolTip.Tip="Maximize" AutomationProperties.Name="Maximize"/>
+                <Button Classes="captionbtn close" Content="✕" Click="CloseButton_Click" ToolTip.Tip="Close" AutomationProperties.Name="Close"/>
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <!-- Body: the editor | Preview over Inspector, split by hairlines that are also the splitters. -->
+          <Grid Name="CardBody">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" MinWidth="420"/>
+              <ColumnDefinition Width="1"/>
+              <ColumnDefinition Width="360" MinWidth="0"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Editor: the active asset, or the start page. -->
+            <Border Grid.Column="0" Name="EditorLayer" Classes="flat" IsEnabled="{Binding !IsInstallMissing}">
+              <Panel>
+                <ContentControl Content="{Binding ActiveTab}" IsVisible="{Binding HasActiveTab}">
+                  <ContentControl.ContentTemplate>
+                    <DataTemplate x:DataType="vm:AssetEditorViewModel">
+                      <views:AssetEditorView/>
+                    </DataTemplate>
+                  </ContentControl.ContentTemplate>
+                </ContentControl>
+                <!-- Nothing open: the editor becomes a start page and the Inspector steps aside. The top row's command box
+                     is right above, so the page doesn't repeat it: it is what was open last, what isn't saved, and the keys.
+                     (Pinned assets are the Explorer's own list, at its top.) -->
+                <ScrollViewer IsVisible="{Binding HasNoActiveTab}">
+                  <StackPanel Name="StartPage" MaxWidth="760" Margin="48,96,48,40" Spacing="30">
+                    <StackPanel Spacing="2">
+                      <TextBlock Text="Recent" FontSize="{StaticResource FontSizeMd}" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                      <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" IsVisible="{Binding !HasRecent}"
+                                 Text="Assets you open appear here."/>
+                      <ItemsControl Name="RecentList" ItemsSource="{Binding RecentItems}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:AssetLinkViewModel">
+                            <Button Classes="linkrow small" Command="{Binding OpenCommand}" Height="28" ClipToBounds="True"
+                                    ToolTip.Tip="{Binding Tip}" AutomationProperties.Name="{Binding Name}">
+                              <!-- The name measures first and is never cut for its GDT; the GDT takes what is left. -->
+                              <Grid ColumnDefinitions="20,Auto,*">
+                                <TextBlock Text="{Binding Glyph}" Foreground="{Binding GlyphBrush}" FontSize="{StaticResource FontSizeSm}" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Classes="mono" FontSize="{StaticResource FontSizeSm}" Text="{Binding Name}" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding Detail}" VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis" Margin="14,0,0,0"/>
+                              </Grid>
+                            </Button>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+
+                    <Border Background="{DynamicResource BgFieldBrush}" CornerRadius="{StaticResource RadiusLg}" Padding="16,14" IsVisible="{Binding HasSessionChanges}">
+                      <DockPanel>
+                        <Ellipse DockPanel.Dock="Left" Width="6" Height="6" Fill="{DynamicResource MarkBrush}" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                          <Button Name="DiscardSessionButton" Classes="link dim" Content="{c:Name session.discardAll}" c:Cmd.Id="session.discardAll"/>
+                          <Button Classes="line" Content="{c:Name explorer.showChanged}" c:Cmd.Id="explorer.showChanged"/>
+                          <Button Name="StartSaveButton" Classes="accent" c:Cmd.Id="file.saveAll">
+                            <TextBlock Text="{c:Name file.saveAll}"/>
+                          </Button>
+                        </StackPanel>
+                        <StackPanel Spacing="2" VerticalAlignment="Center">
+                          <TextBlock FontSize="{StaticResource FontSizeBase}" Text="{Binding SessionSummaryText}"/>
+                          <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding SessionKeptText}"/>
+                        </StackPanel>
+                      </DockPanel>
+                    </Border>
+
+                    <TextBlock Name="StartShortcuts" Classes="faint" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap"
+                               Text="{c:Hints 'go.asset go.commands go.recent asset.new file.saveAll'}"/>
+                  </StackPanel>
+                </ScrollViewer>
+              </Panel>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Name="RightSplitter" Classes="hairline" IsEnabled="{Binding !IsInstallMissing}" ResizeDirection="Columns"/>
+
+            <!-- Right column: Preview over Inspector; the hairline between them is their splitter. -->
+            <Grid Grid.Column="2" Name="RightStack" IsEnabled="{Binding !IsInstallMissing}">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="236"/>
+                <RowDefinition Height="1"/>
+                <RowDefinition Height="*"/>
+              </Grid.RowDefinitions>
+              <Border Grid.Row="0" Name="PreviewLayer" Classes="flat">
+                <views:PreviewDockView Name="DockedPreview"/>
+              </Border>
+              <Border Grid.Row="1" Background="{DynamicResource LineBrush}"/>
+              <GridSplitter Grid.Row="1" Name="PreviewSplitter" Classes="hairline" IsEnabled="{Binding !IsInstallMissing}" ResizeDirection="Rows"/>
+              <Border Grid.Row="2" Name="InspectorLayer" Classes="flat">
+                <views:InspectorView/>
+              </Border>
+              <!-- An xanim's short properties panel: its preview is in the editor, its notetracks in the dock under it. -->
+              <Border Grid.RowSpan="3" Name="PropertiesLayer" Classes="flat solid" IsVisible="False">
+                <views:AnimPropertiesView Name="AnimProperties" DataContext="{Binding AnimTab}"/>
+              </Border>
+            </Grid>
+
+            <!-- Warm the asset-editor input controls at startup: their control templates and text layout
+                 JIT on first realization, which would otherwise be paid on the first weapon open.
+                 Invisible and non-interactive; costs a few ms once. -->
+            <Canvas Opacity="0" IsHitTestVisible="False" Width="0" Height="0" ClipToBounds="True" KeyboardNavigation.TabNavigation="None">
+              <StackPanel>
+                <controls:ScrubNumberBox Width="130"/>
+                <ToggleButton Classes="miniswitch"/>
+                <ComboBox Classes="pfield"/>
+                <TextBox Classes="pfield" Width="290" Text="warmup"/>
+              </StackPanel>
+            </Canvas>
+
+            <!-- Full-card overlays: table (spreadsheet) mode and compare mode. -->
+            <Border Grid.ColumnSpan="3" Classes="flat solid" IsVisible="{Binding IsTableOpen}">
+              <views:TableView DataContext="{Binding Table}"/>
+            </Border>
+            <Border Grid.ColumnSpan="3" Classes="flat solid" IsVisible="{Binding IsCompareOpen}">
+              <views:CompareView DataContext="{Binding Compare}"/>
+            </Border>
+
+            <!-- ── Banners ─────────────────────────────────────────────────
+                 Anything the user must notice or act on, one banner per problem, newest on top. They float at the foot of
+                 the editor: never over the tabs or the editor's header (its name, Compare, ⋯), which are what you reach for
+                 to deal with them, and never in a row of their own that would shove every pane under the cursor. Errors
+                 stay until dismissed; notices go by themselves (not while the pointer rests on one). -->
+            <ItemsControl Grid.Column="0" Name="AlertHost" ZIndex="10" VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                          MaxWidth="760" Margin="16,0,16,16" ItemsSource="{Binding Alerts}" IsVisible="{Binding IsAlertOpen}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="6"/>
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:AlertItem">
+                  <Border Background="{DynamicResource BgCardBrush}" CornerRadius="{StaticResource RadiusOverlay}" BoxShadow="{DynamicResource ShadowDialog}"
+                          PointerEntered="Alert_PointerEntered" PointerExited="Alert_PointerExited"
+                          GotFocus="Alert_GotFocus" LostFocus="Alert_LostFocus">
+                    <Border Classes="alert" Classes.error="{Binding IsError}" CornerRadius="{StaticResource RadiusOverlay}" BorderThickness="1"
+                            ToolTip.Tip="{Binding Detail}">
+                      <DockPanel>
+                        <controls:GlyphIcon DockPanel.Dock="Left" Glyph="warning" Size="14" VerticalAlignment="Center" Margin="0,0,10,0"
+                                            Foreground="{DynamicResource DangerTextBrush}" IsVisible="{Binding IsError}"/>
+                        <TextBlock DockPanel.Dock="Left" Text="ⓘ" FontSize="{StaticResource FontSizeBase}" VerticalAlignment="Center" Margin="0,0,10,0"
+                                   Classes="dim" IsVisible="{Binding !IsError}"/>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                          <!-- The label carries asset names, which are lowercase_with_underscores: a bare string Content would
+                               have them swallowed as access-key markers ("wpn_ar" → "wpnar"). -->
+                          <Button Name="AlertAction" Classes="line" Command="{Binding RunCommand}" IsVisible="{Binding HasAction}">
+                            <TextBlock Text="{Binding ActionLabel}" FontSize="{StaticResource FontSizeSm}"/>
+                          </Button>
+                          <Button Name="AlertDismiss" Classes="icon" Content="✕"
+                                  AutomationProperties.Name="Dismiss message" ToolTip.Tip="Dismiss (Esc)"
+                                  Command="{Binding DismissCommand}"/>
+                        </StackPanel>
+                        <!-- Live region: the banner appears without focus moving, so a screen reader would otherwise never
+                             announce that the user's action was refused. -->
+                        <TextBlock Text="{Binding Text}" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap"
+                                   VerticalAlignment="Center"
+                                   AutomationProperties.LiveSetting="Assertive"
+                                   AutomationProperties.Name="{Binding Text}"/>
+                      </DockPanel>
+                    </Border>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- No install found: the card asks for the Black Ops III folder (nothing behind it is loaded). -->
+            <Border Grid.ColumnSpan="3" Name="InstallMissingLayer" Classes="flat solid" IsVisible="{Binding IsInstallMissing}">
+              <StackPanel Width="520" HorizontalAlignment="Center" VerticalAlignment="Top" Spacing="8" Margin="0,150,0,0">
+                <TextBlock Text="Black Ops III mod tools not found" FontSize="{StaticResource FontSizeMd}" FontWeight="SemiBold"/>
+                <TextBlock Classes="dim" FontSize="{StaticResource FontSizeBase}" TextWrapping="Wrap"
+                           Text="Apex looks for the Black Ops III folder that holds deffiles and source_data."/>
+                <Button Name="LocateButton" Classes="accent" HorizontalAlignment="Left" Margin="0,10,0,0" Click="Locate_Click"
+                        AutomationProperties.Name="Locate…" ToolTip.Tip="Choose the Black Ops III folder">
+                  <TextBlock Text="Locate…"/>
+                </Button>
+                <!-- Two lines held from the start, so nothing moves when a wrong folder is explained. -->
+                <TextBlock Name="LocateErrorText" Foreground="{DynamicResource DangerTextBrush}" FontSize="{StaticResource FontSizeSm}"
+                           TextWrapping="Wrap" MinHeight="36" Text="{Binding LocateError}" AutomationProperties.LiveSetting="Assertive"/>
+              </StackPanel>
+            </Border>
+          </Grid>
+        </DockPanel>
+      </Border>
+    </Grid>
+
+    <!-- ── Confirmation dialog ─────────────────────────────────────
+         Only for what undo can't bring back. The body states the blast radius. -->
+    <Border Grid.Row="0" Grid.RowSpan="3" Classes="dialogbackdrop" IsVisible="{Binding IsConfirmOpen}"
+            PointerPressed="ConfirmBackdrop_PointerPressed">
+      <Border Name="ConfirmCard" Classes="dialogcard" PointerPressed="PaletteCard_PointerPressed" KeyboardNavigation.TabNavigation="Cycle">
+        <StackPanel Spacing="12">
+          <TextBlock Text="{Binding ConfirmTitle}" FontSize="{StaticResource FontSizeMd}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding ConfirmBody}" Classes="dim body" FontSize="{StaticResource FontSizeBase}"/>
+          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button Name="ConfirmCancelButton" Classes="outline" Content="{Binding ConfirmCancelLabel}"
+                    Command="{Binding CancelConfirmCommand}"/>
+            <Button Classes="danger" IsVisible="{Binding ConfirmIsDestructive}"
+                    Command="{Binding AcceptConfirmCommand}">
+              <TextBlock Text="{Binding ConfirmActionLabel}"/>
+            </Button>
+            <Button Classes="accent" IsVisible="{Binding !ConfirmIsDestructive}"
+                    Command="{Binding AcceptConfirmCommand}">
+              <TextBlock Text="{Binding ConfirmActionLabel}"/>
+            </Button>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Border>
+
+    <!-- ── Save conflict ────────────────────────────────────────────
+         Only when a GDT changed on disk since Apex read it. Per asset: keep yours or take the file's.
+         Nothing is written until Save; Cancel leaves the session and the files as they are. -->
+    <Border Grid.Row="0" Grid.RowSpan="3" Classes="dialogbackdrop" IsVisible="{Binding IsConflictOpen}">
+      <Border Name="ConflictCard" Classes="dialogcard" Width="640" KeyboardNavigation.TabNavigation="Cycle">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,12">
+            <TextBlock Text="Changed on disk" FontSize="{StaticResource FontSizeMd}" FontWeight="SemiBold"/>
+            <TextBlock Text="{Binding ConflictSummary}" Classes="dim body" FontSize="{StaticResource FontSizeBase}" TextWrapping="Wrap"/>
+          </StackPanel>
+          <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Name="ConflictCancelButton" Classes="outline" Content="Cancel" Command="{Binding CancelConflictsCommand}"/>
+            <Button Name="ConflictSaveButton" Classes="accent" Command="{Binding ResolveConflictsCommand}" IsEnabled="{Binding CanResolveConflicts}">
+              <TextBlock Text="Save"/>
+            </Button>
+          </StackPanel>
+          <ScrollViewer MaxHeight="360" IsVisible="{Binding !!ConflictItems.Count}">
+            <ItemsControl Name="ConflictList" ItemsSource="{Binding ConflictItems}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:SaveConflictItem">
+                  <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="0,10,0,8">
+                    <DockPanel>
+                      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4" VerticalAlignment="Top"
+                                  Margin="12,0,0,0" IsVisible="{Binding CanChoose}">
+                        <ToggleButton Name="KeepMinePill" Classes="pill small" Content="Keep mine" IsChecked="{Binding ChooseMine}"/>
+                        <ToggleButton Name="TakeFilePill" Classes="pill small" Content="Take the file's" IsChecked="{Binding ChooseFile}"/>
+                      </StackPanel>
+                      <StackPanel Spacing="3">
+                        <TextBlock FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FontSizeSm}" TextTrimming="CharacterEllipsis">
+                          <Run Text="{Binding Asset}"/><Run Text="   "/><Run Text="{Binding Gdt}" Foreground="{DynamicResource TextFaintBrush}"/>
+                        </TextBlock>
+                        <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding What}" TextWrapping="Wrap"/>
+                        <ItemsControl ItemsSource="{Binding Lines}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                              <TextBlock Classes="faint" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FontSizeXs}"
+                                         Text="{Binding}" TextWrapping="Wrap"/>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </StackPanel>
+                    </DockPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+    </Border>
+
+    <!-- ── Rename (F2) ───────────────────────────────────────────── -->
+    <Border Grid.Row="0" Grid.RowSpan="3" Classes="dialogbackdrop" IsVisible="{Binding IsRenameOpen}"
+            PointerPressed="RenameBackdrop_PointerPressed">
+      <Border Name="RenameCard" Classes="dialogcard" PointerPressed="PaletteCard_PointerPressed" KeyboardNavigation.TabNavigation="Cycle">
+        <StackPanel Spacing="10">
+          <TextBlock FontWeight="SemiBold" FontSize="{StaticResource FontSizeMd}" Text="Rename asset"/>
+          <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap"
+                     Text="Lowercase letters, digits and underscores. A space types an underscore."/>
+          <TextBox Name="RenameBox" Classes="field" FontFamily="{StaticResource MonoFont}" Text="{Binding ActiveTab.RenameText}"
+                   AutomationProperties.Name="New name">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding CommitRenameCommand}"/>
+            </TextBox.KeyBindings>
+          </TextBox>
+          <!-- One reserved line: why the name can't be used, or what renaming will touch (blast radius
+               stated before the fact, from a scan of every GDT). -->
+          <Panel MinHeight="16">
+            <TextBlock FontSize="{StaticResource FontSizeSm}" Foreground="{DynamicResource DangerTextBrush}" TextWrapping="Wrap"
+                       Text="{Binding RenameError}" IsVisible="{Binding !!RenameError.Length}" AutomationProperties.LiveSetting="Assertive"/>
+            <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap"
+                       Text="{Binding RenameNote}" IsVisible="{Binding !RenameError.Length}" AutomationProperties.LiveSetting="Polite"/>
+          </Panel>
+          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button Classes="outline" Content="Cancel" Command="{Binding CancelRenameCommand}"/>
+            <Button Classes="accent" Command="{Binding CommitRenameCommand}">
+              <TextBlock Text="Rename"/>
+            </Button>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Border>
+
+    <!-- ── New asset (Ctrl+N) / New GDT ──────────────────────────── -->
+    <Border Grid.Row="0" Grid.RowSpan="3" Classes="dialogbackdrop" IsVisible="{Binding IsNewOpen}"
+            PointerPressed="NewBackdrop_PointerPressed">
+      <Border Name="NewCard" Classes="dialogcard" PointerPressed="PaletteCard_PointerPressed" KeyboardNavigation.TabNavigation="Cycle">
+        <StackPanel Spacing="10">
+          <TextBlock FontWeight="SemiBold" FontSize="{StaticResource FontSizeMd}" Text="{Binding NewTitle}"/>
+          <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap"
+                     Text="Lowercase letters, digits and underscores. A space types an underscore."/>
+          <TextBox Name="NewNameBox" Classes="field" FontFamily="{StaticResource MonoFont}" Text="{Binding NewName}"
+                   AutomationProperties.Name="Name">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding CommitNewCommand}"/>
+            </TextBox.KeyBindings>
+          </TextBox>
+          <Grid ColumnDefinitions="Auto,12,*" RowDefinitions="Auto,8,Auto" IsVisible="{Binding NewIsAsset}">
+            <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Type" VerticalAlignment="Center"/>
+            <ComboBox Grid.Column="2" Name="NewTypeBox" Classes="field" HorizontalAlignment="Stretch"
+                      ItemsSource="{Binding NewTypeChoices}" SelectedItem="{Binding NewType}" AutomationProperties.Name="Type"/>
+            <!-- Hundreds of GDTs: a search over a short list, short names first, rather than a dropdown of paths. -->
+            <TextBlock Grid.Row="2" Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="GDT" VerticalAlignment="Top" Margin="0,6,0,0"/>
+            <StackPanel Grid.Row="2" Grid.Column="2" Spacing="4">
+              <TextBox Name="NewGdtSearch" Classes="field" Text="{Binding NewGdtFilter}" PlaceholderText="Search GDTs"
+                       AutomationProperties.Name="Search GDTs">
+                <TextBox.KeyBindings>
+                  <KeyBinding Gesture="Down" Command="{Binding NewGdtNextCommand}"/>
+                  <KeyBinding Gesture="Up" Command="{Binding NewGdtPreviousCommand}"/>
+                  <KeyBinding Gesture="Enter" Command="{Binding CommitNewCommand}"/>
+                </TextBox.KeyBindings>
+              </TextBox>
+              <ListBox Name="NewGdtList" Classes="palette" Height="148" ItemsSource="{Binding NewGdtMatches}"
+                       SelectedItem="{Binding NewGdtChoice}" AutomationProperties.Name="GDT">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:GdtChoice">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ToolTip.Tip="{Binding Name}">
+                      <TextBlock Classes="mono" FontSize="{StaticResource FontSizeSm}" Text="{Binding Short}" VerticalAlignment="Center"/>
+                      <TextBlock Grid.Column="1" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding Folder}"
+                                 VerticalAlignment="Center" Margin="10,0,0,0" TextTrimming="LeadingCharacterEllipsis"/>
+                      <TextBlock Grid.Column="2" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding Detail}"
+                                 VerticalAlignment="Center" Margin="10,0,0,0"/>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </StackPanel>
+          </Grid>
+          <TextBlock MinHeight="16" FontSize="{StaticResource FontSizeSm}" Foreground="{DynamicResource DangerTextBrush}" TextWrapping="Wrap"
+                     Text="{Binding NewError}" AutomationProperties.LiveSetting="Assertive"/>
+          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button Classes="outline" Content="Cancel" Command="{Binding CancelNewCommand}"/>
+            <Button Classes="accent" Command="{Binding CommitNewCommand}">
+              <TextBlock Text="Create"/>
+            </Button>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Border>
+
+    <!-- ── Quick Open (Ctrl+P) · > commands · @ properties ──────── -->
+    <Border Grid.Row="0" Grid.RowSpan="3" Background="{DynamicResource ScrimLightBrush}" IsVisible="{Binding IsPaletteOpen}"
+            PointerPressed="PaletteBackdrop_PointerPressed">
+      <Border Width="600" MaxHeight="460" VerticalAlignment="Top" Margin="0,48,0,0"
+              Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource LineBrush}"
+              BorderThickness="1" CornerRadius="{StaticResource RadiusOverlay}" Padding="6" BoxShadow="{DynamicResource ShadowDialog}"
+              PointerPressed="PaletteCard_PointerPressed" KeyboardNavigation.TabNavigation="Cycle">
+        <DockPanel>
+          <TextBox Name="PaletteBox" DockPanel.Dock="Top" Classes="field" FontSize="{StaticResource FontSizeBase}"
+                   Text="{Binding PaletteText}" AutomationProperties.Name="{Binding PalettePlaceholder}"
+                   PlaceholderText="{Binding PalettePlaceholder}">
+            <TextBox.InnerLeftContent>
+              <TextBlock Text="⌕" FontSize="{StaticResource FontSizeMd}" Classes="dim" Margin="4,0,0,0" VerticalAlignment="Center"/>
+            </TextBox.InnerLeftContent>
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding ConfirmPaletteCommand}"/>
+              <KeyBinding Gesture="Escape" Command="{Binding ClosePaletteCommand}"/>
+              <KeyBinding Gesture="Down" Command="{Binding PaletteNextCommand}"/>
+              <KeyBinding Gesture="Up" Command="{Binding PalettePrevCommand}"/>
+            </TextBox.KeyBindings>
+          </TextBox>
+          <TextBlock DockPanel.Dock="Bottom" Classes="faint" FontSize="{StaticResource FontSizeXs}" Margin="8,7,6,3"
+                     Text="{Binding PaletteHint}"/>
+          <ListBox Name="PaletteList" Classes="palette" Margin="0,6,0,0"
+                   ItemsSource="{Binding PaletteRows}" SelectedIndex="{Binding PaletteSelectedIndex}"
+                   PointerReleased="PaletteList_PointerReleased">
+            <ListBox.Styles>
+              <!-- Lines the current results don't need stay built but hidden (see PaletteRow). -->
+              <Style Selector="ListBoxItem" x:DataType="vm:PaletteRow">
+                <Setter Property="IsVisible" Value="{Binding IsShown}"/>
+                <Setter Property="AutomationProperties.Name" Value="{Binding AccessibleName}"/>
+              </Style>
+            </ListBox.Styles>
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:PaletteRow">
+                <!-- A hidden line has no Item: its DataContext is null, so these bindings rest instead of failing. -->
+                <DockPanel DataContext="{Binding Item}" x:DataType="vm:PaletteItemViewModel">
+                  <TextBlock DockPanel.Dock="Left" Text="{Binding Glyph}" Foreground="{Binding GlyphBrush}"
+                             Width="22" FontSize="{StaticResource FontSizeSm}" VerticalAlignment="Center"/>
+                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding TypeName}" IsVisible="{Binding IsAsset}"/>
+                    <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding GdtName}" IsVisible="{Binding IsAsset}"/>
+                    <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding Detail}"/>
+                    <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding Shortcut}"/>
+                  </StackPanel>
+                  <TextBlock Classes.mono="{Binding IsAsset}" FontSize="{StaticResource FontSizeBase}" Text="{Binding Name}"
+                             TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                </DockPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </Border>
+    </Border>
+
+  </Grid>
+  </Panel>
+</Window>

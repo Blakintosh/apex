@@ -1,0 +1,159 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Apex.Editor.ViewModels"
+             xmlns:c="using:Apex.Editor.Commands"
+             xmlns:controls="using:Apex.Editor.Controls"
+             x:Class="Apex.Editor.Views.InspectorView"
+             x:DataType="vm:MainViewModel">
+
+  <!--
+    The Inspector is a working context panel, not a details card: one line on the asset's problems, then the focused
+    property (what it is, its own problem, this vs parent vs default, one-click undo or use-parent), then what the
+    asset uses, what uses it, and its derivation family. Sections that would be empty say so in one
+    line. This session's changes are not listed here: they are the editor's Changed view (and its
+    count), with Undo all changes in the editor's ⋯ menu and the palette.
+  -->
+  <!-- No header of its own: it is the rest of the right column under the preview. Hiding it is Ctrl+Shift+B, or the
+       Layout menu. -->
+  <DockPanel>
+    <Panel>
+      <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                 Text="Open an asset to inspect it." IsVisible="{Binding HasNoActiveTab}"/>
+
+      <ScrollViewer IsVisible="{Binding HasActiveTab}" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="20" Margin="18,16,18,16">
+
+          <!-- ── Problems: one line, never a card per problem ─────────── -->
+          <!-- A real asset can carry dozens of problems; listing them here pushed the focused property off the pane. The
+               line says how many and opens the Problems view; the focused row's own problem shows with it below. -->
+          <DockPanel IsVisible="{Binding !!ActiveTab.ProblemCount, FallbackValue=False}" Margin="0,0,0,-8">
+            <Ellipse DockPanel.Dock="Left" Width="6" Height="6" Fill="{DynamicResource DangerBrush}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+            <Button DockPanel.Dock="Right" Classes="link danger" Content="Show them" Margin="10,0,0,0" VerticalAlignment="Center"
+                    Command="{Binding ActiveTab.ShowProblemsCommand, FallbackValue={x:Null}}"
+                    IsVisible="{Binding !ActiveTab.IsProblemsView, FallbackValue=False}"
+                    ToolTip.Tip="List only the properties with problems (the editor's Problems view)"/>
+            <TextBlock FontSize="{StaticResource FontSizeBase}" Text="{Binding ActiveTab.ProblemSummary, FallbackValue=''}"
+                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+          </DockPanel>
+
+          <!-- ── Focused property ───────────────────────────────────── -->
+          <StackPanel Spacing="12" IsVisible="{Binding HasInspectorProperty}">
+            <StackPanel Spacing="4">
+              <WrapPanel>
+                <TextBlock FontSize="{StaticResource FontSizeMd}" FontWeight="SemiBold" Text="{Binding InspectorProperty.Label, FallbackValue=''}" Margin="0,0,8,0"/>
+                <TextBlock Classes="faint mono" FontSize="{StaticResource FontSizeSm}" Text="{Binding InspectorProperty.Key, FallbackValue=''}" VerticalAlignment="Bottom" Margin="0,0,0,1"/>
+              </WrapPanel>
+              <TextBlock Classes="dim body" FontSize="{StaticResource FontSizeBase}" LineHeight="19" Margin="0,8,0,0">
+                <Run Text="{Binding InspectorProperty.Description, FallbackValue='', Mode=OneWay}"/>
+                <Run Text="{Binding InspectorRangeText, Mode=OneWay}"/>
+              </TextBlock>
+              <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" TextWrapping="Wrap" Text="{Binding InspectorOriginText}"
+                         IsVisible="{Binding InspectorOriginText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+            </StackPanel>
+
+            <!-- The focused row's own problem, said where its details are. -->
+            <Border Classes="problemband" IsVisible="{Binding InspectorProperty.HasProblem, FallbackValue=False}">
+              <DockPanel>
+                <Ellipse DockPanel.Dock="Left" Width="6" Height="6" Fill="{DynamicResource DangerBrush}" Margin="0,5,10,0" VerticalAlignment="Top"/>
+                <TextBlock FontSize="{StaticResource FontSizeBase}" Text="{Binding InspectorProperty.Problem, FallbackValue=''}" TextWrapping="Wrap"/>
+              </DockPanel>
+            </Border>
+
+            <!-- This asset · Parent · Default: one value per line. Yours is amber when you changed it this session. -->
+            <Border Classes="valuetable">
+              <StackPanel>
+                <Border Classes="valuerow">
+                  <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Classes="mono" FontSize="{StaticResource FontSizeBase}" Text="{Binding InspectorThisValue}"
+                               Classes.changed="{Binding InspectorCanUndo}"
+                               TextTrimming="CharacterEllipsis" MaxWidth="200" VerticalAlignment="Center"/>
+                    <TextBlock Classes="dim" FontSize="{StaticResource FontSizeBase}" Text="This asset" VerticalAlignment="Center"/>
+                  </DockPanel>
+                </Border>
+                <Border Classes="valuerow" IsVisible="{Binding ActiveTab.HasParent, FallbackValue=False}">
+                  <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Classes="mono" FontSize="{StaticResource FontSizeBase}" Text="{Binding InspectorParentValue}"
+                               Foreground="{DynamicResource TextSoftBrush}" TextTrimming="CharacterEllipsis" MaxWidth="200" VerticalAlignment="Center"/>
+                    <TextBlock Classes="dim" FontSize="{StaticResource FontSizeBase}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                      <Run Text="Parent"/><Run Text="  "/><Run Text="{Binding ActiveTab.Parent, Mode=OneWay, FallbackValue=''}"
+                                                                  FontFamily="{StaticResource MonoFont}" Foreground="{DynamicResource TextFaintBrush}"/>
+                    </TextBlock>
+                  </DockPanel>
+                </Border>
+                <Border Classes="valuerow last">
+                  <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Classes="mono faint" FontSize="{StaticResource FontSizeBase}" Text="{Binding InspectorDefaultValue}"
+                               TextTrimming="CharacterEllipsis" MaxWidth="200" VerticalAlignment="Center"/>
+                    <TextBlock Classes="dim" FontSize="{StaticResource FontSizeBase}" Text="Default" VerticalAlignment="Center"/>
+                  </DockPanel>
+                </Border>
+              </StackPanel>
+            </Border>
+
+            <WrapPanel>
+              <Button Classes="link teal" Content="Use parent value" FontSize="{StaticResource FontSizeBase}" Margin="0,0,16,4"
+                      Command="{Binding InspectorUseParentCommand}" IsVisible="{Binding InspectorCanUseParent}"/>
+              <Button Classes="link dim" Margin="0,0,16,4" Command="{Binding InspectorUndoChangeCommand}" IsVisible="{Binding InspectorCanUndo}">
+                <TextBlock FontSize="{StaticResource FontSizeBase}">
+                  <Run Text="Undo change"/><Run Text=" "/><Run Text="{Binding InspectorUndoText, Mode=OneWay}" Foreground="{DynamicResource TextFaintBrush}"/>
+                </TextBlock>
+              </Button>
+            </WrapPanel>
+          </StackPanel>
+
+          <!-- Nothing focused yet: say how to get property details. -->
+          <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap"
+                     IsVisible="{Binding !HasInspectorProperty}"
+                     Text="Select a property to see what it does and where its value comes from."/>
+
+          <!-- ── Uses · Used by · Family ────────────────────────────── -->
+          <StackPanel Spacing="8">
+            <StackPanel Orientation="Horizontal" Spacing="16">
+              <RadioButton Classes="linktab" GroupName="InspectorLinks" IsChecked="{Binding IsUsesTab}" AutomationProperties.Name="{Binding UsesCount, StringFormat='Uses, {0}'}"
+                           ToolTip.Tip="Assets this one references">
+                <TextBlock><Run Text="Uses"/><Run Text=" "/><Run Text="{Binding UsesCount, Mode=OneWay}" FontWeight="Normal" Foreground="{DynamicResource TextFaintBrush}"/></TextBlock>
+              </RadioButton>
+              <RadioButton Classes="linktab" GroupName="InspectorLinks" IsChecked="{Binding IsUsedByTab}" AutomationProperties.Name="{Binding ReferenceCount, StringFormat='Used by, {0}'}"
+                           ToolTip.Tip="Assets that reference this one (among loaded and opened assets)">
+                <TextBlock><Run Text="Used by"/><Run Text=" "/><Run Text="{Binding ReferenceCount, Mode=OneWay}" FontWeight="Normal" Foreground="{DynamicResource TextFaintBrush}"/></TextBlock>
+              </RadioButton>
+              <RadioButton Classes="linktab" GroupName="InspectorLinks" IsChecked="{Binding IsFamilyTab}" AutomationProperties.Name="{Binding FamilyCount, StringFormat='Family, {0}'}"
+                           ToolTip.Tip="Parent templates and assets derived from this one">
+                <TextBlock><Run Text="Family"/><Run Text=" "/><Run Text="{Binding FamilyCount, Mode=OneWay}" FontWeight="Normal" Foreground="{DynamicResource TextFaintBrush}"/></TextBlock>
+              </RadioButton>
+            </StackPanel>
+            <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="{Binding ActiveLinksEmptyText}"
+                       IsVisible="{Binding !ActiveLinks.Count}"/>
+            <!-- Up to 200 rows per list: virtualize against the Inspector's scroll viewport, so a tab
+                 switch realizes only the rows in view. -->
+            <controls:RowItemsControl ItemsSource="{Binding ActiveLinks}">
+              <controls:RowItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <controls:RowPanel/>
+                </ItemsPanelTemplate>
+              </controls:RowItemsControl.ItemsPanel>
+              <controls:RowItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:InspectorLinkViewModel">
+                  <Button Classes="linkrow" Command="{Binding OpenCommand}" IsEnabled="{Binding !IsSelf}" AutomationProperties.Name="{Binding Name}">
+                    <DockPanel>
+                      <!-- The type's icon alone, as in the Explorer and tabs: no tile behind it. -->
+                      <controls:GlyphIcon DockPanel.Dock="Left" Width="14" Size="13" Margin="0,0,8,0" Glyph="{Binding Glyph}" Foreground="{Binding GlyphBrush}"
+                                          VerticalAlignment="Center"/>
+                      <TextBlock DockPanel.Dock="Right" Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="{Binding Via}"
+                                 VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding !IsMissing}"/>
+                      <TextBlock DockPanel.Dock="Right" FontSize="{StaticResource FontSizeSm}" Text="Missing" Foreground="{DynamicResource DangerTextBrush}"
+                                 VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding IsMissing}"
+                                 ToolTip.Tip="Not in any loaded GDT"/>
+                      <TextBlock FontSize="{StaticResource FontSizeSm}" FontFeatures="+tnum" Text="{Binding Name}" TextTrimming="CharacterEllipsis"
+                                 Foreground="{DynamicResource TextSoftBrush}" VerticalAlignment="Center" Classes.dim="{Binding IsSelf}"/>
+                    </DockPanel>
+                  </Button>
+                </DataTemplate>
+              </controls:RowItemsControl.ItemTemplate>
+            </controls:RowItemsControl>
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </Panel>
+  </DockPanel>
+</UserControl>

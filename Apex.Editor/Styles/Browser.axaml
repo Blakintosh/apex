@@ -1,0 +1,68 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- The Explorer's own controls. Colours only from Resources/Tokens.axaml. -->
+
+  <!-- A row of the Filter menu's Type and GDT lists: a toggle the full width of the menu. Checked carries the
+       accent tint the "Only" pills above it use, plus a tick, so on and off read the same way across the menu. -->
+  <Style Selector="ToggleButton.optionrow">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusSm}"/>
+    <Setter Property="Padding" Value="4,0,8,0"/>
+    <Setter Property="Height" Value="26"/>
+    <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="ToggleButton.optionrow:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgRowHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.optionrow:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.optionrow:checked /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentDimBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.optionrow:checked:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentDimHoverBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.optionrow:checked:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentDimBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.optionrow Path.tick">
+    <Setter Property="IsVisible" Value="False"/>
+  </Style>
+  <Style Selector="ToggleButton.optionrow:checked Path.tick">
+    <Setter Property="IsVisible" Value="True"/>
+  </Style>
+
+  <!-- The search menu button at the end of the Explorer's box: an icon the size of the ✕ beside it. -->
+  <Style Selector="Button.boxicon">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Width" Value="24"/>
+    <Setter Property="Height" Value="24"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXs}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.boxicon:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.boxicon:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+  <Style Selector="Button.boxicon Path">
+    <Setter Property="Stroke" Value="{DynamicResource TextDimBrush}"/>
+  </Style>
+  <Style Selector="Button.boxicon:pointerover Path">
+    <Setter Property="Stroke" Value="{DynamicResource TextBrush}"/>
+  </Style>
+</Styles>

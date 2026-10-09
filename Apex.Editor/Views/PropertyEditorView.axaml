@@ -1,0 +1,130 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Apex.Editor.ViewModels"
+             xmlns:controls="using:Apex.Editor.Controls"
+             xmlns:c="using:Apex.Editor.Commands"
+             xmlns:views="using:Apex.Editor.Views"
+             x:Class="Apex.Editor.Views.PropertyEditorView"
+             x:DataType="vm:PropertyItemViewModel"
+             Focusable="False">
+
+  <!--
+    The value editor for one property, by kind: a scrub number, a switch, a dropdown, a reference or
+    a text field, with its ↶ / ↑ actions right beside the value. The editor's rows and the table's
+    cells both use it, so a value edits, validates and undoes the same way everywhere. Text fields
+    bind one way and commit on Enter or focus loss (Esc reverts; see the code-behind), so a
+    half-typed name is never validated, previewed or recorded.
+
+    Every kind's editor grows to one width (PropertyItemViewModel.ValueWidth, set in the code-behind); the space past
+    it stays empty, so ⚠ and ↶ / ↑ sit at the value's right edge, in one column down the form. In the form (ShowMarks)
+    the ⚠ / ⊘ slot is always there, so a problem appearing never narrows the field being typed in. An empty value shows
+    what it means (the default, or the value inherited) as its placeholder.
+  -->
+  <UserControl.Styles>
+    <!-- A narrow table cell keeps the value readable: the browse button goes (the colour swatch stays). -->
+    <Style Selector="Grid.narrow Button.browse">
+      <Setter Property="IsVisible" Value="False"/>
+    </Style>
+  </UserControl.Styles>
+
+  <Grid Name="Root">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="*"/>
+      <ColumnDefinition Width="Auto"/>
+      <ColumnDefinition Width="Auto"/>
+      <ColumnDefinition Width="Auto"/>
+    </Grid.ColumnDefinitions>
+    <ContentControl Content="{Binding}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Focusable="False">
+      <ContentControl.DataTemplates>
+        <DataTemplate DataType="vm:NumberPropertyViewModel">
+          <!-- As wide as every other value (the theme's own cap for a number box is narrower). -->
+          <controls:ScrubNumberBox MaxWidth="{x:Static vm:PropertyItemViewModel.ValueWidth}" AutomationProperties.Name="{Binding AccessibleName}"/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:TogglePropertyViewModel">
+          <!-- On / Off in the values' own face and size, like every other value. -->
+          <ToggleButton Classes="miniswitch" IsChecked="{Binding IsOn}" HorizontalAlignment="Left" AutomationProperties.Name="{Binding Label}">
+            <TextBlock Classes="pvalue" Text="{Binding StateText}" FontSize="{StaticResource FontSizeSm}" FontFamily="{StaticResource MonoFont}"/>
+          </ToggleButton>
+        </DataTemplate>
+        <DataTemplate DataType="vm:ChoicePropertyViewModel">
+          <controls:ChoiceBox Classes="pfield dropfield" PlaceholderText="{Binding Placeholder}" AutomationProperties.Name="{Binding AccessibleName}"/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:RefPropertyViewModel">
+          <!-- The field carries its own ▾ (every asset of the type) and, while the name resolves, its open arrow (F12). -->
+          <Grid>
+            <views:RefField Classes="pfield mono dropfield" AutomationProperties.Name="{Binding AccessibleName}" Text="{Binding Value, Mode=OneWay}" Padding="28,0,2,0" IsUndoEnabled="False"
+                            PlaceholderText="{Binding Placeholder}"/>
+            <controls:GlyphIcon Glyph="{Binding RefGlyph}" Foreground="{Binding RefBrush}" Size="13" Margin="8,0,0,0"
+                                VerticalAlignment="Center" HorizontalAlignment="Left" IsHitTestVisible="False" ToolTip.Tip="{Binding RefType}"/>
+          </Grid>
+        </DataTemplate>
+        <!-- A file under the field's folder: the folder button picks one (hidden in a narrow cell; disabled, with the
+             reason, on mock data). Out of editing, a long path is trimmed from its front so the file's own name shows
+             (the folders are what you already know), with its doubled backslashes (a GDT stores them so) shown as one; in the field, the whole path is there to edit exactly as stored. -->
+        <DataTemplate DataType="vm:FilePropertyViewModel">
+          <Grid>
+            <TextBox Name="FileBox" Classes="pfield file" AutomationProperties.Name="{Binding AccessibleName}" Text="{Binding Value, Mode=OneWay}" Padding="8,0,26,0" IsUndoEnabled="False"
+                     PlaceholderText="{Binding Placeholder}" ToolTip.Tip="{Binding Value}"/>
+            <TextBlock Text="{Binding Value, Converter={x:Static views:PathDisplay.Instance}}" Margin="8,0,26,0" VerticalAlignment="Center" TextTrimming="LeadingCharacterEllipsis"
+                       FontFamily="{Binding #FileBox.FontFamily}" FontSize="{Binding #FileBox.FontSize}" Foreground="{Binding #FileBox.Foreground}"
+                       IsHitTestVisible="False" IsVisible="{Binding !#FileBox.IsFocused}"/>
+            <Button Classes="rowaction live browse" HorizontalAlignment="Right" Margin="0,0,1,0"
+                    IsEnabled="{Binding CanBrowse}" ToolTip.Tip="{Binding BrowseTip}" ToolTip.ShowOnDisabled="True"
+                    AutomationProperties.Name="Choose a file">
+              <Path Data="M1.5,3 H5 L6.5,4.5 H10.5 V9.5 H1.5 Z" Width="12" Height="12" StrokeThickness="1" StrokeJoin="Round"
+                    Stroke="{Binding $parent[Button].Foreground}" IsHitTestVisible="False"/>
+            </Button>
+          </Grid>
+        </DataTemplate>
+        <!-- "r g b a": the swatch opens R, G, B (A) and hex; the text stays editable beside it. -->
+        <DataTemplate DataType="vm:ColorPropertyViewModel">
+          <Grid ColumnDefinitions="Auto,*">
+            <Button Name="Swatch" Classes="rowaction swatch" ContentTemplate="{x:Null}" Width="24" Padding="4" ToolTip.Tip="Edit colour" AutomationProperties.Name="Edit colour">
+              <controls:ColorSwatch Color="{Binding Swatch}" Width="16" Height="16"/>
+            </Button>
+            <!-- A popup of the row's own (not a Flyout, whose presenter costs a frame and a half to open). -->
+            <Popup Classes="colorpicker" PlacementTarget="{Binding #Swatch}" Placement="BottomEdgeAlignedLeft" VerticalOffset="4"
+                   IsLightDismissEnabled="True">
+              <Border Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
+                      CornerRadius="{StaticResource RadiusOverlay}" BoxShadow="{DynamicResource ShadowLayer}" Padding="12">
+                <controls:ColorPanel/>
+              </Border>
+            </Popup>
+            <TextBox Grid.Column="1" Classes="pfield" Text="{Binding Value, Mode=OneWay}" Margin="2,0,0,0" IsUndoEnabled="False"
+                     PlaceholderText="{Binding Placeholder}"/>
+          </Grid>
+        </DataTemplate>
+        <!-- One item per line (hideTags, materials, skinOverride…); a summary that opens the list in a table cell. -->
+        <DataTemplate DataType="vm:LinesPropertyViewModel">
+          <views:LineListEditor/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:SuggestPropertyViewModel">
+          <controls:SuggestBox AutomationProperties.Name="{Binding AccessibleName}"/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:TextPropertyViewModel">
+          <TextBox Classes="pfield" AutomationProperties.Name="{Binding AccessibleName}" Text="{Binding Value, Mode=OneWay}" IsUndoEnabled="False" PlaceholderText="{Binding Placeholder}"/>
+        </DataTemplate>
+      </ContentControl.DataTemplates>
+    </ContentControl>
+
+    <!-- The value before this session's change, struck through right after the new one. -->
+    <TextBlock Grid.Column="1" Classes="pwas" Text="{Binding BaselineValue}" IsVisible="{Binding ShowWas}" Margin="6,0,0,0"
+               ToolTip.Tip="{Binding BaselineValue, StringFormat='Was {0}'}"/>
+
+    <!-- The form's mark slot: ⚠ says what's wrong with the value; ⊘ that the deffile disables the row, and why. -->
+    <!-- Its ⚠ and ⊘ are built the first time the slot is shown (see the code-behind): a table cell has none. -->
+    <Panel Grid.Column="2" Name="Marks" Width="22" IsVisible="False"/>
+
+    <!-- On the hovered or focused row only: ↶ undoes this session's edit; ↑ goes back to the parent's value. The column
+         is held at its width while they are hidden (only the inner panel comes and goes), so the value beside them
+         never changes width under the pointer. -->
+    <Panel Grid.Column="3" Width="24" Margin="2,0,0,0">
+      <Panel Classes="live">
+        <Button Classes="rowaction" Content="↶" Command="{Binding RevertChangeCommand}" IsVisible="{Binding IsChanged}"
+                AutomationProperties.Name="Undo this change" ToolTip.Tip="{Binding BaselineValue, StringFormat='Undo this change (was {0})'}"/>
+        <Button Classes="rowaction" Content="↑" Command="{Binding RevertToParentCommand}" IsVisible="{Binding ShowRevertParent}"
+                AutomationProperties.Name="Use the parent's value" ToolTip.Tip="{Binding ProvenanceTip}"/>
+      </Panel>
+    </Panel>
+  </Grid>
+</UserControl>

@@ -1,0 +1,162 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Apex.Editor.ViewModels"
+             xmlns:m="using:Apex.Editor.Models"
+             xmlns:c="using:Apex.Editor.Commands"
+             xmlns:local="using:Apex.Editor.Views"
+             x:Class="Apex.Editor.Views.CompareView"
+             x:DataType="vm:CompareViewModel">
+
+  <!--
+    Values are effective ones (own, else the parent chain's, else the default), shown as the editor
+    shows them; inherited ones read dim. The base and compared columns share the width (see the
+    code-behind), and ◀ copies a value into the base as an undo step.
+  -->
+  <Border Classes="pane">
+    <DockPanel>
+      <!-- Header -->
+      <Border DockPanel.Dock="Top" Classes="panehead">
+        <DockPanel>
+          <!-- The asset leads; each column's caption carries its own difference count. -->
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <TextBlock Classes="h-pane" Text="Compare" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <TextBlock Text="{Binding Glyph}" Foreground="{Binding GlyphBrush}" FontSize="{StaticResource FontSizeSm}" VerticalAlignment="Center"/>
+            <TextBlock Classes="mono" FontSize="{StaticResource FontSizeBase}" FontWeight="SemiBold" Text="{Binding BaseName}" VerticalAlignment="Center"/>
+          </StackPanel>
+          <Button DockPanel.Dock="Right" Classes="tool" Content="Close"
+                  ToolTip.Tip="Close compare (Esc)"
+                  Command="{Binding CloseCommand}" HorizontalAlignment="Right"/>
+          <Panel/>
+        </DockPanel>
+      </Border>
+
+      <!-- Toolbar: add columns, diff-only -->
+      <Border DockPanel.Dock="Top" Padding="{StaticResource PaddingPane}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
+        <DockPanel>
+          <ToggleButton DockPanel.Dock="Right" Classes="pill" IsChecked="{Binding DiffOnly}">
+            <TextBlock Text="Differences only" FontSize="{StaticResource FontSizeSm}"/>
+          </ToggleButton>
+          <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <!-- Searches every same-type asset by name, like Quick Open: ↑↓ pick, Enter adds. -->
+            <Panel>
+              <TextBox Name="AddBox" Classes="field small" Width="280" Text="{Binding AddText}"
+                       PlaceholderText="Add an asset to compare" AutomationProperties.Name="Add an asset to compare"/>
+              <Popup PlacementTarget="{Binding #AddBox}" Placement="BottomEdgeAlignedLeft" IsOpen="{Binding HasAddMatches}"
+                     IsLightDismissEnabled="False">
+                <Border Classes="dialogcard" Width="360" MaxHeight="360" Padding="4">
+                  <ListBox Name="AddList" Classes="grid" ItemsSource="{Binding AddMatches}" SelectedItem="{Binding AddSelection}"
+                           Focusable="False">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate x:DataType="m:AssetRecord">
+                        <DockPanel>
+                          <TextBlock DockPanel.Dock="Right" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding GdtName}"
+                                     VerticalAlignment="Center" Margin="8,0,0,0"/>
+                          <TextBlock FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FontSizeSm}" Text="{Binding Name}"
+                                     TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                        </DockPanel>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </Border>
+              </Popup>
+            </Panel>
+            <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" VerticalAlignment="Center">
+              <Run Text="Use ◀ to copy a value into the base asset."/><Run Text=" "/><Run Text="{c:Gesture edit.undo}"/><Run Text=" undoes it."/>
+            </TextBlock>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+        <DockPanel>
+          <!-- Column captions: property | base | target columns -->
+          <Border DockPanel.Dock="Top" Background="{DynamicResource BgHeaderBrush}"
+                  BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal" Margin="14,0,0,0">
+              <TextBlock Width="196" Classes="h-pane" Text="Property" Margin="0,9"/>
+              <StackPanel Width="{Binding ColumnWidth}" Margin="24,5,0,5">
+                <TextBlock Classes="mono" FontSize="{StaticResource FontSizeSm}" FontWeight="SemiBold"
+                           Text="{Binding BaseName}" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="base asset"/>
+              </StackPanel>
+              <ItemsControl ItemsSource="{Binding Columns}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal"/>
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:CompareColumnViewModel">
+                    <DockPanel Width="{Binding $parent[local:CompareView].ColumnWidth}" Margin="0,5,0,5">
+                      <Button DockPanel.Dock="Right" Classes="chipclose" Content="✕" Margin="0,0,10,0"
+                              AutomationProperties.Name="Remove from comparison"
+                              Command="{Binding RemoveCommand}" ToolTip.Tip="Remove from comparison"/>
+                      <StackPanel Margin="24,0,0,0">
+                        <TextBlock Classes="mono" FontSize="{StaticResource FontSizeSm}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding GdtName}"/>
+                          <TextBlock Classes="dim" FontSize="{StaticResource FontSizeXs}" Text="{Binding DiffText}"/>
+                        </StackPanel>
+                      </StackPanel>
+                    </DockPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+
+          <!-- Diff rows -->
+          <Panel>
+          <!-- "Differences only" with nothing left to show is a result, not a blank screen. One line;
+               the toggle that brings the rest back is right above it. -->
+          <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" HorizontalAlignment="Center" VerticalAlignment="Top"
+                     Margin="0,44,0,0" IsVisible="{Binding !Rows.Count}"
+                     Text="These assets match on every compared property."/>
+
+          <ListBox Classes="grid" ItemsSource="{Binding Rows}" Margin="0,2,0,0">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:CompareRowViewModel">
+                <StackPanel Orientation="Horizontal" Margin="10,0,0,0">
+                  <StackPanel Width="196" Spacing="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Label}" FontSize="{StaticResource FontSizeSm}"/>
+                    <TextBlock Text="{Binding Key}" Classes="faint mono" FontSize="{StaticResource FontSizeXs}"/>
+                  </StackPanel>
+                  <Border Width="{Binding $parent[local:CompareView].ColumnWidth}" Classes="basecell" Margin="24,2,0,2">
+                    <TextBlock Classes="mono" Classes.dim="{Binding BaseInherited}" FontSize="{StaticResource FontSizeSm}" Text="{Binding BaseDisplay}"
+                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                  </Border>
+                  <ItemsControl ItemsSource="{Binding Cells}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:CompareCellViewModel">
+                        <DockPanel Width="{Binding $parent[local:CompareView].ColumnWidth}" Margin="0,0,0,0">
+                          <!-- 24 px wide: the take button's hit area, whatever the glyph's size. -->
+                          <Button DockPanel.Dock="Left" Classes="tool" Content="◀" FontSize="{StaticResource FontSizeXs}"
+                                  Width="24" Height="24" Padding="0" HorizontalContentAlignment="Center"
+                                  VerticalAlignment="Center" Command="{Binding TakeCommand}"
+                                  IsVisible="{Binding IsDifferent}"
+                                  AutomationProperties.Name="Copy this value into the base asset"
+                                  ToolTip.Tip="Copy this value into the base asset"/>
+                          <Panel DockPanel.Dock="Left" Width="24" IsVisible="{Binding !IsDifferent}"/>
+                          <Border Classes="diffcell" Classes.diff="{Binding IsDifferent}" Margin="0,2,0,2" ToolTip.Tip="{Binding Tip}">
+                            <TextBlock Classes="mono" Classes.dim="{Binding IsInherited}" FontSize="{StaticResource FontSizeSm}" Text="{Binding Display}"
+                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                          </Border>
+                        </DockPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          </Panel>
+        </DockPanel>
+      </ScrollViewer>
+    </DockPanel>
+  </Border>
+</UserControl>

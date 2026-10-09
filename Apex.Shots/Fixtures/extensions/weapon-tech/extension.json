@@ -1,0 +1,298 @@
+// Test fixture, not shipped with Apex: weapon-tech's per-weapon keys (docs/CONFIG_REFERENCE.md "[weapon:<name>]",
+// src/wt_cfgv2.h kWtcTails / kWtcComposite). weapon-tech will generate and own the real manifest. Record lists: wtKick#
+// (wop_kick, section 2) and wtAdditiveSlot# (the additive= purpose-slot line, section 1). wtWop# and wtInterrupt# are
+// not here yet. wtEnabled is Apex's proposed per-asset switch; weapon-tech's key table doesn't have it yet.
+// The editor pass's members, one use each: title, offNotice, notice and export (top level); parts (the four springs and
+// wtSwayAdvFire); labelled choices (wtEmptyLastShot); a weapon reference (wtSource); combine (the kick table's ads and
+// gun); collapsedUnlessSet (Ammo hide, Hand IK) and a section notice (Hand IK).
+//
+// Where a type or rule below isn't in CONFIG_REFERENCE.md it is marked "(source)" with where it comes from:
+// - wtKick# ads / gun: wop_kick's fields are named but not typed there. bo3_wop.h reads them with %d and compares them
+//   with the 0/1 ADS and gun flags, as wop_spring's documented <gun 0|1>,<ads 0|1>; bullet is %d (whole), no range.
+// - wtKick#: the 8 fields are all required (sscanf must read 8). No ranges are documented; none are set.
+// - wtAdditiveSlot# kinds per purpose: recoil_ads takes recoil, empty_left empty, bullets_left bullet (bo3_slots.h
+//   ParseSlotAdditive). No per-weapon row limit is documented (192 additive lines in all), so the list sets none.
+{
+  "apexSchema": 1,
+  "id": "weapon-tech",
+  "version": "0.1.0-fixture",
+  "targets": ["weapon"],
+  "enabledBy": "wtEnabled",
+  "title": "Weapon tech",
+  "offNotice": "Weapon tech is off for this weapon.",
+  "notice": "The game doesn't read these yet. Copy this weapon's section into weapon_tech.cfg.",
+  "consumer": { "file": "bin/linkerhook.dll", "contains": "generated:apex-gdtx" },
+  "export": { "format": "ini-section", "header": "[weapon:{asset}]", "command": "Copy as weapon_tech.cfg" },
+  "sections": [
+    {
+      "title": "Weapon tech",
+      "fields": [
+        { "key": "wtEnabled", "label": "Enabled", "kind": "toggle", "default": false,
+          "description": "Turns weapon-tech on for this weapon and the weapons based on it. Off hides its settings; their values are kept." },
+        { "key": "wtSource", "label": "Recoil from", "kind": "assetRef", "refType": "weapon",
+          "description": "Another weapon (variant name) whose kick block this one copies first (wop_alias); its own values go on top. Locomotion, sway, IK, segmented reload, inspect and interrupts treat it as an alias too." },
+        { "key": "wtRecoil", "label": "Kick and recoil", "kind": "toggle", "default": true,
+          "description": "Off leaves out this weapon's kick, spring, tilt and curve keys (wtRecoil = off)." },
+        { "key": "wtSway", "label": "Sway", "kind": "toggle", "default": true,
+          "description": "Off leaves out this weapon's sway keys (wtSway = off)." },
+        { "key": "wtLoco", "label": "Locomotion", "kind": "toggle", "default": true,
+          "description": "Off leaves out this weapon's walk, jog and idle-active keys (wtLoco = off)." }
+      ]
+    },
+    {
+      "title": "Kick",
+      "visibleWhen": "wtRecoil",
+      "fields": [
+        { "key": "wtFireTimeMs", "label": "Fire time (ms)", "kind": "number", "default": 100, "step": 1,
+          "description": "Milliseconds between shots as the IW8 kick sees them (wop_weapon)." },
+        { "key": "wtKickPct", "label": "Kick percent", "kind": "text",
+          "description": "startBullets,endBullets then 8 floats (wop_kickpct). Default 1.0." },
+        { "key": "wtSpringViewHip", "label": "Spring, view, hip", "kind": "text",
+          "description": "accel,retAccelScale,retSpeedCurveScale,maxPitch,maxYaw (wop_spring 0,0). Replaces BO3's kick integrator.",
+          "parts": [
+            { "name": "accel", "label": "Stiffness", "kind": "number", "min": 0, "max": 1000 },
+            { "name": "retAccelScale", "label": "Return speed", "kind": "number" },
+            { "name": "retSpeedCurveScale", "label": "Return curve", "kind": "number" },
+            { "name": "maxPitch", "label": "Max climb", "kind": "number" },
+            { "name": "maxYaw", "label": "Max drift", "kind": "number" } ] },
+        { "key": "wtSpringViewAds", "label": "Spring, view, ADS", "kind": "text",
+          "description": "accel,retAccelScale,retSpeedCurveScale,maxPitch,maxYaw (wop_spring 0,1).",
+          "parts": [
+            { "name": "accel", "label": "Stiffness", "kind": "number", "min": 0, "max": 1000 },
+            { "name": "retAccelScale", "label": "Return speed", "kind": "number" },
+            { "name": "retSpeedCurveScale", "label": "Return curve", "kind": "number" },
+            { "name": "maxPitch", "label": "Max climb", "kind": "number" },
+            { "name": "maxYaw", "label": "Max drift", "kind": "number" } ] },
+        { "key": "wtSpringGunHip", "label": "Spring, gun, hip", "kind": "text",
+          "description": "accel,retAccelScale,retSpeedCurveScale,maxPitch,maxYaw (wop_spring 1,0).",
+          "parts": [
+            { "name": "accel", "label": "Stiffness", "kind": "number", "min": 0, "max": 1000 },
+            { "name": "retAccelScale", "label": "Return speed", "kind": "number" },
+            { "name": "retSpeedCurveScale", "label": "Return curve", "kind": "number" },
+            { "name": "maxPitch", "label": "Max climb", "kind": "number" },
+            { "name": "maxYaw", "label": "Max drift", "kind": "number" } ] },
+        { "key": "wtSpringGunAds", "label": "Spring, gun, ADS", "kind": "text",
+          "description": "accel,retAccelScale,retSpeedCurveScale,maxPitch,maxYaw (wop_spring 1,1).",
+          "parts": [
+            { "name": "accel", "label": "Stiffness", "kind": "number", "min": 0, "max": 1000 },
+            { "name": "retAccelScale", "label": "Return speed", "kind": "number" },
+            { "name": "retSpeedCurveScale", "label": "Return curve", "kind": "number" },
+            { "name": "maxPitch", "label": "Max climb", "kind": "number" },
+            { "name": "maxYaw", "label": "Max drift", "kind": "number" } ] },
+        { "key": "wtTilt", "label": "Tilt", "kind": "text", "description": "8 floats (wop_tilt). Default 0." },
+        { "key": "wtWopCurveHoldSlow", "label": "Curve: hold, slow", "kind": "text",
+          "description": "blend,decay,shotDecayFrac,hold,adsBegin,adsEnd,interpIn,interpOut (wop_curve 0)." },
+        { "key": "wtWopCurveHoldFast", "label": "Curve: hold, fast", "kind": "text",
+          "description": "blend,decay,shotDecayFrac,hold,adsBegin,adsEnd,interpIn,interpOut (wop_curve 1)." },
+        { "key": "wtWopCurveKick", "label": "Curve: kick", "kind": "text",
+          "description": "blend,decay,shotDecayFrac,hold,adsBegin,adsEnd,interpIn,interpOut (wop_curve 2)." },
+        { "key": "wtWopCurveSnapDecay", "label": "Curve: snap decay", "kind": "text",
+          "description": "blend,decay,shotDecayFrac,hold,adsBegin,adsEnd,interpIn,interpOut (wop_curve 3)." },
+        { "key": "wtWopCurveAds", "label": "Curve: ADS", "kind": "text",
+          "description": "blend,decay,shotDecayFrac,hold,adsBegin,adsEnd,interpIn,interpOut (wop_curve 4)." },
+        { "key": "wtWopCurveAlwaysOn", "label": "Curve: always on", "kind": "text",
+          "description": "blend,decay,shotDecayFrac,hold,adsBegin,adsEnd,interpIn,interpOut (wop_curve 5)." },
+        { "key": "wtKickReturn", "label": "Kick return", "kind": "choice", "choices": ["on", "off"],
+          "description": "Per-weapon wop_kickreturn. Unset: the cfg's global wop_kickreturn decides (off by default)." },
+        { "key": "wtKickMaintain", "label": "Kick return maintain", "kind": "number", "default": 0, "min": 0, "max": 1,
+          "description": "How much kick is maintained on return (wop_kickreturn's maintain)." },
+        { "key": "wtKickNoDampening", "label": "Kick return without dampening", "kind": "toggle", "default": false,
+          "description": "wop_kickreturn's noDampening." }
+      ],
+      "records": [
+        {
+          "key": "wtKick#", "label": "Kick patterns", "max": 24,
+          "combine": [
+            { "label": "Applies to", "columns": ["ads", "gun"], "description": "Which kick this set drives.",
+              "choices": [
+                { "value": ["0", "0"], "label": "Hip view" }, { "value": ["0", "1"], "label": "Hip gun" },
+                { "value": ["1", "0"], "label": "ADS view" }, { "value": ["1", "1"], "label": "ADS gun" } ] } ],
+          "description": "IW8 angular kick sets (wop_kick), one per row, in file order. Up to 24; any row installs the fire hook.",
+          "columns": [
+            { "name": "ads", "label": "ADS", "kind": "toggle", "description": "On: the set applies while aiming down sights (source: bo3_wop.h)." },
+            { "name": "gun", "label": "Target", "kind": "choice", "choices": ["0", "1"],
+              "description": "0: the view kick, 1: the gun kick, as wop_spring's gun 0|1 (source: bo3_wop.h)." },
+            { "name": "bullet", "label": "From shot", "kind": "number", "integer": true,
+              "description": "The shot of a burst this set starts at (bullet)." },
+            { "name": "dir", "label": "Direction", "kind": "number", "description": "dir." },
+            { "name": "dev", "label": "Deviation", "kind": "number", "description": "dev." },
+            { "name": "sMin", "label": "Strength min", "kind": "number", "description": "sMin." },
+            { "name": "sMax", "label": "Strength max", "kind": "number", "description": "sMax." },
+            { "name": "pitchScale", "label": "Pitch scale", "kind": "number", "description": "pitchScale." }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Camera",
+      "fields": [
+        { "key": "wtCameraFree", "label": "Camera free", "kind": "number", "min": 0, "max": 1,
+          "description": "1: IW8 camera anims move only the camera (tag_camera); the viewmodel stays put. Unset: the global camera_free." },
+        { "key": "wtCamShakeAngles", "label": "Shake: pitch and yaw", "kind": "number", "default": -1,
+          "description": "cam_shake pitch/yaw scale. -1 falls back to the alias source, then the global." },
+        { "key": "wtCamShakeRoll", "label": "Shake: roll", "kind": "number", "default": -1,
+          "description": "cam_shake roll scale. -1 falls back to the alias source, then the global." },
+        { "key": "wtCamShakeOrigin", "label": "Shake: origin", "kind": "number", "default": -1,
+          "description": "cam_shake origin scale. -1 falls back to the alias source, then the global." },
+        { "key": "wtCamShakePitchUp", "label": "Shake: pitch up", "kind": "choice", "choices": ["on", "off"],
+          "description": "cam_shake pitchUp. Unset: falls back to the alias source, then the global." }
+      ]
+    },
+    {
+      "title": "Sway",
+      "visibleWhen": "wtSway",
+      "fields": [
+        { "key": "wtSwayAdv", "label": "Torso", "kind": "text", "description": "15 floats, masses above 0 (sway_adv). Off when unset." },
+        { "key": "wtSwayAdvGun", "label": "Gun", "kind": "text", "description": "15 floats, masses above 0 (sway_advgun). Off when unset." },
+        { "key": "wtSwayAdvFire", "label": "Fire", "kind": "text", "default": "300,200,200,0.5,0.5",
+          "description": "fireMs,startMs,finishMs,dzScale,toGun (sway_advfire).",
+          "parts": [
+            { "name": "fireMs", "label": "Fire (ms)", "kind": "number", "integer": true },
+            { "name": "startMs", "label": "Start (ms)", "kind": "number", "integer": true },
+            { "name": "finishMs", "label": "Finish (ms)", "kind": "number", "integer": true },
+            { "name": "dzScale", "label": "Deadzone scale", "kind": "number" },
+            { "name": "toGun", "label": "To gun", "kind": "number", "default": 0.5 } ] },
+        { "key": "wtSwayIdle1", "label": "Idle 1", "kind": "text", "description": "16 floats (sway_idle 1). Off when unset." },
+        { "key": "wtSwayIdle2", "label": "Idle 2", "kind": "text", "description": "16 floats (sway_idle 2). Off when unset." },
+        { "key": "wtSwayIdleMisc", "label": "Idle: crouch, prone, gasp", "kind": "text", "default": "1,1,0",
+          "description": "crouch,prone,gasp (sway_idlemisc)." },
+        { "key": "wtSwayStance", "label": "Stance", "kind": "text", "description": "16 floats (sway_stance). Off when unset." },
+        { "key": "wtSwayAdsBob", "label": "ADS bob", "kind": "text",
+          "description": "pitch,yaw,tiltP,tiltY,tiltR,tiltOffset,crouch (sway_adsbob). Off when unset." },
+        { "key": "wtSwayGraphDeadzone", "label": "Graph: deadzone", "kind": "text",
+          "description": "x0,y0,... with 2 to 16 knots (sway_graph 0). Linear when unset." },
+        { "key": "wtSwayGraphGun", "label": "Graph: gun", "kind": "text",
+          "description": "x0,y0,... with 2 to 16 knots (sway_graph 1). Linear when unset." }
+      ]
+    },
+    {
+      "title": "Locomotion",
+      "visibleWhen": "wtLoco",
+      "fields": [
+        { "key": "wtLocoWalkStrides", "label": "Walk strides", "kind": "number", "integer": true, "min": 1, "max": 64,
+          "description": "Locks the walk anim to the bob cycle over this many strides (locomotion walk). Unset: no walk lock." },
+        { "key": "wtLocoWalkRate", "label": "Walk rate", "kind": "number", "visibleWhen": "wtLocoWalkStrides > 0",
+          "description": "The walk lock's rate." },
+        { "key": "wtLocoJogLeaf", "label": "Jog leaf", "kind": "number", "integer": true, "min": 185, "max": 192,
+          "description": "Juke leaf (185 to 192, root 184) for a visual-only jog loop. Unset: no jog." },
+        { "key": "wtLocoJogWeight", "label": "Jog weight", "kind": "number", "default": 1, "min": 0, "max": 2,
+          "visibleWhen": "wtLocoJogLeaf > 0", "description": "The jog layer's weight." },
+        { "key": "wtLocoJogRate", "label": "Jog rate", "kind": "number", "default": 1,
+          "visibleWhen": "wtLocoJogLeaf > 0", "description": "The jog loop's rate." },
+        { "key": "wtLocoJogStrides", "label": "Jog strides", "kind": "number", "integer": true,
+          "visibleWhen": "wtLocoJogLeaf > 0", "description": "Strides per jog loop." },
+        { "key": "wtIdleActiveAnim", "label": "Idle active anim", "kind": "anim",
+          "description": "IW8's hip idle-active additive (idle_active). * keeps the slot's own anim." },
+        { "key": "wtIdleActiveLeaf", "label": "Idle active leaf", "kind": "choice", "default": "194",
+          "choices": ["194", "196", "185", "186", "187", "188", "189", "190", "191", "192"],
+          "visibleWhen": "wtIdleActiveAnim != \"\"",
+          "description": "The leaf it plays in. Refused when it shares a root with this weapon's additive or jog." },
+        { "key": "wtIdleActiveWeight", "label": "Idle active weight", "kind": "number", "default": 1, "min": 0, "max": 2,
+          "visibleWhen": "wtIdleActiveAnim != \"\"", "description": "The idle-active layer's weight." },
+        { "key": "wtIdleActiveRate", "label": "Idle active rate", "kind": "number", "default": 1,
+          "visibleWhen": "wtIdleActiveAnim != \"\"", "description": "The idle-active layer's rate." }
+      ]
+    },
+    {
+      "title": "Additives",
+      "fields": [
+        { "key": "wtAdditiveEmptyAnim", "label": "Empty anim", "kind": "anim",
+          "description": "The empty layer's xanim (additive empty). Written into slot root+1; changing it needs a restart." },
+        { "key": "wtAdditiveEmptyRoot", "label": "Empty root", "kind": "choice", "default": "195", "choices": ["193", "195"],
+          "visibleWhen": "wtAdditiveEmptyAnim != \"\"", "description": "The empty layer's additive root." },
+        { "key": "wtAdditiveEmptyWeight", "label": "Empty weight", "kind": "number", "default": 1,
+          "visibleWhen": "wtAdditiveEmptyAnim != \"\"", "description": "The empty layer's weight." },
+        { "key": "wtAdditiveRecoilAnim", "label": "Recoil anim", "kind": "anim",
+          "description": "The recoil layer's xanim (additive recoil)." },
+        { "key": "wtAdditiveRecoilRoot", "label": "Recoil root", "kind": "choice", "default": "195", "choices": ["193", "195"],
+          "visibleWhen": "wtAdditiveRecoilAnim != \"\"", "description": "The recoil layer's additive root." },
+        { "key": "wtAdditiveRecoilWeight", "label": "Recoil weight", "kind": "number", "default": 1,
+          "visibleWhen": "wtAdditiveRecoilAnim != \"\"", "description": "The recoil layer's weight." },
+        { "key": "wtAdditiveRecoilRate", "label": "Recoil rate", "kind": "number",
+          "visibleWhen": "wtAdditiveRecoilAnim != \"\"", "description": "The recoil layer's rate." },
+        { "key": "wtAdditiveBulletAnim", "label": "Bullet anim", "kind": "anim",
+          "description": "The bullets layer's xanim (additive bullet). Needs a mag size above 0." },
+        { "key": "wtAdditiveBulletRoot", "label": "Bullet root", "kind": "choice", "default": "193", "choices": ["193", "195"],
+          "visibleWhen": "wtAdditiveBulletAnim != \"\"", "description": "The bullets layer's additive root." },
+        { "key": "wtAdditiveBulletWeight", "label": "Bullet weight", "kind": "number", "default": 1,
+          "visibleWhen": "wtAdditiveBulletAnim != \"\"", "description": "The bullets layer's weight." },
+        { "key": "wtAdditiveBulletMag", "label": "Bullet mag size", "kind": "number", "integer": true,
+          "visibleWhen": "wtAdditiveBulletAnim != \"\"", "description": "The magazine size the bullets anim is made for (above 0)." }
+      ],
+      "records": [
+        {
+          "key": "wtAdditiveSlot#", "label": "Purpose slots",
+          "description": "Purpose-slot additive lines (additive=<weapon>,<kind>,slot:<purpose>,...), one per row. One line per purpose and side.",
+          "columns": [
+            { "name": "kind", "label": "Kind", "kind": "choice", "choices": ["empty", "bullet", "recoil"],
+              "description": "The layer's kind." },
+            { "name": "purpose", "label": "Purpose", "kind": "choice", "prefix": "slot:",
+              "choices": ["bullets", "empty", "recoil_ads", "idle", "recoil", "empty_left", "bullets_left"],
+              "description": "bullets (root 192), empty (190), recoil_ads (189), idle / recoil (the old 193 / 195). empty_left and bullets_left are side:left of empty and bullets." },
+            { "name": "xanim", "label": "Xanim", "kind": "anim", "description": "The layer's xanim. A side:left one must key the left gun's bones." },
+            { "name": "weight", "label": "Weight", "kind": "number", "optional": true, "default": 1, "description": "The layer's weight." },
+            { "name": "magOrRate", "label": "Mag or rate", "kind": "number", "optional": true,
+              "description": "A bullet line's mag size (above 0), or a recoil line's rate." },
+            { "name": "side", "label": "Side", "kind": "choice", "prefix": "side:", "named": true, "default": "right",
+              "choices": ["right", "left"],
+              "description": "Which gun of a dual-wield weapon the line follows. side:left works on empty and bullets; side:both is refused." }
+          ],
+          "unique": ["purpose", "side"],
+          "checks": [
+            { "when": "kind == \"bullet\" && !(magOrRate > 0)", "message": "A bullet line needs a mag size above 0 after the weight." },
+            { "when": "side == \"left\" && purpose != \"empty\" && purpose != \"bullets\"",
+              "message": "side:left works on empty and bullets only: there is no left recoil layer." },
+            { "when": "purpose == \"recoil_ads\" && kind != \"recoil\"", "message": "slot:recoil_ads takes a recoil line." },
+            { "when": "purpose == \"empty_left\" && kind != \"empty\"", "message": "slot:empty_left takes an empty line." },
+            { "when": "purpose == \"bullets_left\" && kind != \"bullet\"", "message": "slot:bullets_left takes a bullet line." }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Ammo hide",
+      "collapsedUnlessSet": true,
+      "fields": [
+        { "key": "wtAmmoHide", "label": "Joints", "kind": "text",
+          "description": "joint1,joint2,... (up to 24): joint k hides while the clip holds fewer than k rounds (ammohide)." },
+        { "key": "wtAmmoHideOrder", "label": "Spend order", "kind": "text",
+          "description": "joint,joint,... first spent first (ammohide_order). Usually generated by tools/ammohide_order.py." },
+        { "key": "wtAmmoHideSpend", "label": "Spend clips", "kind": "text",
+          "description": "joint:clip,... a joint hides at that clip or fewer (ammohide_spend). Usually generated." },
+        { "key": "wtAmmoHideReverse", "label": "Reverse order", "kind": "text",
+          "description": "ammohide_reverse: reverses the built-in order. A last resort when neither generated list fits." },
+        { "key": "wtAmmoHideAuto", "label": "Auto hide", "kind": "choice", "choices": ["on", "off"],
+          "description": "Spent-round hide for a weapon with a bullet layer and no joints list (ammohide_auto). Unset: the global (on)." }
+      ]
+    },
+    {
+      "title": "Hand IK",
+      "collapsedUnlessSet": true,
+      "notice": "Experimental.",
+      "fields": [
+        { "key": "wtIk", "label": "Hand IK", "kind": "toggle", "default": false, "description": "Turns hand IK on for this weapon (ik)." },
+        { "key": "wtIkHands", "label": "Hands", "kind": "choice", "default": "lr", "choices": ["l", "r", "lr"],
+          "visibleWhen": "wtIk", "description": "Which hands IK moves." },
+        { "key": "wtIkNotelessWeight", "label": "Weight without notetracks", "kind": "number", "default": 1,
+          "visibleWhen": "wtIk", "description": "The IK weight for anims without ik_in / ik_out notetracks." },
+        { "key": "wtIkOrient", "label": "Orient", "kind": "toggle", "default": true, "visibleWhen": "wtIk",
+          "description": "Also orients the hands." }
+      ]
+    },
+    {
+      "title": "Inspect and reloads",
+      "fields": [
+        { "key": "wtInspect", "label": "Inspect", "kind": "toggle", "default": false,
+          "description": "This weapon can be inspected (inspect). Needs [features] inspect = on." },
+        { "key": "wtInspectTime", "label": "Inspect time (s)", "kind": "number", "visibleWhen": "wtInspect",
+          "description": "Overrides the inspect length. Unset: the GDT's lowReadyLoopTime, else the xanim's own length." },
+        { "key": "wtSegReloadEmpty", "label": "Segmented reload, empty", "kind": "choice",
+          "choices": ["end", "start", "mw", "mw19", "mw2019", "mwii", "mw2", "mw22", "off"],
+          "description": "Where a segmented reload from empty chambers a round (segreload_empty). Unset: none." },
+        { "key": "wtEmptyLastShot", "label": "Empty layer after the last shot", "kind": "choice",
+          "choices": [ { "value": "auto", "label": "Automatic" }, { "value": "iw", "label": "As IW does" }, "hold" ],
+          "description": "When the empty layer comes on after the last round (empty_lastshot). Unset: the cfg's default (auto)." }
+      ]
+    }
+  ]
+}

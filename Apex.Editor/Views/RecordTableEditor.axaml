@@ -1,0 +1,96 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Apex.Editor.ViewModels"
+             xmlns:controls="using:Apex.Editor.Controls"
+             xmlns:c="using:Apex.Editor.Commands"
+             xmlns:views="using:Apex.Editor.Views"
+             x:Class="Apex.Editor.Views.RecordTableEditor"
+             x:DataType="vm:RecordsPropertyViewModel"
+             Focusable="False">
+
+  <!--
+    A record list (wtKick#): one row per numbered key, one cell per column, each cell the editor its column's kind gets
+    in any row. Rows are added (Ctrl+Enter copies the row below it; "Add row" at the end), removed (Alt+Delete, ✕) and
+    moved (Alt+↑ / Alt+↓, the ↑ ↓ buttons); ↑↓ walk a column; Tab walks the cells. Columns, widths and the header are
+    built in code from the list's columns.
+  -->
+  <UserControl.Styles>
+    <!-- ↑ ↓ ✕ draw on the hovered or focused row only; their column keeps its width, so nothing moves when they show. -->
+    <Style Selector="Grid.rrow Button.raction">
+      <Setter Property="Foreground" Value="Transparent"/>
+    </Style>
+    <Style Selector="Grid.rrow:pointerover Button.raction, Grid.rrow:focus-within Button.raction">
+      <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    </Style>
+    <Style Selector="Grid.rrow:pointerover Button.raction:disabled, Grid.rrow:focus-within Button.raction:disabled">
+      <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+    </Style>
+    <!-- Rows Shift+↑↓ marked for Ctrl+C / Ctrl+V. -->
+    <Style Selector="Grid.rrow.selected">
+      <Setter Property="Background" Value="{DynamicResource AccentDimBrush}"/>
+    </Style>
+    <Style Selector="Grid.rrow TextBox">
+      <Setter Property="MinWidth" Value="0"/>
+    </Style>
+    <Style Selector="TextBlock.rhead">
+      <Setter Property="FontSize" Value="{StaticResource FontSizeXs}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+      <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+      <Setter Property="VerticalAlignment" Value="Bottom"/>
+      <Setter Property="Margin" Value="2,0,4,2"/>
+    </Style>
+    <Style Selector="TextBlock.rnum">
+      <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSizeXs}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="HorizontalAlignment" Value="Right"/>
+      <Setter Property="Margin" Value="0,0,8,0"/>
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.DataTemplates>
+    <DataTemplate DataType="vm:NumberPropertyViewModel">
+      <controls:ScrubNumberBox AutomationProperties.Name="{Binding AccessibleName}"/>
+    </DataTemplate>
+    <DataTemplate DataType="vm:TogglePropertyViewModel">
+      <ToggleButton Classes="miniswitch" IsChecked="{Binding IsOn}" HorizontalAlignment="Left" AutomationProperties.Name="{Binding AccessibleName}">
+        <TextBlock Classes="pvalue" Text="{Binding StateText}" FontSize="{StaticResource FontSizeSm}" FontFamily="{StaticResource MonoFont}"/>
+      </ToggleButton>
+    </DataTemplate>
+    <DataTemplate DataType="vm:ChoicePropertyViewModel">
+      <!-- An empty optional field shows what it means (side: right). -->
+      <controls:ChoiceBox Classes="pfield dropfield" PlaceholderText="{Binding Placeholder}" AutomationProperties.Name="{Binding AccessibleName}"/>
+    </DataTemplate>
+    <DataTemplate DataType="vm:RefPropertyViewModel">
+      <Grid>
+        <views:RefField Classes="pfield mono dropfield" Text="{Binding Value, Mode=OneWay}" Padding="26,0,2,0" IsUndoEnabled="False"
+                        PlaceholderText="{Binding Placeholder}" AutomationProperties.Name="{Binding AccessibleName}"/>
+        <TextBlock Text="{Binding RefGlyph}" Foreground="{Binding RefBrush}" FontSize="{StaticResource FontSizeXs}" Margin="9,0,0,0"
+                   VerticalAlignment="Center" HorizontalAlignment="Left" IsHitTestVisible="False" ToolTip.Tip="{Binding RefType}"/>
+      </Grid>
+    </DataTemplate>
+    <DataTemplate DataType="vm:TextPropertyViewModel">
+      <TextBox Classes="pfield" Text="{Binding Value, Mode=OneWay}" IsUndoEnabled="False" AutomationProperties.Name="{Binding AccessibleName}"/>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
+  <StackPanel Margin="0,0,0,6">
+    <!-- Each list's header and rows, built in code and kept (see Sync): another weapon's table rebinds them. -->
+    <Panel Name="RowList"/>
+    <!-- The empty table says so on the line the first row will take, so adding it moves nothing below. -->
+    <TextBlock Name="EmptyText" Classes="faint" FontSize="{StaticResource FontSizeSm}" Height="28" Padding="34,6,0,0"
+               IsVisible="{Binding IsEmpty}" Text="No rows. Add row adds the first."/>
+    <!-- Add row; beside it, when the cells are wider than the editor, the bar that scrolls them sideways (on this line,
+         so it showing moves nothing below). The bar runs on under the row controls' column, empty on this line: at the
+         narrowest editor the cells' own width beside Add row leaves no room for a thumb. -->
+    <DockPanel Margin="28,2,4,0">
+      <Button Name="AddButton" Classes="line" DockPanel.Dock="Left" MinHeight="24" Padding="10,0"
+              IsEnabled="{Binding CanAdd}" ToolTip.Tip="{Binding AddTip}" ToolTip.ShowOnDisabled="True"
+              AutomationProperties.Name="Add row" Content="+ Add row"/>
+      <ScrollBar Name="HScroll" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center" Visibility="Auto"
+                 AllowAutoHide="False" Focusable="False" AutomationProperties.Name="Scroll the table sideways"
+                 ToolTip.Tip="Scroll the table sideways (Shift+wheel)"/>
+    </DockPanel>
+  </StackPanel>
+</UserControl>

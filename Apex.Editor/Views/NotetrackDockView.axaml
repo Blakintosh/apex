@@ -1,0 +1,167 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Apex.Editor.ViewModels"
+             xmlns:views="using:Apex.Editor.Views"
+             xmlns:controls="using:Apex.Editor.Controls"
+             xmlns:c="using:Apex.Editor.Commands"
+             x:Class="Apex.Editor.Views.NotetrackDockView"
+             x:DataType="vm:NotetrackDockViewModel">
+
+  <!--
+    The notetracks dock under an xanim's preview: the transport, one timeline (a lane per kind of note; press or drag
+    anywhere to scrub, drag a marker to retime it, double-click a lane to add), and one table of every note, in the order
+    the anim plays them. The entry's notes edit through the asset's own rows; the xanim's own notes are read-only.
+    Selecting a row never moves the playhead. Collapsed, only the transport shows.
+  -->
+  <UserControl.Styles>
+    <Style Selector="Border.ntrow">
+      <Setter Property="Height" Value="32"/>
+      <Setter Property="Padding" Value="14,0"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+      <Setter Property="BorderThickness" Value="0,1,0,0"/>
+      <Setter Property="Background" Value="Transparent"/>
+    </Style>
+    <!-- The fields' ↶ stays in place on every row (shown when the value changed): toggling it on hover would narrow the
+         fields under the pointer. A note added this session has none: one Ctrl+Z (or Remove note) undoes the add. -->
+    <Style Selector="Border.ntrow.added">
+      <Setter Property="controls:RowDetails.Show" Value="False"/>
+    </Style>
+    <Style Selector="Border.ntrow:pointerover">
+      <Setter Property="Background" Value="{DynamicResource BgRowHoverBrush}"/>
+    </Style>
+    <Style Selector="Border.ntrow.selected">
+      <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+    </Style>
+    <Style Selector="Border.ntrow TextBlock.cell">
+      <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    </Style>
+    <Style Selector="Border.ntrow TextBlock.cell.mono">
+      <Setter Property="Margin" Value="8,0,0,0"/>
+    </Style>
+    <Style Selector="Border.vsep">
+      <Setter Property="Width" Value="1"/>
+      <Setter Property="Height" Value="14"/>
+      <Setter Property="Background" Value="{DynamicResource LineBrush}"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+  </UserControl.Styles>
+
+  <Border Name="DockCard" Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
+          CornerRadius="{StaticResource RadiusLg}" ClipToBounds="True">
+    <DockPanel>
+      <!-- ── Transport ── -->
+      <Border Name="TransportRow" DockPanel.Dock="Top" Height="38" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"
+              Background="Transparent" DoubleTapped="TransportRow_DoubleTapped">
+        <Grid Margin="10,0" ColumnDefinitions="Auto,*,Auto">
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" IsVisible="{Binding HasAnim}">
+            <Button Classes="tool" MinWidth="26" Command="{Binding Anim.StepBackCommand}"
+                    AutomationProperties.Name="{c:Name preview.previousFrame}" ToolTip.Tip="{c:Tip preview.previousFrame}">
+              <Path Data="M0,0 H2 V10 H0 Z M9,0 L3,5 L9,10 Z" Fill="{Binding $parent[Button].Foreground}"/>
+            </Button>
+            <ToggleButton Name="DockPlayToggle" Classes="tool" MinWidth="30" IsChecked="{Binding Anim.IsPlaying}"
+                          AutomationProperties.Name="Play or pause animation" ToolTip.Tip="{c:Tip preview.playPause}">
+              <Panel>
+                <Path Data="M0,0 H3 V10 H0 Z M6,0 H9 V10 H6 Z" Fill="{Binding $parent[ToggleButton].Foreground}" IsVisible="{Binding Anim.IsPlaying}"/>
+                <Path Data="M0,0 L9,5 L0,10 Z" Fill="{Binding $parent[ToggleButton].Foreground}" IsVisible="{Binding !Anim.IsPlaying}"/>
+              </Panel>
+            </ToggleButton>
+            <Button Classes="tool" MinWidth="26" Command="{Binding Anim.StepForwardCommand}"
+                    AutomationProperties.Name="{c:Name preview.nextFrame}" ToolTip.Tip="{c:Tip preview.nextFrame}">
+              <Path Data="M0,0 L6,5 L0,10 Z M7,0 H9 V10 H7 Z" Fill="{Binding $parent[Button].Foreground}"/>
+            </Button>
+            <TextBlock Name="TransportReadout" Classes="dim mono" FontSize="{StaticResource FontSizeSm}" Margin="8,0,0,0" VerticalAlignment="Center"
+                       Text="{Binding Anim.TransportLabel}"/>
+            <Border Classes="vsep" Margin="10,0"/>
+          </StackPanel>
+          <!-- The title and how many notes there are; at a narrow width it trims with an ellipsis rather than clipping. -->
+          <TextBlock Grid.Column="1" Name="DockTitle" FontSize="{StaticResource FontSizeSm}" VerticalAlignment="Center"
+                     TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding CountTip}">
+            <Run Text="Notetracks" FontWeight="SemiBold"/>
+            <Run Name="NoteCount" Text="{Binding CountText}" Foreground="{DynamicResource TextFaintBrush}"/>
+          </TextBlock>
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="8,0,0,0">
+            <ToggleButton Name="LoopToggle" Classes="tool" Content="Loop" IsChecked="{Binding Anim.Loop}" IsVisible="{Binding HasAnim}"
+                          ToolTip.Tip="Play the anim on a loop; off, playback stops on the last frame"/>
+            <Border Classes="vsep" Margin="4,0" IsVisible="{Binding HasAnim}"/>
+            <!-- A fixed label: the frame it adds at is in the tip, so the button never jitters while the anim plays. -->
+            <Button Name="AddNoteButton" Classes="tool" Command="{Binding AddAtPlayheadCommand}"
+                    AutomationProperties.Name="Add note" ToolTip.Tip="{Binding AddTip}">
+              <TextBlock Text="+ Add note" FontSize="{StaticResource FontSizeSm}"/>
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- ── Timeline lanes ── -->
+      <!-- A crowded anim stacks its notes into rows, so the lanes can grow taller than the dock: they scroll in their own
+           area, held short enough that the table under them always shows whole rows to scroll (see the code-behind). -->
+      <ScrollViewer Name="LanesScroll" Classes="edgeclicks" DockPanel.Dock="Top" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <controls:NotetrackLanes Name="Lanes"
+                                 Lanes="{Binding Lanes}" Markers="{Binding LaneMarkers}" LastFrame="{Binding LastFrame}"
+                                 Frame="{Binding Anim.CurrentFrame, FallbackValue=0}" SelectedKey="{Binding SelectedKey}"
+                                 AutomationProperties.Name="Notetracks timeline"/>
+      </ScrollViewer>
+
+      <!-- ── One table of every note ── -->
+      <Border Name="TableArea" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0">
+        <DockPanel>
+          <Grid DockPanel.Dock="Top" Height="28" Margin="14,0" ColumnDefinitions="96,12,64,12,180,12,*,24">
+            <TextBlock Grid.Column="0" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Frame" VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="2" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Track" VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="4" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Action" VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="6" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Parameters" VerticalAlignment="Center"/>
+          </Grid>
+          <!-- The table shows whole rows: its height is cut to a multiple of the row height (see the code-behind). -->
+          <Panel Name="TableHost">
+            <ScrollViewer Name="TableScroll" Classes="edgeclicks" VerticalAlignment="Top" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+              <ItemsControl Name="NoteRows" ItemsSource="{Binding Rows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:NotetrackRowViewModel">
+                    <Border Classes="ntrow" Classes.selected="{Binding IsSelected}" Classes.added="{Binding IsAdded}" ToolTip.Tip="{Binding Problem}">
+                      <Grid ColumnDefinitions="96,12,64,12,180,12,*,24">
+                        <!-- Frame: its field for a custom note; the clip's end for startup / shutdown notes and the xanim's own -->
+                        <views:PropertyEditorView Grid.Column="0" DataContext="{Binding FrameItem}" IsVisible="{Binding $parent[Border].((vm:NotetrackRowViewModel)DataContext).ShowFrameField}"
+                                                  AutomationProperties.Name="Frame" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="0" Classes="cell mono" Text="{Binding FrameText}" IsVisible="{Binding !ShowFrameField}" ToolTip.Tip="{Binding LinkTip}"/>
+                        <TextBlock Grid.Column="2" Classes="cell dim" Text="{Binding TrackText}"/>
+                        <!-- The entry's notes: the action picker (grouped, filtered as you type) and the parameters it uses -->
+                        <Grid Grid.Column="4" ColumnDefinitions="*,Auto" IsVisible="{Binding IsEditable}" VerticalAlignment="Center">
+                          <controls:NoteActionPicker DataContext="{Binding ActionItem}" AutomationProperties.Name="Action"/>
+                          <Panel Grid.Column="1" Classes="live" Width="24" Margin="2,0,0,0" DataContext="{Binding ActionItem}">
+                            <Button Classes="rowaction" Content="↶" Command="{Binding RevertChangeCommand}" IsVisible="{Binding IsChanged}"
+                                    AutomationProperties.Name="Undo this change" ToolTip.Tip="{Binding BaselineValue, StringFormat='Undo this change (was {0})'}"/>
+                          </Panel>
+                        </Grid>
+                        <DockPanel Grid.Column="6" IsVisible="{Binding IsEditable}" VerticalAlignment="Center">
+                          <views:PropertyEditorView DockPanel.Dock="Right" Width="160" Margin="8,0,0,0" Classes="param"
+                                                    DataContext="{Binding Param2Item}"
+                                                    IsVisible="{Binding $parent[Border].((vm:NotetrackRowViewModel)DataContext).ShowParam2}"
+                                                    AutomationProperties.Name="{Binding $parent[Border].((vm:NotetrackRowViewModel)DataContext).Param2Name}"/>
+                          <views:PropertyEditorView Classes="param" DataContext="{Binding Param1Item}"
+                                                    IsVisible="{Binding $parent[Border].((vm:NotetrackRowViewModel)DataContext).ShowParam1}"
+                                                    AutomationProperties.Name="{Binding $parent[Border].((vm:NotetrackRowViewModel)DataContext).Param1Name}"/>
+                        </DockPanel>
+                        <!-- The xanim's own notes: read-only -->
+                        <TextBlock Grid.Column="4" Classes="cell mono dim" Text="{Binding ExportAction}" IsVisible="{Binding IsReadOnly}"
+                                   ToolTip.Tip="Exported in the xanim file: it has no GDT entry to edit"/>
+                        <TextBlock Grid.Column="6" Classes="cell mono dim" Text="{Binding ExportParam}" IsVisible="{Binding IsReadOnly}"
+                                   ToolTip.Tip="Exported in the xanim file: it has no GDT entry to edit"/>
+                        <TextBlock Grid.Column="7" Classes="cell problem" Text="⚠" HorizontalAlignment="Right" IsVisible="{Binding HasProblem}"
+                                   ToolTip.Tip="{Binding Problem}"/>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+            <TextBlock Name="EmptyHint" Classes="faint" FontSize="{StaticResource FontSizeSm}" HorizontalAlignment="Center" VerticalAlignment="Top"
+                       Margin="16,14,16,0" TextWrapping="Wrap" TextAlignment="Center" IsVisible="{Binding IsEmpty}"
+                       Text="No notes yet. + Add note (Insert) puts one at the playhead; double-click a lane to put one at its frame."/>
+          </Panel>
+        </DockPanel>
+      </Border>
+    </DockPanel>
+  </Border>
+</UserControl>

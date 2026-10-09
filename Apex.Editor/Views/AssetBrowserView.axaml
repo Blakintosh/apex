@@ -1,0 +1,455 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Apex.Editor.ViewModels"
+             xmlns:c="using:Apex.Editor.Commands"
+             xmlns:controls="using:Apex.Editor.Controls"
+             x:Class="Apex.Editor.Views.AssetBrowserView"
+             x:DataType="vm:MainViewModel">
+
+  <UserControl.Resources>
+    <TextDecorationCollection x:Key="HitUnderline">
+      <TextDecoration Location="Underline" StrokeThickness="2" StrokeOffset="2" StrokeOffsetUnit="Pixel"/>
+    </TextDecorationCollection>
+
+    <!-- A filter in a search box: glyph · name · ✕ -->
+    <DataTemplate x:Key="ChipTemplate" x:DataType="vm:SearchChip">
+      <Border Classes="chip" ToolTip.Tip="{Binding Raw}">
+        <StackPanel Orientation="Horizontal" Spacing="5">
+          <controls:GlyphIcon Glyph="{Binding Glyph}" Foreground="{Binding GlyphBrush}" IsVisible="{Binding HasGlyph}"
+                              Size="12" VerticalAlignment="Center"/>
+          <TextBlock Classes="chiplabel" Text="{Binding Label}" MaxWidth="180"/>
+          <Button Classes="chipclose" Content="✕" Command="{Binding RemoveCommand}"
+                  AutomationProperties.Name="{Binding RemoveName}"/>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <DockPanel>
+    <!-- ── Search ──────────────────────────────────────────────────── -->
+    <!-- The box shows the Explorer's query: filters as chips, then the typed words. It is a text box like any other:
+         a click puts the caret where it lands and typing filters the Explorer as you go. The search menu (fields for
+         each filter, results as you type) opens from the button at its end or Ctrl+Shift+F. -->
+    <Border DockPanel.Dock="Top" Name="SearchField" Classes="chipfield" Margin="0,0,0,10" Height="30" ClipToBounds="True"
+            ToolTip.Tip="{c:Tip explorer.search, Detail='Name, or filters: type: · gdt: · prop:damage&gt;=100 · is:changed · is:off-default · is:problems'}">
+      <DockPanel>
+        <controls:GlyphIcon DockPanel.Dock="Left" Glyph="search" Size="14" Foreground="{DynamicResource TextFaintBrush}"
+                            Margin="4,0,6,0" VerticalAlignment="Center"/>
+        <Button DockPanel.Dock="Right" Name="SearchMenuButton" Classes="boxicon" Click="SearchMenuButton_Click"
+                AutomationProperties.Name="{c:Name explorer.search}" ToolTip.Tip="{c:Tip explorer.search, Detail='Fields for each filter, with results as you type'}">
+          <controls:GlyphIcon Glyph="filter" Size="14"/>
+        </Button>
+        <Button DockPanel.Dock="Right" Classes="icon" Content="✕" MinWidth="24" MinHeight="24" Margin="0,-2,0,-2"
+                IsVisible="{Binding HasFilter}" Command="{Binding ClearFilterCommand}"
+                AutomationProperties.Name="Clear search" ToolTip.Tip="Clear search (Esc)"/>
+        <ItemsControl DockPanel.Dock="Left" ItemsSource="{Binding ExplorerQuery.Chips}" ItemTemplate="{StaticResource ChipTemplate}"
+                      IsVisible="{Binding ExplorerQuery.HasChips}" Margin="0,0,4,0">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="4"/>
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+        </ItemsControl>
+        <TextBox Name="SearchBox" Classes="bare" FontSize="{StaticResource FontSizeBase}"
+                 Text="{Binding ExplorerQuery.Words}"
+                 PlaceholderText="{Binding SearchPlaceholder}"
+                 AutomationProperties.Name="Search assets"/>
+      </DockPanel>
+    </Border>
+
+    <!-- ── Search menu: a draft of the query, split into fields, with results as you type ── -->
+    <Popup DockPanel.Dock="Top" Name="SearchMenu" PlacementTarget="{Binding #SearchField}" Placement="AnchorAndGravity"
+           PlacementAnchor="TopLeft" PlacementGravity="BottomRight" HorizontalOffset="-6" VerticalOffset="-10"
+           ShouldUseOverlayLayer="True"
+           Closed="SearchMenu_Closed">
+      <Border Name="SearchMenuCard" Classes="menucard" TextElement.FontFamily="{StaticResource UiFont}" Width="880" Opacity="0" IsHitTestVisible="False" KeyboardNavigation.TabNavigation="None">
+        <DockPanel>
+          <!-- The box again, now with the draft in it. It lands exactly over the Explorer's box (the popup sits 6 px
+               left of and 9 px above it, behind a 1 px edge): same glyph, chips and font in the same places, so the query
+               doesn't move or change face as the menu opens. -->
+          <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="13,12,13,10" MinHeight="46">
+            <DockPanel>
+              <controls:GlyphIcon DockPanel.Dock="Left" Glyph="search" Size="14" Foreground="{DynamicResource TextFaintBrush}"
+                                  Margin="0,0,6,0" VerticalAlignment="Center"/>
+              <TextBlock DockPanel.Dock="Right" Text="{c:Gesture explorer.search}" Classes="faint" FontSize="{StaticResource FontSizeXs}"
+                         VerticalAlignment="Center" Margin="12,0,0,0"/>
+              <ItemsControl DockPanel.Dock="Left" ItemsSource="{Binding MenuQuery.Chips}" ItemTemplate="{StaticResource ChipTemplate}"
+                            IsVisible="{Binding MenuQuery.HasChips}" Margin="0,0,4,0" MaxWidth="560">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel ItemSpacing="4" LineSpacing="4"/>
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+              </ItemsControl>
+              <TextBox Name="MenuBox" Classes="bare" FontSize="{StaticResource FontSizeBase}"
+                       Text="{Binding MenuQuery.Words}" PlaceholderText="Name, or type: gdt: prop: is:"
+                       AutomationProperties.Name="Search assets"/>
+            </DockPanel>
+          </Border>
+
+          <!-- Footer: the query as syntax · keys · apply -->
+          <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Height="40" Padding="14,0">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <!-- Keys written the way every hint in Apex writes them: the key, then what it does. -->
+                <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="↑↓ Choose  ·  Enter Open  ·  Ctrl+Enter" VerticalAlignment="Center"/>
+                <Button Name="ApplyMenuButton" Classes="accent" Command="{Binding ApplySearchMenuCommand}"
+                        ToolTip.Tip="Show these results in the Explorer until cleared (Ctrl+Enter)">
+                  <TextBlock Text="Filter Explorer"/>
+                </Button>
+              </StackPanel>
+              <TextBlock Name="MenuQueryText" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FontSizeXs}"
+                         VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,12,0"/>
+            </DockPanel>
+          </Border>
+
+          <Grid ColumnDefinitions="330,*" Height="320">
+            <!-- Fields: each one adds chips to the box above -->
+            <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,1,0" Padding="14,12">
+              <StackPanel Spacing="14">
+                <StackPanel Spacing="6">
+                  <TextBlock Classes="menulabel" Text="Type"/>
+                  <ItemsControl ItemsSource="{Binding SearchMenuTypes}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel ItemSpacing="4" LineSpacing="4"/>
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:SearchTypeOption">
+                        <ToggleButton Classes="pill small" IsChecked="{Binding IsOn}" AutomationProperties.Name="{Binding Type}">
+                          <StackPanel Orientation="Horizontal" Spacing="6">
+                            <controls:GlyphIcon Glyph="{Binding Glyph}" Foreground="{Binding GlyphBrush}" Size="13" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Type}" VerticalAlignment="Center"/>
+                          </StackPanel>
+                        </ToggleButton>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                  <TextBlock Classes="menulabel" Text="GDT · space separates several"/>
+                  <Border Classes="chipfield" Padding="6,3">
+                    <DockPanel>
+                      <ItemsControl DockPanel.Dock="Left" ItemsSource="{Binding MenuGdtChips}" ItemTemplate="{StaticResource ChipTemplate}"
+                                    MaxWidth="220" Margin="0,0,4,0">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <WrapPanel ItemSpacing="4" LineSpacing="4"/>
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                      </ItemsControl>
+                      <TextBox Name="MenuGdtBox" Classes="bare" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FontSizeSm}"
+                               Text="{Binding MenuGdtText}" PlaceholderText="GDT name" AutomationProperties.Name="Add a GDT"/>
+                    </DockPanel>
+                  </Border>
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                  <TextBlock Classes="menulabel" Text="Property"/>
+                  <Grid ColumnDefinitions="*,64,70" ColumnSpacing="4">
+                    <TextBox Name="MenuPropKeyBox" Classes="field small" FontFamily="{StaticResource MonoFont}" Text="{Binding MenuPropKey}" PlaceholderText="Any property"
+                             AutomationProperties.Name="Property key"/>
+                    <ComboBox Grid.Column="1" Classes="field small" ItemsSource="{Binding MenuPropOps}" SelectedItem="{Binding MenuPropOp}"
+                              HorizontalAlignment="Stretch" AutomationProperties.Name="Comparison"/>
+                    <TextBox Name="MenuPropValueBox" Grid.Column="2" Classes="field small" FontFamily="{StaticResource MonoFont}" Text="{Binding MenuPropValue}" PlaceholderText="value"
+                             AutomationProperties.Name="Property value"/>
+                  </Grid>
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                  <TextBlock Classes="menulabel" Text="Only"/>
+                  <StackPanel Orientation="Horizontal" Spacing="4">
+                    <ToggleButton Classes="pill small" Content="Changed" IsChecked="{Binding MenuChanged}"
+                                  ToolTip.Tip="Changed this session"/>
+                    <ToggleButton Classes="pill small" Content="Off-default" IsChecked="{Binding MenuOffDefault}"
+                                  ToolTip.Tip="Any value differs from its default"/>
+                    <ToggleButton Classes="pill small" Content="Problems" IsChecked="{Binding MenuProblems}"
+                                  ToolTip.Tip="Has validation problems"/>
+                  </StackPanel>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- Results as you go -->
+            <DockPanel Grid.Column="1" Margin="6,8">
+              <DockPanel DockPanel.Dock="Top" Margin="10,4,10,8">
+                <TextBlock DockPanel.Dock="Right" Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="updates as you type"/>
+                <TextBlock FontSize="{StaticResource FontSizeSm}" FontWeight="SemiBold" Text="{Binding SearchMenuCountText}"/>
+              </DockPanel>
+              <Panel>
+                <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Margin="10,4" TextWrapping="Wrap"
+                           IsVisible="{Binding SearchMenuIsEmpty}" Text="No assets match. Shorten the name or remove a filter."/>
+                <!-- The lines are built once; the ones a short list doesn't need wait hidden (see SearchMenuRow). -->
+                <ListBox Name="MenuResults" Classes="palette" ItemsSource="{Binding SearchMenuRows}"
+                         SelectedIndex="{Binding SearchMenuSelectedIndex}" Focusable="False">
+                  <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel/>
+                    </ItemsPanelTemplate>
+                  </ListBox.ItemsPanel>
+                  <ListBox.Styles>
+                    <Style Selector="ListBoxItem" x:DataType="vm:SearchMenuRow">
+                      <Setter Property="IsVisible" Value="{Binding IsShown}"/>
+                      <Setter Property="AutomationProperties.Name" Value="{Binding Item.AutomationName, FallbackValue=''}"/>
+                      <Setter Property="Height" Value="40"/>
+                      <Setter Property="Padding" Value="10,0"/>
+                      <Setter Property="Focusable" Value="False"/>
+                    </Style>
+                  </ListBox.Styles>
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SearchMenuRow">
+                      <!-- A hidden line has no Item: its DataContext is null, so these bindings rest instead of failing. -->
+                      <DockPanel Background="Transparent" DataContext="{Binding Item}" x:DataType="vm:SearchMenuResult">
+                        <controls:GlyphIcon DockPanel.Dock="Left" Glyph="{Binding Glyph}" Foreground="{Binding GlyphBrush}" Width="14"
+                                            Size="14" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBlock DockPanel.Dock="Right" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Open"
+                                   VerticalAlignment="Center" Margin="10,0,0,0"
+                                   IsVisible="{Binding $parent[ListBoxItem].IsSelected}"/>
+                        <StackPanel VerticalAlignment="Center">
+                          <TextBlock Classes="mono" FontSize="{StaticResource FontSizeSm}" TextTrimming="CharacterEllipsis">
+                            <Run Text="{Binding Prefix, Mode=OneWay}"/><Run Text="{Binding Hit, Mode=OneWay}" FontWeight="SemiBold" TextDecorations="{StaticResource HitUnderline}"/><Run Text="{Binding Postfix, Mode=OneWay}"/>
+                          </TextBlock>
+                          <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding Detail}" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                      </DockPanel>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </Panel>
+            </DockPanel>
+          </Grid>
+        </DockPanel>
+      </Border>
+    </Popup>
+
+    <!-- ── Problems across the loaded GDTs: one click shows only the assets that have them ── -->
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8" IsVisible="{Binding !!ProblemTotal}">
+      <Button Classes="menu" c:Cmd.Id="explorer.showProblems" Padding="8,0" Height="26"
+              AutomationProperties.Name="{Binding ProblemTotalText}"
+              ToolTip.Tip="{c:Tip explorer.showProblems, Detail='Validation problems in loaded GDTs'}">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Ellipse Width="6" Height="6" Fill="{DynamicResource DangerBrush}" VerticalAlignment="Center"/>
+          <TextBlock Text="{Binding ProblemTotalText}" FontSize="{StaticResource FontSizeBase}" VerticalAlignment="Center"/>
+        </StackPanel>
+      </Button>
+    </StackPanel>
+
+    <!-- ── Section line: what the rows are, or while anything filters how much is showing · Filter · Group ▾ · ⋯ ── -->
+    <DockPanel DockPanel.Dock="Top" Height="24" Margin="8,0,0,0">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+        <Button Classes="icon" Content="filter" MinWidth="24" Height="24" ToolTip.Tip="Filters: type, GDT, changed, off-default, problems"
+                AutomationProperties.Name="Filter">
+          <Button.Flyout>
+            <!-- The "Only" pills are the search menu's, so the two menus look and read the same. Under the box, Type and
+                 GDT are one virtualized list: one scroller for the whole menu (lists in lists made two scroll bars and
+                 200 px windows), and only the lines in view are built (an install has ~65 types and ~1,700 GDTs). -->
+            <Flyout Placement="BottomEdgeAlignedRight">
+              <DockPanel Width="280" TextElement.FontFamily="{StaticResource UiFont}">
+                <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,2,0,8">
+                  <TextBlock Classes="menulabel" Text="Only" Margin="4,0,0,0"/>
+                  <!-- "Changed" = edited this session; "Off-default" = differs from the schema default.
+                       One word per meaning: the editor, rail and top bar use the same two. -->
+                  <WrapPanel ItemSpacing="4" LineSpacing="4" Margin="4,0,0,0">
+                    <ToggleButton Classes="pill small" Content="Changed" IsChecked="{Binding ChangedFilter}"
+                                  ToolTip.Tip="Changed this session"/>
+                    <ToggleButton Classes="pill small" Content="Off-default" IsChecked="{Binding ModifiedFilter}"
+                                  ToolTip.Tip="Any value differs from its default"/>
+                    <ToggleButton Classes="pill small" Content="Problems" IsChecked="{Binding ProblemsFilter}"
+                                  ToolTip.Tip="Has validation problems"/>
+                  </WrapPanel>
+                  <!-- Narrows the lists below: types by name, GDTs by any part of the path (there are ~1,700). -->
+                  <TextBox Name="FilterMenuBox" Classes="field small" Text="{Binding FilterMenuText}" PlaceholderText="Find a type or GDT"
+                           AutomationProperties.Name="Find a type or GDT" Margin="0,8,0,0"/>
+                </StackPanel>
+                <Button DockPanel.Dock="Bottom" Classes="link dim" Content="{c:Name explorer.clearFilters}" Margin="4,8,0,2"
+                        HorizontalAlignment="Left" c:Cmd.Id="explorer.clearFilters" IsVisible="{Binding HasFilter}"/>
+                <ItemsControl Name="FilterMenuList" Classes="virt" MaxHeight="440" ItemsSource="{Binding FilterMenuRows}">
+                  <ItemsControl.DataTemplates>
+                    <DataTemplate DataType="vm:FilterMenuHeading" x:DataType="vm:FilterMenuHeading">
+                      <TextBlock Classes="menulabel" Text="{Binding Text}" Height="26" Padding="4,10,0,0"/>
+                    </DataTemplate>
+                    <DataTemplate DataType="vm:FilterMenuNote" x:DataType="vm:FilterMenuNote">
+                      <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding Text}" TextWrapping="Wrap" Margin="4,4,6,0"/>
+                    </DataTemplate>
+                    <!-- One row in the Filter menu's Type / GDT lists: tick · icon · name · folder · count. A click toggles its chip. -->
+                    <DataTemplate DataType="vm:FilterOption" x:DataType="vm:FilterOption">
+                      <ToggleButton Classes="optionrow" IsChecked="{Binding IsOn}" ToolTip.Tip="{Binding Tip}"
+                                    AutomationProperties.Name="{Binding Label}" Margin="0,0,6,0">
+                        <DockPanel>
+                          <Panel DockPanel.Dock="Left" Width="16">
+                            <Path Classes="tick" Data="M0.5,4.5 L3.5,7.5 L9.5,1" Stroke="{DynamicResource AccentTextBrush}" StrokeThickness="1.6"
+                                  StrokeLineCap="Round" StrokeJoin="Round" Width="10" Height="9" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                          </Panel>
+                          <controls:GlyphIcon DockPanel.Dock="Left" Glyph="{Binding Glyph}" Foreground="{Binding GlyphBrush}" Width="18" Size="13"
+                                              VerticalAlignment="Center" Margin="0,0,6,0"/>
+                          <TextBlock DockPanel.Dock="Right" Classes="faint" FontSize="{StaticResource FontSizeXs}"
+                                     Text="{Binding Count, StringFormat='{}{0:N0}'}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                          <controls:NameFirstPanel Spacing="8">
+                            <TextBlock FontSize="{StaticResource FontSizeSm}" Text="{Binding Label}" TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Folder}" IsVisible="{Binding HasFolder}" FontSize="{StaticResource FontSizeXs}"
+                                       Foreground="{DynamicResource TextFaintBrush}" TextTrimming="LeadingCharacterEllipsis" VerticalAlignment="Center"/>
+                          </controls:NameFirstPanel>
+                        </DockPanel>
+                      </ToggleButton>
+                    </DataTemplate>
+                  </ItemsControl.DataTemplates>
+                </ItemsControl>
+              </DockPanel>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
+        <Button Classes="menu" IsVisible="{Binding IsTreeMode}" ToolTip.Tip="How the Explorer groups assets" Padding="4,0"
+                AutomationProperties.Name="{Binding GroupingLabel, StringFormat='Group: {0}'}">
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <TextBlock Text="Group" FontSize="{StaticResource FontSizeSm}" Foreground="{DynamicResource TextFaintBrush}"/>
+            <controls:GlyphIcon Glyph="chevron-down" Size="12" Foreground="{DynamicResource TextFaintBrush}" VerticalAlignment="Center"/>
+          </StackPanel>
+          <Button.Flyout>
+            <MenuFlyout Placement="BottomEdgeAlignedRight">
+              <MenuItem c:Cmd.Id="explorer.groupByGdt" ToggleType="Radio"/>
+              <MenuItem c:Cmd.Id="explorer.groupByType" ToggleType="Radio"/>
+            </MenuFlyout>
+          </Button.Flyout>
+        </Button>
+        <Button Classes="icon" Content="⋯" MinWidth="24" Height="24"
+                AutomationProperties.Name="Explorer options" ToolTip.Tip="Explorer options">
+          <Button.Flyout>
+            <MenuFlyout Placement="BottomEdgeAlignedRight">
+              <MenuItem c:Cmd.Id="explorer.openTable"/>
+              <MenuItem c:Cmd.Id="asset.reveal"/>
+              <MenuItem c:Cmd.Id="explorer.search"/>
+              <MenuItem c:Cmd.Id="explorer.collapseAll"/>
+              <Separator/>
+              <MenuItem c:Cmd.Id="view.explorer"/>
+            </MenuFlyout>
+          </Button.Flyout>
+        </Button>
+      </StackPanel>
+      <Panel VerticalAlignment="Center">
+        <TextBlock IsVisible="{Binding !HasFilter}" Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="{Binding GroupingTitle}"/>
+        <!-- While anything filters the list, how much of it is showing: the same number the rows add up to. -->
+        <TextBlock Name="ResultCount" Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="{Binding ResultCountText}"
+                   IsVisible="{Binding HasFilter}" TextTrimming="CharacterEllipsis"/>
+      </Panel>
+    </DockPanel>
+
+    <!-- Type facets over search results: "All 38 · weapon 3 · xmodel 9 · +4". One line, never wrapping, and its place
+         is kept from the first letter typed, so the results never jump as the query changes. -->
+    <Panel DockPanel.Dock="Top" Height="26" Margin="8,0,8,4" IsVisible="{Binding ReserveFacetRow}">
+      <!-- One button per facet, kept and re-labelled as the results change (see SyncFacets); the last is "+N". -->
+      <controls:FacetRowPanel Name="Facets" VerticalAlignment="Center">
+        <Button Name="FacetMore" Classes="facet" Click="FacetMore_Click" AutomationProperties.Name="More types"
+                KeyboardNavigation.IsTabStop="False"/>
+      </controls:FacetRowPanel>
+    </Panel>
+
+    <TextBlock DockPanel.Dock="Bottom" Classes="faint" FontSize="{StaticResource FontSizeXs}" TextWrapping="Wrap"
+               Margin="14,4,14,8" Text="{Binding ResultsNote}" IsVisible="{Binding HasResultsNote}"/>
+
+    <!-- ── Rows (flattened + virtualized) ─────────────────────────── -->
+    <Panel>
+      <!-- Empty state: one line saying what happened and what to do, and the way back right under it. -->
+      <StackPanel VerticalAlignment="Top" Margin="18,36,18,0" Spacing="12" IsVisible="{Binding BrowserIsEmpty}">
+        <TextBlock Name="EmptyText" Classes="dim" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" TextAlignment="Center"
+                   Text="{Binding ExplorerEmptyText}"/>
+        <Button Classes="line" HorizontalAlignment="Center" Content="{c:Name explorer.clearFilters}" c:Cmd.Id="explorer.clearFilters"
+                IsVisible="{Binding HasFilter}"/>
+      </StackPanel>
+      <!-- Loading: said only once the GDTs have kept the list empty past 150 ms (a fast load never flashes it). -->
+      <TextBlock Name="LoadingText" Classes="dim" FontSize="{StaticResource FontSizeSm}" TextAlignment="Center" VerticalAlignment="Top"
+                 Margin="18,36,18,0" Text="Loading GDTs…" IsVisible="{Binding ShowExplorerLoading}"/>
+
+      <!-- RowListBox + RowPanel: rows leaving the view wait hidden in the list with their controls built, so rows
+           coming into view (expanding a GDT, scrolling, filtering) only rebind. -->
+      <controls:RowListBox Name="Tree" Classes="xtree" ItemsSource="{Binding FlatRows}" SelectionMode="Multiple"
+               SelectionChanged="Tree_SelectionChanged"
+               ContainerPrepared="Tree_ContainerPrepared"
+               DoubleTapped="Tree_DoubleTapped">
+        <!-- A row is announced by what it shows (name, type or count, changed, problems), not its view model's type name. -->
+        <ListBox.Styles>
+          <Style Selector="ListBoxItem" x:DataType="vm:BrowserNode">
+            <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}"/>
+          </Style>
+        </ListBox.Styles>
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate>
+            <controls:RowPanel StartAtTopOnReset="True"/>
+          </ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBox.ContextMenu>
+          <ContextMenu Name="TreeMenu" Opening="TreeMenu_Opening">
+            <controls:InvokableMenuItem Name="MenuOpen" Header="Open" InputGesture="Enter" Click="MenuOpen_Click"/>
+            <controls:InvokableMenuItem Name="MenuToggle" Header="Expand" InputGesture="Enter" Click="MenuToggle_Click"/>
+            <controls:InvokableMenuItem Name="MenuNewIn" Header="New asset in this GDT…" Click="MenuNewIn_Click"/>
+            <controls:InvokableMenuItem Name="MenuCollapseAll" Click="MenuCollapseAll_Click"/>
+            <!-- Named from the command catalog in code: these act on the selected rows. -->
+            <controls:InvokableMenuItem Name="MenuPin" Click="MenuPin_Click"/>
+            <controls:InvokableMenuItem Name="MenuCopy" Click="MenuCopy_Click"/>
+            <Separator Name="MenuClipSeparator"/>
+            <controls:InvokableMenuItem Name="MenuCutAssets" Click="MenuCutAssets_Click"/>
+            <controls:InvokableMenuItem Name="MenuCopyAssets" Click="MenuCopyAssets_Click"/>
+            <controls:InvokableMenuItem Name="MenuPasteAssets" Click="MenuPasteAssets_Click"/>
+            <Separator Name="MenuEditSeparator"/>
+            <controls:InvokableMenuItem Name="MenuRename" Click="MenuRename_Click"/>
+            <controls:InvokableMenuItem Name="MenuDuplicate" Click="MenuDuplicate_Click"/>
+            <controls:InvokableMenuItem Name="MenuDuplicateTo" Click="MenuDuplicateTo_Click"/>
+            <controls:InvokableMenuItem Name="MenuMoveTo" Click="MenuMoveTo_Click"/>
+            <controls:InvokableMenuItem Name="MenuDerive" Click="MenuDerive_Click"/>
+            <controls:InvokableMenuItem Name="MenuUnderive" Click="MenuUnderive_Click"/>
+            <controls:InvokableMenuItem Name="MenuDelete" Click="MenuDelete_Click"/>
+            <Separator Name="MenuMultiSeparator"/>
+            <controls:InvokableMenuItem Name="MenuCompare" Header="Compare selected" Click="MenuCompare_Click"/>
+            <controls:InvokableMenuItem Name="MenuTable" Header="Open selected as table" Click="MenuTable_Click"/>
+          </ContextMenu>
+        </ListBox.ContextMenu>
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:BrowserNode">
+            <Panel>
+              <!-- Section heading -->
+              <TextBlock IsVisible="{Binding IsHeader}" Text="{Binding Title}" Classes="faint" FontSize="{StaticResource FontSizeXs}"
+                         VerticalAlignment="Bottom" Margin="8,0,0,4"/>
+              <!-- Row: chevron · glyph · name (match underlined) · folder · suffix · count · ● ⚠ -->
+              <DockPanel IsVisible="{Binding !IsHeader}" Margin="{Binding Indent}" Background="Transparent" VerticalAlignment="Stretch">
+                <Button DockPanel.Dock="Left" Classes="chev"
+                        AutomationProperties.Name="Expand or collapse"
+                        Content="{Binding Chevron}" Command="{Binding ToggleCommand}"
+                        IsVisible="{Binding ShowChevron}"/>
+                <Panel DockPanel.Dock="Left" Width="24" IsVisible="{Binding !ShowChevron}"/>
+                <controls:GlyphIcon DockPanel.Dock="Left" Glyph="{Binding Glyph}" Foreground="{Binding GlyphBrush}"
+                                    Width="14" Size="14" VerticalAlignment="Center" Margin="0,0,8,0" IsVisible="{Binding HasGlyph}"/>
+                <!-- The marks have a slot each at the row's end, kept on every row whether lit or not: they line up
+                     down the list, and one appearing never shortens the name. -->
+                <Panel DockPanel.Dock="Right" Width="24" Margin="2,0,4,0">
+                  <Ellipse Width="6" Height="6" Fill="{DynamicResource MarkBrush}" HorizontalAlignment="Left" Margin="3,0,0,0"
+                           VerticalAlignment="Center" IsVisible="{Binding HasChanges}" ToolTip.Tip="Changed this session"/>
+                  <Ellipse Width="6" Height="6" Fill="{DynamicResource DangerBrush}" HorizontalAlignment="Right" Margin="0,0,3,0"
+                           VerticalAlignment="Center" IsVisible="{Binding HasProblem}" ToolTip.Tip="Has validation problems"/>
+                </Panel>
+                <TextBlock DockPanel.Dock="Right" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding Badge}"
+                           IsVisible="{Binding HasBadge}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                <!-- The name measures first; a GDT's folder takes what is left, trimmed from its front so the part nearest
+                     the file stays, then the suffix (an asset's GDT, or a single-type GDT's type) if there is room. -->
+                <controls:NameFirstPanel Spacing="8" ToolTip.Tip="{Binding Tip}" Background="Transparent">
+                  <!-- The match is bold and underlined in the text colour. -->
+                  <TextBlock Classes="rowname" Classes.group="{Binding IsGroup}" VerticalAlignment="Center"
+                             FontSize="{StaticResource FontSizeBase}" TextTrimming="CharacterEllipsis" FontFeatures="+tnum">
+                    <Run Text="{Binding Prefix, Mode=OneWay}"/><Run Text="{Binding Hit, Mode=OneWay}" FontWeight="SemiBold" TextDecorations="{StaticResource HitUnderline}"/><Run Text="{Binding Postfix, Mode=OneWay}"/>
+                  </TextBlock>
+                  <TextBlock Text="{Binding Folder}" IsVisible="{Binding HasFolder}"
+                             FontSize="{StaticResource FontSizeXs}" Foreground="{DynamicResource TextFaintBrush}"
+                             VerticalAlignment="Center" TextTrimming="LeadingCharacterEllipsis"/>
+                  <TextBlock Text="{Binding Suffix}" IsVisible="{Binding HasSuffix}"
+                             FontSize="{StaticResource FontSizeXs}" Foreground="{DynamicResource TextFaintBrush}"
+                             VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                </controls:NameFirstPanel>
+              </DockPanel>
+            </Panel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </controls:RowListBox>
+    </Panel>
+  </DockPanel>
+</UserControl>

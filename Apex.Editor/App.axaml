@@ -1,0 +1,27 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:Apex.Editor.Commands"
+             x:Class="Apex.Editor.App"
+             RequestedThemeVariant="Default">
+
+    <!-- Default follows the Windows light/dark setting, live: Graphite when dark, Light when light. The Layout
+         menu can pin Graphite, Slate or Light instead (Services/AppTheme.cs). -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Apex/Resources/Tokens.axaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <!-- Menu items write their keys like every other hint in Apex (the command catalog's format). -->
+            <c:GestureTextConverter x:Key="KeyGestureConverter"/>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme DensityStyle="Compact"/>
+        <StyleInclude Source="/Styles/Apex.axaml"/>
+        <StyleInclude Source="/Styles/Workspace.axaml"/>
+        <StyleInclude Source="/Styles/Shell.axaml"/>
+        <StyleInclude Source="/Styles/Browser.axaml"/>
+        <StyleInclude Source="/Styles/Preview.axaml"/>
+    </Application.Styles>
+</Application>

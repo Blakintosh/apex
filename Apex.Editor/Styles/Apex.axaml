@@ -1,0 +1,482 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!--
+    APEX component styles. Every colour, size and radius here comes from Resources/Tokens.axaml.
+    Brushes use {DynamicResource} so the whole UI re-themes when the variant changes; scales use
+    {StaticResource} because they are variant-independent.
+
+    Every interactive class has hover, pressed, focus-visible and disabled states here (and checked
+    for toggles). A view never restyles one locally: if a state is missing, add it here.
+  -->
+
+  <!-- ── Scrollbars ─────────────────────────────────────────────── -->
+  <!-- The overlay bar draws a hairline thumb, and its transparent track doesn't take the pointer, so only that hairline
+       could be grabbed or could open the bar. Giving the track a (transparent) background makes the whole strip beside
+       the content the target: the pointer entering it expands the bar, and a press in it pages. It is an overlay, so
+       the wider strip takes no layout room. -->
+  <Style Selector="ScrollBar /template/ Grid#Root">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <!-- Except over content that reaches the edge and is clicked there (the notetrack lanes: a note on the last frame sits
+       under the strip), which keeps the hairline as the only target. -->
+  <Style Selector="ScrollViewer.edgeclicks /template/ ScrollBar /template/ Grid#Root">
+    <Setter Property="Background" Value="{x:Null}"/>
+  </Style>
+
+  <!-- ── Typography ─────────────────────────────────────────────── -->
+  <!-- Text colour is inherited, never set on every TextBlock: it starts at TextBrush on each root (the window and
+       every popup, flyout and menu; views inherit it from there) and a control changes it for everything inside, so a
+       tab, a rail item, a view tab or a button colours its own label for hover, selected and disabled. A style on
+       TextBlock itself would outrank that inheritance and pin every label to TextBrush. -->
+  <Style Selector="Window, PopupRoot, OverlayPopupHost, FlyoutPresenter, MenuFlyoutPresenter, ContextMenu">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.dim">
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.faint">
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+  </Style>
+  <!-- Identifiers (asset, GDT and property names) and values: the mono face, so l/I/1 and 0/O
+       never blur (wpn_lmg, not wpn_Img). -->
+  <Style Selector="TextBlock.mono">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+  </Style>
+  <!-- The ⚠ problem mark. It is a thin outline glyph, so it takes the brighter fill red (an icon
+       needs 3:1, which it clears in both variants) and bold weight: the text red reads grey at 10 px. -->
+  <Style Selector="TextBlock.problem">
+    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+  </Style>
+  <!-- Wrapped explanatory copy (hints, dialog bodies). -->
+  <Style Selector="TextBlock.body">
+    <Setter Property="LineHeight" Value="{StaticResource LineHeightBody}"/>
+    <Setter Property="TextWrapping" Value="Wrap"/>
+  </Style>
+
+  <!-- Pane and column headings: one eyebrow style, sentence case. -->
+  <Style Selector="TextBlock.pane-title, TextBlock.h-pane">
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+
+  <!-- ── Panes & cards ──────────────────────────────────────────── -->
+  <Style Selector="Border.pane">
+    <Setter Property="Background" Value="{DynamicResource BgPaneBrush}"/>
+  </Style>
+  <Style Selector="Border.panehead">
+    <Setter Property="Background" Value="{DynamicResource BgHeaderBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    <Setter Property="Padding" Value="{StaticResource PaddingPane}"/>
+  </Style>
+
+  <!-- ── Tooltips ───────────────────────────────────────────────
+       A tooltip is something to read, never something in the way: it opens under the pointer, often over the next
+       row, so a click aimed at that row must reach the row, not land on the tip and do nothing. -->
+  <Style Selector="ToolTip">
+    <Setter Property="IsHitTestVisible" Value="False"/>
+  </Style>
+
+  <!-- ── Buttons ────────────────────────────────────────────────── -->
+  <!-- Hover and press are instant, as on list rows. No brush transition: every flat class rests at Transparent
+       (#00FFFFFF), and a fade from it interpolates through near-opaque light grey, a flash on enter and exit. -->
+
+  <!-- Flat text/glyph button in toolbars; the ToggleButton form is its on/off twin. -->
+  <Style Selector="Button.tool, ToggleButton.tool">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeightSm}"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="MinWidth" Value="24"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.tool:pointerover /template/ ContentPresenter, ToggleButton.tool:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.tool:pressed /template/ ContentPresenter, ToggleButton.tool:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.tool:checked /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentDimBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.tool:checked:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentDimHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.tool:checked:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentDimBrush}"/>
+  </Style>
+
+  <!-- Filled primary and destructive actions: the full control height, like .line, so a dialog's pair aligns;
+       .small is the in-row height for one that sits beside row-sized fields (the table's bulk bar).
+       .accent is coloured by the AccentButton* tokens, which Fluent's template reads at rest, hover, press and
+       disabled: setting Background here lost to the template at rest and won on hover, so it flipped colour. -->
+  <Style Selector="Button.accent, Button.danger">
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="14,0"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeight}"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.accent.small, Button.danger.small">
+    <Setter Property="Height" Value="{StaticResource ControlHeightSm}"/>
+    <Setter Property="Padding" Value="10,0"/>
+  </Style>
+  <Style Selector="Button.danger">
+    <Setter Property="Background" Value="{DynamicResource DangerBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource OnDangerBrush}"/>
+  </Style>
+  <Style Selector="Button.danger:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DangerHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource OnDangerBrush}"/>
+  </Style>
+  <Style Selector="Button.danger:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DangerPressBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource OnDangerBrush}"/>
+  </Style>
+  <Style Selector="Button.danger:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+  </Style>
+
+  <!-- A full-width row that opens a referenced asset (preview image slots). -->
+  <Style Selector="Button.refitem">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusSm}"/>
+    <Setter Property="Padding" Value="8,4"/>
+    <Setter Property="MinHeight" Value="24"/>
+    <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+  </Style>
+  <Style Selector="Button.refitem:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+  </Style>
+
+  <!-- A small ✕ beside a caption (a Compare column). 24 px hit area; the negative margin keeps the
+       caption compact. -->
+  <Style Selector="Button.chipclose">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Width" Value="24"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeightSm}"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Margin" Value="-6,-3,-8,-3"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXs}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeXs}"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.chipclose:pointerover /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+
+  <!-- ── Toggle pill ────────────────────────────────────────────── -->
+  <!-- Pills are interactive toggles on a raised card background. -->
+  <Style Selector="ToggleButton.pill">
+    <Setter Property="Background" Value="{DynamicResource BgCardBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Padding" Value="10,0"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeightSm}"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="ToggleButton.pill:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.pill:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+  <!-- Checked comes after hover so hovering a checked pill keeps it checked-looking. -->
+  <Style Selector="ToggleButton.pill:checked /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentDimBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.pill:checked:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentDimHoverBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.pill:checked:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentDimBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.pill.small">
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusSm}"/>
+  </Style>
+  <!-- ── Viewport overlays ──────────────────────────────────────────
+       Chips that sit on the 3D render (lighting, view toggles, caption, stats): the render stays dark in both
+       themes, so they use the Overlay* tokens, not the pane's. Border.overlay is a static chip (text), .chip a
+       button or toggle, .segment one choice inside an overlay group (the lighting presets). -->
+  <Style Selector="Border.overlay">
+    <Setter Property="Background" Value="{DynamicResource OverlayChipBrush}"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Padding" Value="9,4"/>
+  </Style>
+  <Style Selector="Border.overlay.group">
+    <Setter Property="Padding" Value="2"/>
+  </Style>
+  <Style Selector="Border.overlay TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource OverlayTextBrush}"/>
+  </Style>
+  <Style Selector="Button.chip, ToggleButton.chip, ToggleButton.segment">
+    <Setter Property="Background" Value="{DynamicResource OverlayChipBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource OverlayTextBrush}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Padding" Value="9,0"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeightSm}"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="MinWidth" Value="24"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="ToggleButton.segment">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXs}"/>
+  </Style>
+  <Style Selector="Button.chip:pointerover /template/ ContentPresenter, ToggleButton.chip:pointerover /template/ ContentPresenter,
+                   ToggleButton.segment:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource OverlayChipHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource OverlayTextBrush}"/>
+  </Style>
+  <Style Selector="Button.chip:pressed /template/ ContentPresenter, ToggleButton.chip:pressed /template/ ContentPresenter,
+                   ToggleButton.segment:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource OverlayChipActiveBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.chip:checked /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource OverlayChipActiveBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource OverlayAccentBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.segment:checked /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource OverlayChipActiveBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource OverlayTextBrush}"/>
+  </Style>
+  <Style Selector="Button.chip:disabled /template/ ContentPresenter, ToggleButton.chip:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource OverlayChipBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource OverlayTextBrush}"/>
+    <Setter Property="Opacity" Value="{StaticResource DisabledOpacity}"/>
+  </Style>
+
+  <Style Selector="ToggleButton.pill.danger:checked /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DangerDimBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}"/>
+  </Style>
+
+  <!-- ── Lists ──────────────────────────────────────────────────── -->
+  <!-- Selection is neutral everywhere (sky is for what you act on, amber for changes): an un-classed list gets the
+       same hover and selected fills as the Explorer and the dropdowns, not Fluent's accent tint. The classed lists
+       below and in Workspace.axaml come later, so they refine this. -->
+  <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgRowHoverBrush}"/>
+  </Style>
+  <Style Selector="ListBoxItem:pressed /template/ ContentPresenter#PART_ContentPresenter,
+                   ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter,
+                   ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter,
+                   ListBoxItem:selected:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+
+  <!-- ── Quick Open palette ─────────────────────────────────────── -->
+  <Style Selector="ListBox.palette">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Padding" Value="0"/>
+  </Style>
+  <Style Selector="ListBox.palette ListBoxItem">
+    <Setter Property="Padding" Value="9,6"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Margin" Value="0,1"/>
+  </Style>
+
+  <!-- ── Inputs ─────────────────────────────────────────────────── -->
+  <!-- Table cell editor. -->
+  <Style Selector="TextBox.cell">
+    <Setter Property="Background" Value="{DynamicResource BgCardBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXs}"/>
+    <Setter Property="Padding" Value="7,0"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeightSm}"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+  </Style>
+
+  <!-- ── Splitters ──────────────────────────────────────────────── -->
+  <Style Selector="GridSplitter">
+    <Setter Property="Background" Value="{DynamicResource BgWindowBrush}"/>
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+
+  <!-- ── Table / compare grids ──────────────────────────────────── -->
+  <Style Selector="ListBox.grid">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Padding" Value="0,2"/>
+  </Style>
+  <Style Selector="ListBox.grid ListBoxItem">
+    <Setter Property="Padding" Value="4,2"/>
+    <Setter Property="MinHeight" Value="30"/>
+    <Setter Property="CornerRadius" Value="0"/>
+    <Setter Property="Margin" Value="0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+  </Style>
+  <!-- Compare: a cell that differs from the base column gets a neutral raised fill. Not amber (a
+       difference is not a change you made) and not teal (it is not something selected). The base
+       column is plain text: the column caption already says which asset is the base. -->
+  <Style Selector="Border.diffcell, Border.basecell">
+    <Setter Property="Padding" Value="8,4"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXs}"/>
+    <Setter Property="Margin" Value="0,2,8,2"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Border.diffcell.diff">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+  </Style>
+
+  <!-- Tree expand/collapse chevron: 24 px wide hit area around a small glyph. -->
+  <Style Selector="Button.chev">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="MinWidth" Value="24"/>
+    <Setter Property="MinHeight" Value="24"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXs}"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeXs}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.chev:pointerover /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <Style Selector="Button.chev:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+
+  <!-- Press feedback for the remaining flat button classes. -->
+  <Style Selector="Button.refitem:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+
+  <!-- Disabled flat buttons: no fill (Fluent's grey disabled fill reads as "selected") and faint,
+       translucent content so coloured glyphs and .dim text inside fade too. -->
+  <Style Selector="Button.tool:disabled /template/ ContentPresenter,
+                   ToggleButton.tool:disabled /template/ ContentPresenter,
+                   Button.refitem:disabled /template/ ContentPresenter,
+                   Button.chipclose:disabled /template/ ContentPresenter,
+                   Button.chev:disabled /template/ ContentPresenter,
+                   ToggleButton.pill:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+    <Setter Property="Opacity" Value="{StaticResource DisabledOpacity}"/>
+  </Style>
+  <Style Selector="ToggleButton.pill:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgCardBrush}"/>
+  </Style>
+
+  <!-- ── Keyboard focus rings ───────────────────────────────────────
+       Every flat button class here overrides the Fluent template's background, which also erases
+       the theme's focus adorner — without these, keyboard-only navigation is invisible. A box
+       shadow is used rather than a border so focus never changes layout. One ring everywhere:
+       2 px FocusBrush (ShadowFocus); filled buttons get it offset so it never merges with their
+       fill; fields and controls that clip their bounds draw it inset. -->
+  <Style Selector="Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter,
+                   ToggleButton:focus-visible /template/ ContentPresenter#PART_ContentPresenter,
+                   RepeatButton:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFocus}"/>
+  </Style>
+  <Style Selector="Button.accent:focus-visible /template/ ContentPresenter#PART_ContentPresenter,
+                   Button.danger:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFocusOffset}"/>
+  </Style>
+  <Style Selector="ListBoxItem:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFocus}"/>
+  </Style>
+  <!-- Fields clip their template to their bounds (an outer ring survives only at the corners),
+       so text boxes and combo boxes draw the same 2 px ring inset. -->
+  <Style Selector="TextBox:focus-within /template/ Border#PART_BorderElement">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFocusInset}"/>
+  </Style>
+  <Style Selector="ComboBox:focus-visible /template/ Border#Background">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFocusInset}"/>
+  </Style>
+  <Style Selector="CheckBox:focus-visible /template/ Border#NormalRectangle">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFocus}"/>
+  </Style>
+
+  <!-- ── Alert banner (notices & errors) ────────────────────────────
+       Things the user must notice, iconified, dismissible, and sitting directly above the work
+       area. A notice is neutral (no hue of its own: amber means a change, rose a problem); an
+       error that blocked what the user asked for is rose. -->
+  <Style Selector="Border.alert">
+    <Setter Property="BorderThickness" Value="0,1"/>
+    <Setter Property="Padding" Value="{StaticResource PaddingPane}"/>
+    <Setter Property="Background" Value="{DynamicResource BgCardBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+  </Style>
+  <Style Selector="Border.alert.error">
+    <Setter Property="Background" Value="{DynamicResource DangerDimBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}"/>
+  </Style>
+
+  <!-- ── Confirmation dialog ────────────────────────────────────────
+       Used by every irreversible action (delete, bulk apply, discarding a session). -->
+  <Style Selector="Border.dialogbackdrop">
+    <Setter Property="Background" Value="{DynamicResource ScrimBrush}"/>
+  </Style>
+  <Style Selector="Border.dialogcard">
+    <Setter Property="Width" Value="430"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="HorizontalAlignment" Value="Center"/>
+    <Setter Property="Background" Value="{DynamicResource BgCardBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusOverlay}"/>
+    <Setter Property="Padding" Value="18,16"/>
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowDialog}"/>
+  </Style>
+
+  <!-- Virtualized ItemsControl: scroll viewer in-template so VirtualizingStackPanel gets a viewport.
+       Used by the filter dropdowns and the inspector's reference list, which can hold many rows. -->
+  <Style Selector="ItemsControl.virt">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}"/>
+        </ScrollViewer>
+      </ControlTemplate>
+    </Setter>
+    <Setter Property="ItemsPanel">
+      <ItemsPanelTemplate>
+        <VirtualizingStackPanel/>
+      </ItemsPanelTemplate>
+    </Setter>
+  </Style>
+</Styles>

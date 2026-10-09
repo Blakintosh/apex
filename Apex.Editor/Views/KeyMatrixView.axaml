@@ -1,0 +1,96 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Apex.Editor.ViewModels"
+             xmlns:views="using:Apex.Editor.Views"
+             x:Class="Apex.Editor.Views.KeyMatrixView"
+             x:DataType="vm:MatrixRowViewModel"
+             Focusable="True" IsTabStop="True"
+             Height="{Binding Height}">
+
+  <!--
+    A section whose keys are one name for the row and one for the column (Entity FX Impacts: surface × hit type), as the
+    grid they make. The squares show values; the selected one's own editor sits under the grid, with every property
+    editor's behaviour (a reference suggests assets, a number steps, ↶ undoes). Arrows move, Enter or F2 goes to the
+    editor, Delete clears the square, Esc comes back to the grid.
+  -->
+  <UserControl.Styles>
+    <Style Selector="Border.mcell">
+      <Setter Property="Height" Value="34"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+      <Setter Property="BorderThickness" Value="0,0,1,1"/>
+      <Setter Property="Padding" Value="10,0"/>
+    </Style>
+    <Style Selector="Border.mcell.hdr, Border.mcell.rowhdr">
+      <Setter Property="Background" Value="{DynamicResource BgCardBrush}"/>
+    </Style>
+    <Style Selector="Border.mcell:not(.hdr):not(.none):pointerover">
+      <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+    </Style>
+    <Style Selector="Border.mcell.sel">
+      <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+      <Setter Property="BorderThickness" Value="2"/>
+      <Setter Property="Padding" Value="9,0"/>
+    </Style>
+    <Style Selector="Border.mcell.chg">
+      <Setter Property="BorderBrush" Value="{DynamicResource MarkBrush}"/>
+    </Style>
+    <Style Selector="Border.mcell.sel.chg">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+    </Style>
+    <Style Selector="Border.mcell TextBlock">
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    </Style>
+    <Style Selector="Border.mcell.hdr TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+      <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    </Style>
+    <Style Selector="Border.mcell.rowhdr TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+      <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextSoftBrush}"/>
+    </Style>
+    <Style Selector="Border.mcell:not(.hdr):not(.rowhdr) TextBlock">
+      <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+      <Setter Property="TextTrimming" Value="PrefixCharacterEllipsis"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+    </Style>
+    <Style Selector="Border.mcell.bad TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}"/>
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel Margin="0,4,0,0">
+    <!-- The selected square's own editor, as its row in the list would show it. -->
+    <Border DockPanel.Dock="Bottom" Height="56" Padding="0,12,0,0">
+      <Grid ColumnDefinitions="180,*" VerticalAlignment="Center">
+        <TextBlock Text="{Binding SelectedLabel}" Classes="plabel" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="10,0,8,0"/>
+        <views:PropertyEditorView Grid.Column="1" DataContext="{Binding SelectedItem}" IsVisible="{Binding $self.DataContext, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                  ShowMarks="True" VerticalAlignment="Center"/>
+        <TextBlock Grid.Column="1" Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="{Binding NoSelectionText}" VerticalAlignment="Center"
+                   IsVisible="{Binding !HasSelectedItem}"/>
+      </Grid>
+    </Border>
+
+    <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="1,1,0,0" CornerRadius="0">
+      <ItemsControl Name="Squares" ItemsSource="{Binding Cells}" Focusable="False">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid Columns="{Binding ColumnCount}" x:DataType="vm:MatrixRowViewModel"/>
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:MatrixCell">
+            <Border Classes="mcell" Classes.hdr="{Binding IsHeader}" Classes.rowhdr="{Binding IsRowHeader}" Classes.sel="{Binding IsSelected}"
+                    Classes.none="{Binding IsNone}" Classes.chg="{Binding IsChanged}" Classes.bad="{Binding HasProblem}"
+                    ToolTip.Tip="{Binding Tip}">
+              <TextBlock Text="{Binding Text}"/>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Border>
+  </DockPanel>
+</UserControl>

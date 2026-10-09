@@ -1,0 +1,725 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="using:System"
+                    xmlns:t="using:Apex.Editor.Services">
+
+  <!--
+    APEX design tokens · Graphite, Slate and Light.
+
+    Three layers, per the usual model:
+      1. Primitives  — raw ramp values. Never referenced from a view.
+      2. Semantic    — theme-variant aware brushes. This is what views and styles use.
+      3. Scales      — typography, spacing, radius, elevation. Variant-independent.
+
+    Views must reference semantic brushes with {DynamicResource}, never {StaticResource} and never
+    a raw hex: a StaticResource is resolved once at load, so a themed brush referenced that way
+    would keep the variant that happened to be active at startup.
+
+    Three themes, one set of keys (Services/AppTheme.cs picks one; the default follows Windows):
+      · Graphite (Dark)  — neutral greys with no blue cast. What a dark Windows gets.
+      · Slate            — the blue-black dark from the gscode family. Inherits Dark, so stock
+                           Fluent controls fall back to their dark values.
+      · Light (Light)    — a white sheet on a pale window. What a light Windows gets.
+    The window is the darkest surface (lightest in Light); panes are cards on it; fields are
+    recessed below the pane and carry a hairline instead of a fill step.
+
+    Colour → meaning. One meaning per hue, everywhere; anything else is a neutral grey and gets its
+    hierarchy from weight, size and spacing, not colour.
+      · Amber (Mark*)           — you changed this, this session: the row bar, the dots on tabs, rail
+                                  and Explorer rows, the session dot in the title bar. Nothing else.
+      · Rose  (Danger*)         — a problem or a destructive action: ⚠ marks, problem bands, error
+                                  alerts, Delete. Warnings that aren't problems are neutral.
+      · Teal  (Accent*, Focus*) — where you are and what you act on: the primary button, checked
+                                  toggles, the current tab and section, the focus ring.
+      · Type hues (Type*)       — which kind of asset a glyph stands for, in four families that
+                                  avoid the three hues above (see Layer 1). Never a state.
+    A difference in Compare is a neutral raised fill, not a hue: it is neither a change you made
+    nor something to act on.
+  -->
+
+  <!-- ══ Layer 1 · Primitives ══════════════════════════════════════════════ -->
+  <!-- Graphite: the neutral dark ramp. -->
+  <Color x:Key="Graphite1000">#0F0F0F</Color>
+  <Color x:Key="Graphite950">#141414</Color>
+  <Color x:Key="Graphite925">#171717</Color>
+  <Color x:Key="Graphite900">#1C1C1C</Color>
+  <Color x:Key="Graphite850">#212121</Color>
+  <Color x:Key="Graphite800">#242424</Color>
+  <Color x:Key="Graphite750">#262626</Color>
+  <Color x:Key="Graphite700">#2A2A2A</Color>
+  <Color x:Key="Graphite650">#2E2E2E</Color>
+  <Color x:Key="Graphite600">#363636</Color>
+  <Color x:Key="Graphite550">#3E3E3E</Color>
+
+  <!-- Slate: the blue-black dark ramp. -->
+  <Color x:Key="Slate1000">#090C11</Color>
+  <Color x:Key="Slate950">#0A0D12</Color>
+  <Color x:Key="Slate925">#0E141B</Color>
+  <Color x:Key="Slate900">#111720</Color>
+  <Color x:Key="Slate850">#141B24</Color>
+  <Color x:Key="Slate800">#151D26</Color>
+  <Color x:Key="Slate750">#18212A</Color>
+  <Color x:Key="Slate700">#1A2430</Color>
+  <Color x:Key="Slate650">#1C2732</Color>
+  <Color x:Key="Slate600">#24313C</Color>
+  <Color x:Key="Slate550">#2B3A47</Color>
+
+  <!-- Mist: the light ramp, cool and faintly blue so white panes read as paper on it. -->
+  <Color x:Key="Mist50">#FFFFFF</Color>
+  <Color x:Key="Mist100">#F7F8FA</Color>
+  <Color x:Key="Mist150">#F5F6F8</Color>
+  <Color x:Key="Mist200">#F1F3F5</Color>
+  <Color x:Key="Mist250">#EDEFF2</Color>
+  <Color x:Key="Mist300">#E9ECEF</Color>
+  <Color x:Key="Mist400">#E3E6EA</Color>
+  <Color x:Key="Mist500">#D6DBE0</Color>
+  <Color x:Key="MistWindow">#ECEEF0</Color>
+
+  <!-- Text ramps. Three clear steps; faint still clears 4.5:1 on the darkest surface it can sit on
+       (a selected row, BgActive) in its own theme. -->
+  <Color x:Key="Paper">#EBEBEB</Color>
+  <Color x:Key="PaperDim">#AAAAAA</Color>
+  <Color x:Key="PaperFaint">#949494</Color>
+  <Color x:Key="Frost">#E2EAEC</Color>
+  <Color x:Key="FrostDim">#9AAAB2</Color>
+  <Color x:Key="FrostFaint">#82939C</Color>
+  <Color x:Key="Ink">#161C21</Color>
+  <Color x:Key="InkDim">#434E55</Color>
+  <Color x:Key="InkFaint">#5F6C74</Color>
+
+  <!-- Change, accent & status. Each has a fill tone and a text tone: a hue that reads well as a
+       fill on a dark pane is far too light to sit as text on a white one, so the two cannot be
+       one token. -->
+  <Color x:Key="Amber">#F5A524</Color>
+  <Color x:Key="AmberMark">#D97706</Color>
+  <Color x:Key="Teal">#3ED1BD</Color>
+  <Color x:Key="TealBright">#5EDCCA</Color>
+  <Color x:Key="TealDeep">#33B9A7</Color>
+  <Color x:Key="TealText">#7BEFDD</Color>
+  <Color x:Key="TealInk">#0B7D6F</Color>
+  <Color x:Key="TealInkBright">#0E8F80</Color>
+  <Color x:Key="TealInkDeep">#09695E</Color>
+  <Color x:Key="TealInkNight">#07554C</Color>
+  <Color x:Key="TealMid">#22A794</Color>
+  <Color x:Key="TealOn">#05201C</Color>
+  <Color x:Key="Rose">#FF5C7A</Color>
+  <Color x:Key="RoseBright">#FF7A92</Color>
+  <Color x:Key="RoseDeep">#E84E6C</Color>
+  <Color x:Key="RoseLight">#D6334F</Color>
+  <Color x:Key="RoseInk">#C02A45</Color>
+  <Color x:Key="CaptionRed">#C42B1C</Color>
+  <Color x:Key="CaptionRedDeep">#A8261A</Color>
+
+  <!-- Fluent's accent ramp (SystemAccentColor and its shades) is re-tinted per theme in Layer 2, so stock
+       controls (check boxes, sliders, text selection) are teal like the Accent* brushes, not the Windows blue. -->
+
+  <!-- Asset-type families (TypeStyles.cs maps each type to one): TypeX on the dark themes, TypeXInk
+       on Light. Inks clear 4.5:1 on a light pane; hues clear 7:1 on a dark one. The glyph's shape
+       tells types within a family apart; the hue only says which family. Every family hue sits away
+       from amber (change), rose (problem) and teal (accent):
+         Weapons  lime   — weapon types, attachments, camos
+         Models   sky    — xmodels, characters, vehicles, zbarriers
+         Surfaces violet — materials, images
+         Motion   orchid — xanims, fx, sounds
+         Other    grey -->
+  <Color x:Key="TypeWeapons">#B4D67E</Color>
+  <Color x:Key="TypeWeaponsInk">#4A7515</Color>
+  <Color x:Key="TypeModels">#7DB7EE</Color>
+  <Color x:Key="TypeModelsInk">#1F63A8</Color>
+  <Color x:Key="TypeSurfaces">#B9A7F2</Color>
+  <Color x:Key="TypeSurfacesInk">#6D45C9</Color>
+  <Color x:Key="TypeMotion">#E39CC9</Color>
+  <Color x:Key="TypeMotionInk">#9A3A93</Color>
+  <Color x:Key="TypeOther">#8A8A8A</Color>
+  <Color x:Key="TypeOtherInk">#5F6C74</Color>
+
+  <!-- ══ Layer 2 · Semantic (theme-variant aware) ══════════════════════════ -->
+  <ResourceDictionary.ThemeDictionaries>
+
+    <!-- Graphite -->
+    <ResourceDictionary x:Key="Dark">
+      <!-- Surfaces. BgWindow is the Mica tint (and its solid fallback); panes are cards on it. -->
+      <SolidColorBrush x:Key="BgWindowBrush" Color="{StaticResource Graphite950}"/>
+      <SolidColorBrush x:Key="MicaTintBrush" Color="#E6141414"/>
+      <SolidColorBrush x:Key="BgPaneBrush"   Color="{StaticResource Graphite900}"/>
+      <SolidColorBrush x:Key="BgHeaderBrush" Color="{StaticResource Graphite900}"/>
+      <SolidColorBrush x:Key="BgCardBrush"   Color="{StaticResource Graphite800}"/>
+      <SolidColorBrush x:Key="BgRowHoverBrush" Color="{StaticResource Graphite850}"/>
+      <SolidColorBrush x:Key="BgHoverBrush"  Color="{StaticResource Graphite750}"/>
+      <SolidColorBrush x:Key="BgActiveBrush" Color="{StaticResource Graphite700}"/>
+      <SolidColorBrush x:Key="BgFieldBrush"  Color="{StaticResource Graphite925}"/>
+      <SolidColorBrush x:Key="LineBrush"     Color="{StaticResource Graphite700}"/>
+      <!-- The edge of an outlined control (Compare, the Go to box): a step stronger than a divider. -->
+      <SolidColorBrush x:Key="LineStrongBrush" Color="#303030"/>
+
+      <!-- Text -->
+      <SolidColorBrush x:Key="TextBrush"      Color="{StaticResource Paper}"/>
+      <!-- Between text and dim: values, GDT rows, section titles, secondary actions. -->
+      <SolidColorBrush x:Key="TextSoftBrush"  Color="#C8C8C8"/>
+      <SolidColorBrush x:Key="TextDimBrush"   Color="{StaticResource PaperDim}"/>
+      <SolidColorBrush x:Key="TextFaintBrush" Color="{StaticResource PaperFaint}"/>
+
+      <!-- Change (amber): the bar/dot beside a changed value, and the changed value itself. -->
+      <SolidColorBrush x:Key="MarkBrush"        Color="{StaticResource Amber}"/>
+      <SolidColorBrush x:Key="MarkTextBrush"    Color="#F5C46B"/>
+
+      <!-- Accent (teal): fill vs. text tones. AccentDim tints checked and selected things. -->
+      <SolidColorBrush x:Key="AccentBrush"          Color="{StaticResource Teal}"/>
+      <SolidColorBrush x:Key="AccentTextBrush"      Color="{StaticResource TealText}"/>
+      <SolidColorBrush x:Key="AccentHoverBrush"     Color="{StaticResource TealBright}"/>
+      <SolidColorBrush x:Key="AccentPressBrush"     Color="{StaticResource TealDeep}"/>
+      <SolidColorBrush x:Key="AccentDimBrush"       Color="#263ED1BD"/>
+      <SolidColorBrush x:Key="AccentDimHoverBrush"  Color="#363ED1BD"/>
+      <SolidColorBrush x:Key="OnAccentBrush"        Color="{StaticResource TealOn}"/>
+
+      <SolidColorBrush x:Key="DangerBrush"      Color="{StaticResource Rose}"/>
+      <SolidColorBrush x:Key="DangerTextBrush"  Color="{StaticResource Rose}"/>
+      <SolidColorBrush x:Key="DangerHoverBrush" Color="{StaticResource RoseBright}"/>
+      <SolidColorBrush x:Key="DangerPressBrush" Color="{StaticResource RoseDeep}"/>
+      <SolidColorBrush x:Key="DangerDimBrush"   Color="#21FF5C7A"/>
+      <SolidColorBrush x:Key="OnDangerBrush"    Color="#1F0710"/>
+
+      <SolidColorBrush x:Key="FocusBrush"    Color="{StaticResource Teal}"/>
+
+      <!-- Window caption close button: the Windows red in every theme. -->
+      <SolidColorBrush x:Key="CaptionCloseBrush"      Color="{StaticResource CaptionRed}"/>
+      <SolidColorBrush x:Key="CaptionClosePressBrush" Color="{StaticResource CaptionRedDeep}"/>
+      <SolidColorBrush x:Key="OnCaptionCloseBrush"    Color="#FFFFFF"/>
+
+      <!-- Specialised surfaces -->
+      <SolidColorBrush x:Key="ViewportBgBrush"   Color="{StaticResource Graphite1000}"/>
+      <SolidColorBrush x:Key="CheckerBaseBrush"  Color="#1F1F1F"/>
+      <SolidColorBrush x:Key="CheckerAltBrush"   Color="#2A2A2A"/>
+      <SolidColorBrush x:Key="ScrimBrush"        Color="#8C000000"/>
+      <SolidColorBrush x:Key="ScrimLightBrush"   Color="#59000000"/>
+      <SolidColorBrush x:Key="TickBrush"         Color="#4DFFFFFF"/>
+      <SolidColorBrush x:Key="PaneStrokeBrush"   Color="#0DFFFFFF"/>
+      <!-- Chips drawn on the 3D render (lighting, view, stats): full-opacity text on 85% viewport graphite. The
+           render is dark in every theme, so these are the same in all of them. -->
+      <SolidColorBrush x:Key="OverlayChipBrush"       Color="#D90F0F0F"/>
+      <SolidColorBrush x:Key="OverlayChipHoverBrush"  Color="#F2292929"/>
+      <SolidColorBrush x:Key="OverlayChipActiveBrush" Color="{StaticResource Graphite600}"/>
+      <SolidColorBrush x:Key="OverlayTextBrush"       Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="OverlayAccentBrush"     Color="{StaticResource TealText}"/>
+      <!-- Lines drawn on the render (the recoil overlay's path and ruler): Paper at 45%. -->
+      <SolidColorBrush x:Key="OverlayTraceBrush"      Color="#73EBEBEB"/>
+
+      <BoxShadows x:Key="ShadowDialog">0 18 48 0 #80000000</BoxShadows>
+      <BoxShadows x:Key="ShadowLayer">0 1 0 0 #05FFFFFF</BoxShadows>
+      <!-- Focus: one 2 px teal ring everywhere. The offset variant leaves a 2 px pane-coloured gap
+           so the ring stays visible around a filled (accent/danger) button; the inset variant is
+           for fields and controls that clip their bounds. -->
+      <BoxShadows x:Key="ShadowFocus">0 0 0 2 #3ED1BD</BoxShadows>
+      <BoxShadows x:Key="ShadowFocusOffset">0 0 0 2 #1C1C1C, 0 0 0 4 #3ED1BD</BoxShadows>
+      <BoxShadows x:Key="ShadowFocusInset">inset 0 0 0 2 #3ED1BD</BoxShadows>
+      <!-- Field edges: fields sit below the pane, so the hairline is what draws them. -->
+      <BoxShadows x:Key="ShadowFieldEdge">inset 0 0 0 1 #2E2E2E</BoxShadows>
+      <BoxShadows x:Key="ShadowFieldHover">inset 0 0 0 1 #444444</BoxShadows>
+      <!-- The selected editor tab's top bar. -->
+      <BoxShadows x:Key="ShadowTabActive">inset 0 2 0 0 #3ED1BD</BoxShadows>
+
+      <!-- The selected editor tab's bar and the focus ring together: a focused current tab keeps its bar. -->
+      <BoxShadows x:Key="ShadowTabActiveFocus">inset 0 2 0 0 #3ED1BD, inset 0 0 0 2 #3ED1BD</BoxShadows>
+
+      <!-- ── Fluent bridge: the stock controls' resources, mapped onto the tokens above. Fluent reads these by
+           DynamicResource, so defining them here re-themes every stock control without a template of our own. ── -->
+      <!-- One accent: Fluent's accent ramp is this variant's teal, so check boxes, sliders and selection match Accent*. -->
+      <StaticResource x:Key="SystemAccentColor" ResourceKey="Teal"/>
+      <StaticResource x:Key="SystemAccentColorLight1" ResourceKey="TealBright"/>
+      <StaticResource x:Key="SystemAccentColorLight2" ResourceKey="TealText"/>
+      <StaticResource x:Key="SystemAccentColorLight3" ResourceKey="TealText"/>
+      <StaticResource x:Key="SystemAccentColorDark1" ResourceKey="TealDeep"/>
+      <StaticResource x:Key="SystemAccentColorDark2" ResourceKey="TealMid"/>
+      <StaticResource x:Key="SystemAccentColorDark3" ResourceKey="TealInk"/>
+      <!-- A check on teal is dark: white on teal is 1.9:1. -->
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminate" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminatePointerOver" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminatePressed" Color="{StaticResource TealOn}"/>
+      <!-- Primary (.accent) buttons: teal with dark text at rest, on hover and pressed (9.0:1 at rest). -->
+      <SolidColorBrush x:Key="AccentButtonBackground" Color="{StaticResource Teal}"/>
+      <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="{StaticResource TealBright}"/>
+      <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="{StaticResource TealDeep}"/>
+      <SolidColorBrush x:Key="AccentButtonBackgroundDisabled" Color="{StaticResource Graphite700}"/>
+      <SolidColorBrush x:Key="AccentButtonForeground" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="AccentButtonForegroundDisabled" Color="{StaticResource PaperFaint}"/>
+      <!-- Labels of un-classed stock controls (there is no global TextBlock style to fall back on). -->
+      <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="{StaticResource PaperFaint}"/>
+      <SolidColorBrush x:Key="ToggleButtonForeground" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="ToggleButtonForegroundPointerOver" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="ToggleButtonForegroundPressed" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="ToggleButtonForegroundDisabled" Color="{StaticResource PaperFaint}"/>
+      <SolidColorBrush x:Key="RepeatButtonForeground" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="RepeatButtonForegroundPointerOver" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="RepeatButtonForegroundPressed" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="TextControlForeground" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="TextControlForegroundPointerOver" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="TextControlForegroundFocused" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundUnchecked" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundUncheckedPointerOver" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundUncheckedPressed" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundChecked" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundCheckedPointerOver" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundCheckedPressed" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="RadioButtonForeground" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="RadioButtonForegroundPointerOver" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="RadioButtonForegroundPressed" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="ToolTipForeground" Color="{StaticResource Paper}"/>
+      <!-- List rows hover and select in the text tone, not Fluent's pure white or black. -->
+      <SolidColorBrush x:Key="SystemControlHighlightAltBaseHighBrush" Color="{StaticResource Paper}"/>
+      <!-- Placeholders in the faint text tone at full opacity: 5.4:1 on a field (Fluent's grey at half opacity was 2.4:1). -->
+      <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="{StaticResource PaperFaint}"/>
+      <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="{StaticResource PaperFaint}"/>
+      <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="{StaticResource PaperFaint}"/>
+      <SolidColorBrush x:Key="ComboBoxPlaceHolderForeground" Color="{StaticResource PaperFaint}"/>
+      <!-- Text selection: teal at 40%, so selected text keeps its own colour and still reads (4.9:1 on a field). -->
+      <SolidColorBrush x:Key="TextControlSelectionHighlightColor" Color="#663ED1BD"/>
+      <!-- Dropdowns: the menus' card and hairline; rows hover and select neutral, as every list does. On the card (one
+           step up from a pane) hover and selection step up one too, or hover would vanish into it. -->
+      <SolidColorBrush x:Key="ComboBoxForeground" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="ComboBoxForegroundFocused" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="ComboBoxForegroundFocusedPressed" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="ComboBoxForegroundDisabled" Color="{StaticResource PaperFaint}"/>
+      <SolidColorBrush x:Key="ComboBoxDropDownGlyphForeground" Color="{StaticResource PaperDim}"/>
+      <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundFocused" Color="{StaticResource PaperDim}"/>
+      <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundFocusedPressed" Color="{StaticResource PaperDim}"/>
+      <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="{StaticResource Graphite800}"/>
+      <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="{StaticResource Graphite650}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForeground" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundPressed" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundSelected" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPointerOver" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPressed" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundDisabled" Color="{StaticResource PaperFaint}"/>
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="{StaticResource Graphite600}"/>
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundPressed" Color="{StaticResource Graphite550}"/>
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundSelected" Color="{StaticResource Graphite550}"/>
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPointerOver" Color="{StaticResource Graphite550}"/>
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPressed" Color="{StaticResource Graphite550}"/>
+      <!-- Menus and flyouts: the card, its hairline, neutral hover. -->
+      <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="{StaticResource Graphite800}"/>
+      <SolidColorBrush x:Key="MenuFlyoutPresenterBorderBrush" Color="{StaticResource Graphite650}"/>
+      <SolidColorBrush x:Key="FlyoutPresenterBackground" Color="{StaticResource Graphite800}"/>
+      <SolidColorBrush x:Key="FlyoutBorderThemeBrush" Color="{StaticResource Graphite650}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemForeground" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemForegroundPointerOver" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemForegroundPressed" Color="{StaticResource Paper}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemForegroundDisabled" Color="{StaticResource PaperFaint}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPointerOver" Color="{StaticResource Graphite600}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPressed" Color="{StaticResource Graphite550}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemKeyboardAcceleratorTextForeground" Color="{StaticResource PaperFaint}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPointerOver" Color="{StaticResource PaperFaint}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPressed" Color="{StaticResource PaperFaint}"/>
+      <SolidColorBrush x:Key="MenuFlyoutSubItemChevron" Color="{StaticResource PaperDim}"/>
+    </ResourceDictionary>
+
+    <!-- Slate: Graphite's roles on the blue-black ramp. Accent, change, problem and type hues are
+         Graphite's. -->
+    <ResourceDictionary x:Key="{x:Static t:AppTheme.Slate}">
+      <SolidColorBrush x:Key="BgWindowBrush" Color="{StaticResource Slate950}"/>
+      <SolidColorBrush x:Key="MicaTintBrush" Color="#EB0A0D12"/>
+      <SolidColorBrush x:Key="BgPaneBrush"   Color="{StaticResource Slate900}"/>
+      <SolidColorBrush x:Key="BgHeaderBrush" Color="{StaticResource Slate900}"/>
+      <SolidColorBrush x:Key="BgCardBrush"   Color="{StaticResource Slate800}"/>
+      <SolidColorBrush x:Key="BgRowHoverBrush" Color="{StaticResource Slate850}"/>
+      <SolidColorBrush x:Key="BgHoverBrush"  Color="{StaticResource Slate750}"/>
+      <SolidColorBrush x:Key="BgActiveBrush" Color="{StaticResource Slate650}"/>
+      <SolidColorBrush x:Key="BgFieldBrush"  Color="{StaticResource Slate925}"/>
+      <SolidColorBrush x:Key="LineBrush"     Color="{StaticResource Slate700}"/>
+      <!-- The edge of an outlined control (Compare, the Go to box): a step stronger than a divider. -->
+      <SolidColorBrush x:Key="LineStrongBrush" Color="#212C37"/>
+
+      <SolidColorBrush x:Key="TextBrush"      Color="{StaticResource Frost}"/>
+      <!-- Between text and dim: values, GDT rows, section titles, secondary actions. -->
+      <SolidColorBrush x:Key="TextSoftBrush"  Color="#C3CED2"/>
+      <SolidColorBrush x:Key="TextDimBrush"   Color="{StaticResource FrostDim}"/>
+      <SolidColorBrush x:Key="TextFaintBrush" Color="{StaticResource FrostFaint}"/>
+
+      <SolidColorBrush x:Key="MarkBrush"        Color="{StaticResource Amber}"/>
+      <SolidColorBrush x:Key="MarkTextBrush"    Color="#F5C46B"/>
+
+      <SolidColorBrush x:Key="AccentBrush"          Color="{StaticResource Teal}"/>
+      <SolidColorBrush x:Key="AccentTextBrush"      Color="{StaticResource TealText}"/>
+      <SolidColorBrush x:Key="AccentHoverBrush"     Color="{StaticResource TealBright}"/>
+      <SolidColorBrush x:Key="AccentPressBrush"     Color="{StaticResource TealDeep}"/>
+      <SolidColorBrush x:Key="AccentDimBrush"       Color="#263ED1BD"/>
+      <SolidColorBrush x:Key="AccentDimHoverBrush"  Color="#363ED1BD"/>
+      <SolidColorBrush x:Key="OnAccentBrush"        Color="{StaticResource TealOn}"/>
+
+      <SolidColorBrush x:Key="DangerBrush"      Color="{StaticResource Rose}"/>
+      <SolidColorBrush x:Key="DangerTextBrush"  Color="{StaticResource Rose}"/>
+      <SolidColorBrush x:Key="DangerHoverBrush" Color="{StaticResource RoseBright}"/>
+      <SolidColorBrush x:Key="DangerPressBrush" Color="{StaticResource RoseDeep}"/>
+      <SolidColorBrush x:Key="DangerDimBrush"   Color="#21FF5C7A"/>
+      <SolidColorBrush x:Key="OnDangerBrush"    Color="#1F0710"/>
+
+      <SolidColorBrush x:Key="FocusBrush"    Color="{StaticResource Teal}"/>
+
+      <SolidColorBrush x:Key="CaptionCloseBrush"      Color="{StaticResource CaptionRed}"/>
+      <SolidColorBrush x:Key="CaptionClosePressBrush" Color="{StaticResource CaptionRedDeep}"/>
+      <SolidColorBrush x:Key="OnCaptionCloseBrush"    Color="#FFFFFF"/>
+
+      <SolidColorBrush x:Key="ViewportBgBrush"   Color="{StaticResource Slate1000}"/>
+      <SolidColorBrush x:Key="CheckerBaseBrush"  Color="#121A22"/>
+      <SolidColorBrush x:Key="CheckerAltBrush"   Color="#1A2430"/>
+      <SolidColorBrush x:Key="ScrimBrush"        Color="#99000000"/>
+      <SolidColorBrush x:Key="ScrimLightBrush"   Color="#66000000"/>
+      <SolidColorBrush x:Key="TickBrush"         Color="#4DE2EAEC"/>
+      <SolidColorBrush x:Key="PaneStrokeBrush"   Color="#0DC3CED2"/>
+      <SolidColorBrush x:Key="OverlayChipBrush"       Color="#D9090C11"/>
+      <SolidColorBrush x:Key="OverlayChipHoverBrush"  Color="#F21C2732"/>
+      <SolidColorBrush x:Key="OverlayChipActiveBrush" Color="{StaticResource Slate600}"/>
+      <SolidColorBrush x:Key="OverlayTextBrush"       Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="OverlayAccentBrush"     Color="{StaticResource TealText}"/>
+      <SolidColorBrush x:Key="OverlayTraceBrush"      Color="#73E2EAEC"/>
+
+      <BoxShadows x:Key="ShadowDialog">0 18 48 0 #99000000</BoxShadows>
+      <BoxShadows x:Key="ShadowLayer">0 1 0 0 #05FFFFFF</BoxShadows>
+      <BoxShadows x:Key="ShadowFocus">0 0 0 2 #3ED1BD</BoxShadows>
+      <BoxShadows x:Key="ShadowFocusOffset">0 0 0 2 #111720, 0 0 0 4 #3ED1BD</BoxShadows>
+      <BoxShadows x:Key="ShadowFocusInset">inset 0 0 0 2 #3ED1BD</BoxShadows>
+      <BoxShadows x:Key="ShadowFieldEdge">inset 0 0 0 1 #1E2A35</BoxShadows>
+      <BoxShadows x:Key="ShadowFieldHover">inset 0 0 0 1 #31414E</BoxShadows>
+      <BoxShadows x:Key="ShadowTabActive">inset 0 2 0 0 #3ED1BD</BoxShadows>
+
+      <!-- The selected editor tab's bar and the focus ring together: a focused current tab keeps its bar. -->
+      <BoxShadows x:Key="ShadowTabActiveFocus">inset 0 2 0 0 #3ED1BD, inset 0 0 0 2 #3ED1BD</BoxShadows>
+
+      <!-- ── Fluent bridge: the stock controls' resources, mapped onto the tokens above. Fluent reads these by
+           DynamicResource, so defining them here re-themes every stock control without a template of our own. ── -->
+      <!-- One accent: Fluent's accent ramp is this variant's teal, so check boxes, sliders and selection match Accent*. -->
+      <StaticResource x:Key="SystemAccentColor" ResourceKey="Teal"/>
+      <StaticResource x:Key="SystemAccentColorLight1" ResourceKey="TealBright"/>
+      <StaticResource x:Key="SystemAccentColorLight2" ResourceKey="TealText"/>
+      <StaticResource x:Key="SystemAccentColorLight3" ResourceKey="TealText"/>
+      <StaticResource x:Key="SystemAccentColorDark1" ResourceKey="TealDeep"/>
+      <StaticResource x:Key="SystemAccentColorDark2" ResourceKey="TealMid"/>
+      <StaticResource x:Key="SystemAccentColorDark3" ResourceKey="TealInk"/>
+      <!-- A check on teal is dark: white on teal is 1.9:1. -->
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminate" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminatePointerOver" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundIndeterminatePressed" Color="{StaticResource TealOn}"/>
+      <!-- Primary (.accent) buttons: teal with dark text at rest, on hover and pressed (9.0:1 at rest). -->
+      <SolidColorBrush x:Key="AccentButtonBackground" Color="{StaticResource Teal}"/>
+      <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="{StaticResource TealBright}"/>
+      <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="{StaticResource TealDeep}"/>
+      <SolidColorBrush x:Key="AccentButtonBackgroundDisabled" Color="{StaticResource Slate700}"/>
+      <SolidColorBrush x:Key="AccentButtonForeground" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="AccentButtonForegroundDisabled" Color="{StaticResource FrostFaint}"/>
+      <!-- Labels of un-classed stock controls (there is no global TextBlock style to fall back on). -->
+      <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="{StaticResource FrostFaint}"/>
+      <SolidColorBrush x:Key="ToggleButtonForeground" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="ToggleButtonForegroundPointerOver" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="ToggleButtonForegroundPressed" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="ToggleButtonForegroundDisabled" Color="{StaticResource FrostFaint}"/>
+      <SolidColorBrush x:Key="RepeatButtonForeground" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="RepeatButtonForegroundPointerOver" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="RepeatButtonForegroundPressed" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="TextControlForeground" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="TextControlForegroundPointerOver" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="TextControlForegroundFocused" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundUnchecked" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundUncheckedPointerOver" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundUncheckedPressed" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundChecked" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundCheckedPointerOver" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundCheckedPressed" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="RadioButtonForeground" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="RadioButtonForegroundPointerOver" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="RadioButtonForegroundPressed" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="ToolTipForeground" Color="{StaticResource Frost}"/>
+      <!-- List rows hover and select in the text tone, not Fluent's pure white or black. -->
+      <SolidColorBrush x:Key="SystemControlHighlightAltBaseHighBrush" Color="{StaticResource Frost}"/>
+      <!-- Placeholders in the faint text tone at full opacity: 5.4:1 on a field (Fluent's grey at half opacity was 2.4:1). -->
+      <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="{StaticResource FrostFaint}"/>
+      <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="{StaticResource FrostFaint}"/>
+      <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="{StaticResource FrostFaint}"/>
+      <SolidColorBrush x:Key="ComboBoxPlaceHolderForeground" Color="{StaticResource FrostFaint}"/>
+      <!-- Text selection: teal at 40%, so selected text keeps its own colour and still reads (4.9:1 on a field). -->
+      <SolidColorBrush x:Key="TextControlSelectionHighlightColor" Color="#663ED1BD"/>
+      <!-- Dropdowns: the menus' card and hairline; rows hover and select neutral, as every list does. On the card (one
+           step up from a pane) hover and selection step up one too, or hover would vanish into it. -->
+      <SolidColorBrush x:Key="ComboBoxForeground" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="ComboBoxForegroundFocused" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="ComboBoxForegroundFocusedPressed" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="ComboBoxForegroundDisabled" Color="{StaticResource FrostFaint}"/>
+      <SolidColorBrush x:Key="ComboBoxDropDownGlyphForeground" Color="{StaticResource FrostDim}"/>
+      <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundFocused" Color="{StaticResource FrostDim}"/>
+      <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundFocusedPressed" Color="{StaticResource FrostDim}"/>
+      <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="{StaticResource Slate800}"/>
+      <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="{StaticResource Slate650}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForeground" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundPressed" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundSelected" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPointerOver" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPressed" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundDisabled" Color="{StaticResource FrostFaint}"/>
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="{StaticResource Slate600}"/>
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundPressed" Color="{StaticResource Slate550}"/>
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundSelected" Color="{StaticResource Slate550}"/>
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPointerOver" Color="{StaticResource Slate550}"/>
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPressed" Color="{StaticResource Slate550}"/>
+      <!-- Menus and flyouts: the card, its hairline, neutral hover. -->
+      <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="{StaticResource Slate800}"/>
+      <SolidColorBrush x:Key="MenuFlyoutPresenterBorderBrush" Color="{StaticResource Slate650}"/>
+      <SolidColorBrush x:Key="FlyoutPresenterBackground" Color="{StaticResource Slate800}"/>
+      <SolidColorBrush x:Key="FlyoutBorderThemeBrush" Color="{StaticResource Slate650}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemForeground" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemForegroundPointerOver" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemForegroundPressed" Color="{StaticResource Frost}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemForegroundDisabled" Color="{StaticResource FrostFaint}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPointerOver" Color="{StaticResource Slate600}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPressed" Color="{StaticResource Slate550}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemKeyboardAcceleratorTextForeground" Color="{StaticResource FrostFaint}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPointerOver" Color="{StaticResource FrostFaint}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPressed" Color="{StaticResource FrostFaint}"/>
+      <SolidColorBrush x:Key="MenuFlyoutSubItemChevron" Color="{StaticResource FrostDim}"/>
+    </ResourceDictionary>
+
+    <!-- The light tokens are the Default variant, which Light inherits: Fluent keeps its light resources under Default
+         and resolves the accent its brushes read (SystemAccentColor) for Default, so a "Light" dictionary went unread
+         there and stock controls stayed Windows blue in light theme. Every key here is also in Dark. -->
+    <ResourceDictionary x:Key="Default">
+      <SolidColorBrush x:Key="BgWindowBrush" Color="{StaticResource MistWindow}"/>
+      <SolidColorBrush x:Key="MicaTintBrush" Color="#D9ECEEF0"/>
+      <SolidColorBrush x:Key="BgPaneBrush"   Color="{StaticResource Mist50}"/>
+      <SolidColorBrush x:Key="BgHeaderBrush" Color="{StaticResource Mist50}"/>
+      <SolidColorBrush x:Key="BgCardBrush"   Color="{StaticResource Mist150}"/>
+      <SolidColorBrush x:Key="BgRowHoverBrush" Color="{StaticResource Mist100}"/>
+      <SolidColorBrush x:Key="BgHoverBrush"  Color="{StaticResource Mist250}"/>
+      <SolidColorBrush x:Key="BgActiveBrush" Color="{StaticResource Mist300}"/>
+      <SolidColorBrush x:Key="BgFieldBrush"  Color="{StaticResource Mist150}"/>
+      <SolidColorBrush x:Key="LineBrush"     Color="{StaticResource Mist400}"/>
+      <!-- The edge of an outlined control (Compare, the Go to box): a step stronger than a divider. -->
+      <SolidColorBrush x:Key="LineStrongBrush" Color="#D6DBE0"/>
+
+      <SolidColorBrush x:Key="TextBrush"      Color="{StaticResource Ink}"/>
+      <!-- Between text and dim: values, GDT rows, section titles, secondary actions. -->
+      <SolidColorBrush x:Key="TextSoftBrush"  Color="#2F383E"/>
+      <SolidColorBrush x:Key="TextDimBrush"   Color="{StaticResource InkDim}"/>
+      <SolidColorBrush x:Key="TextFaintBrush" Color="{StaticResource InkFaint}"/>
+
+      <!-- #F5A524 on white is only ~1.9:1, so the change mark drops to AmberMark (3:1+). -->
+      <SolidColorBrush x:Key="MarkBrush"        Color="{StaticResource AmberMark}"/>
+      <SolidColorBrush x:Key="MarkTextBrush"    Color="#A15C00"/>
+
+      <!-- The teal fill (Save, primary buttons) is the same in every theme: it carries dark text,
+           not white. Teal as text, rings and indicators darkens to TealInk (5:1 on white). -->
+      <SolidColorBrush x:Key="AccentBrush"          Color="{StaticResource Teal}"/>
+      <SolidColorBrush x:Key="AccentTextBrush"      Color="{StaticResource TealInk}"/>
+      <SolidColorBrush x:Key="AccentHoverBrush"     Color="{StaticResource TealBright}"/>
+      <SolidColorBrush x:Key="AccentPressBrush"     Color="{StaticResource TealDeep}"/>
+      <SolidColorBrush x:Key="AccentDimBrush"       Color="#240B7D6F"/>
+      <SolidColorBrush x:Key="AccentDimHoverBrush"  Color="#330B7D6F"/>
+      <SolidColorBrush x:Key="OnAccentBrush"        Color="{StaticResource TealOn}"/>
+
+      <SolidColorBrush x:Key="DangerBrush"      Color="{StaticResource RoseLight}"/>
+      <SolidColorBrush x:Key="DangerTextBrush"  Color="{StaticResource RoseInk}"/>
+      <SolidColorBrush x:Key="DangerHoverBrush" Color="#E04460"/>
+      <SolidColorBrush x:Key="DangerPressBrush" Color="{StaticResource RoseInk}"/>
+      <SolidColorBrush x:Key="DangerDimBrush"   Color="#1AD6334F"/>
+      <SolidColorBrush x:Key="OnDangerBrush"    Color="#FFFFFF"/>
+
+      <SolidColorBrush x:Key="FocusBrush"    Color="{StaticResource TealInk}"/>
+
+      <SolidColorBrush x:Key="CaptionCloseBrush"      Color="{StaticResource CaptionRed}"/>
+      <SolidColorBrush x:Key="CaptionClosePressBrush" Color="{StaticResource CaptionRedDeep}"/>
+      <SolidColorBrush x:Key="OnCaptionCloseBrush"    Color="#FFFFFF"/>
+
+      <!-- The 3D viewport stays dark in every theme: it is a render target, not chrome, and a
+           light backdrop would misrepresent the asset. -->
+      <SolidColorBrush x:Key="ViewportBgBrush"   Color="#14181D"/>
+      <SolidColorBrush x:Key="CheckerBaseBrush"  Color="{StaticResource Mist200}"/>
+      <SolidColorBrush x:Key="CheckerAltBrush"   Color="{StaticResource Mist400}"/>
+      <SolidColorBrush x:Key="ScrimBrush"        Color="#4D161C21"/>
+      <SolidColorBrush x:Key="ScrimLightBrush"   Color="#29161C21"/>
+      <SolidColorBrush x:Key="TickBrush"         Color="#59161C21"/>
+      <SolidColorBrush x:Key="PaneStrokeBrush"   Color="#E1E4E8"/>
+      <SolidColorBrush x:Key="OverlayChipBrush"       Color="#D914181D"/>
+      <SolidColorBrush x:Key="OverlayChipHoverBrush"  Color="#F2262C33"/>
+      <SolidColorBrush x:Key="OverlayChipActiveBrush" Color="#323941"/>
+      <SolidColorBrush x:Key="OverlayTextBrush"       Color="#F2F2F2"/>
+      <SolidColorBrush x:Key="OverlayAccentBrush"     Color="{StaticResource TealText}"/>
+      <SolidColorBrush x:Key="OverlayTraceBrush"      Color="#73F2F2F2"/>
+
+      <BoxShadows x:Key="ShadowDialog">0 18 48 0 #29161C21</BoxShadows>
+      <BoxShadows x:Key="ShadowLayer">0 1 2 0 #0A161C21</BoxShadows>
+      <BoxShadows x:Key="ShadowFocus">0 0 0 2 #0B7D6F</BoxShadows>
+      <BoxShadows x:Key="ShadowFocusOffset">0 0 0 2 #FFFFFF, 0 0 0 4 #0B7D6F</BoxShadows>
+      <BoxShadows x:Key="ShadowFocusInset">inset 0 0 0 2 #0B7D6F</BoxShadows>
+      <!-- A recessed field on a white pane is only 1.07:1, so its hairline carries the edge. -->
+      <BoxShadows x:Key="ShadowFieldEdge">inset 0 0 0 1 #D6DBE0</BoxShadows>
+      <BoxShadows x:Key="ShadowFieldHover">inset 0 0 0 1 #B5BDC3</BoxShadows>
+      <BoxShadows x:Key="ShadowTabActive">inset 0 2 0 0 #0B7D6F</BoxShadows>
+
+      <!-- The selected editor tab's bar and the focus ring together: a focused current tab keeps its bar. -->
+      <BoxShadows x:Key="ShadowTabActiveFocus">inset 0 2 0 0 #0B7D6F, inset 0 0 0 2 #0B7D6F</BoxShadows>
+
+      <!-- ── Fluent bridge: the stock controls' resources, mapped onto the tokens above. Fluent reads these by
+           DynamicResource, so defining them here re-themes every stock control without a template of our own. ── -->
+      <!-- One accent: Fluent's accent ramp is this variant's teal ink, so check boxes, sliders and selection match Accent*. -->
+      <StaticResource x:Key="SystemAccentColor" ResourceKey="TealInk"/>
+      <StaticResource x:Key="SystemAccentColorLight1" ResourceKey="TealInkBright"/>
+      <StaticResource x:Key="SystemAccentColorLight2" ResourceKey="TealMid"/>
+      <StaticResource x:Key="SystemAccentColorLight3" ResourceKey="Teal"/>
+      <StaticResource x:Key="SystemAccentColorDark1" ResourceKey="TealInkDeep"/>
+      <StaticResource x:Key="SystemAccentColorDark2" ResourceKey="TealInkNight"/>
+      <StaticResource x:Key="SystemAccentColorDark3" ResourceKey="TealInkNight"/>
+      <!-- Primary (.accent) buttons: teal with dark text, as in the dark themes (9.0:1 at rest). -->
+      <SolidColorBrush x:Key="AccentButtonBackground" Color="{StaticResource Teal}"/>
+      <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="{StaticResource TealBright}"/>
+      <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="{StaticResource TealDeep}"/>
+      <SolidColorBrush x:Key="AccentButtonBackgroundDisabled" Color="{StaticResource Mist300}"/>
+      <SolidColorBrush x:Key="AccentButtonForeground" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="{StaticResource TealOn}"/>
+      <SolidColorBrush x:Key="AccentButtonForegroundDisabled" Color="{StaticResource InkFaint}"/>
+      <!-- Labels of un-classed stock controls (there is no global TextBlock style to fall back on). -->
+      <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="{StaticResource InkFaint}"/>
+      <SolidColorBrush x:Key="ToggleButtonForeground" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="ToggleButtonForegroundPointerOver" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="ToggleButtonForegroundPressed" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="ToggleButtonForegroundDisabled" Color="{StaticResource InkFaint}"/>
+      <SolidColorBrush x:Key="RepeatButtonForeground" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="RepeatButtonForegroundPointerOver" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="RepeatButtonForegroundPressed" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="TextControlForeground" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="TextControlForegroundPointerOver" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="TextControlForegroundFocused" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundUnchecked" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundUncheckedPointerOver" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundUncheckedPressed" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundChecked" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundCheckedPointerOver" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="CheckBoxForegroundCheckedPressed" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="RadioButtonForeground" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="RadioButtonForegroundPointerOver" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="RadioButtonForegroundPressed" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="ToolTipForeground" Color="{StaticResource Ink}"/>
+      <!-- List rows hover and select in the text tone, not Fluent's pure white or black. -->
+      <SolidColorBrush x:Key="SystemControlHighlightAltBaseHighBrush" Color="{StaticResource Ink}"/>
+      <!-- Placeholders in the faint text tone at full opacity: 5.8:1 on a field (Fluent's was 2.0:1). -->
+      <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="{StaticResource InkFaint}"/>
+      <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="{StaticResource InkFaint}"/>
+      <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="{StaticResource InkFaint}"/>
+      <SolidColorBrush x:Key="ComboBoxPlaceHolderForeground" Color="{StaticResource InkFaint}"/>
+      <!-- Text selection: teal ink at 30%; Ink text on it still reads. -->
+      <SolidColorBrush x:Key="TextControlSelectionHighlightColor" Color="#4D0B7D6F"/>
+      <!-- Dropdowns: the menus' card and hairline; rows hover and select neutral, as every list does. -->
+      <SolidColorBrush x:Key="ComboBoxForeground" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="ComboBoxForegroundFocused" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="ComboBoxForegroundFocusedPressed" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="ComboBoxForegroundDisabled" Color="{StaticResource InkFaint}"/>
+      <SolidColorBrush x:Key="ComboBoxDropDownGlyphForeground" Color="{StaticResource InkDim}"/>
+      <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundFocused" Color="{StaticResource InkDim}"/>
+      <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundFocusedPressed" Color="{StaticResource InkDim}"/>
+      <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="{StaticResource Mist50}"/>
+      <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="{StaticResource Mist500}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForeground" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundPressed" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundSelected" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPointerOver" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPressed" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="ComboBoxItemForegroundDisabled" Color="{StaticResource InkFaint}"/>
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="{StaticResource Mist300}"/>
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundPressed" Color="{StaticResource Mist400}"/>
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundSelected" Color="{StaticResource Mist400}"/>
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPointerOver" Color="{StaticResource Mist400}"/>
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPressed" Color="{StaticResource Mist400}"/>
+      <!-- Menus and flyouts: the card, its hairline, neutral hover. -->
+      <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="{StaticResource Mist50}"/>
+      <SolidColorBrush x:Key="MenuFlyoutPresenterBorderBrush" Color="{StaticResource Mist500}"/>
+      <SolidColorBrush x:Key="FlyoutPresenterBackground" Color="{StaticResource Mist50}"/>
+      <SolidColorBrush x:Key="FlyoutBorderThemeBrush" Color="{StaticResource Mist500}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemForeground" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemForegroundPointerOver" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemForegroundPressed" Color="{StaticResource Ink}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemForegroundDisabled" Color="{StaticResource InkFaint}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPointerOver" Color="{StaticResource Mist300}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPressed" Color="{StaticResource Mist400}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemKeyboardAcceleratorTextForeground" Color="{StaticResource InkFaint}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPointerOver" Color="{StaticResource InkFaint}"/>
+      <SolidColorBrush x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPressed" Color="{StaticResource InkFaint}"/>
+      <SolidColorBrush x:Key="MenuFlyoutSubItemChevron" Color="{StaticResource InkDim}"/>
+    </ResourceDictionary>
+
+  </ResourceDictionary.ThemeDictionaries>
+
+  <!-- ══ Layer 3 · Scales (variant-independent) ════════════════════════════ -->
+
+  <!-- Type ramp: four whole-number steps (half-points land off the pixel grid and blur). Hierarchy
+       comes from weight and spacing within these, not from more sizes.
+         Xs   11 — keys, counts, captions, shortcut hints
+         Sm   12 — UI labels and chrome; mono values (12 px mono sits level with 13 px text)
+         Base 13 — property labels, body copy, fields
+         Md   15 — titles: the open asset, the focused property, dialogs, the start page
+       Faces: UiFont for UI text; MonoFont for asset names, GDT names, property keys and values. -->
+  <sys:Double x:Key="FontSizeXs">11</sys:Double>
+  <sys:Double x:Key="FontSizeSm">12</sys:Double>
+  <sys:Double x:Key="FontSizeBase">13</sys:Double>
+  <sys:Double x:Key="FontSizeMd">15</sys:Double>
+  <!-- Wrapped body copy (hints, dialog text). -->
+  <sys:Double x:Key="LineHeightBody">18</sys:Double>
+
+  <!-- Spacing. Layer panes sit 6 px apart on the Mica gutter. -->
+  <Thickness x:Key="PaddingPane">14,9</Thickness>
+
+  <!-- Radius -->
+  <CornerRadius x:Key="RadiusXs">4</CornerRadius>
+  <CornerRadius x:Key="RadiusSm">5</CornerRadius>
+  <CornerRadius x:Key="RadiusMd">6</CornerRadius>
+  <CornerRadius x:Key="RadiusCtl">7</CornerRadius>
+  <CornerRadius x:Key="RadiusLg">8</CornerRadius>
+  <CornerRadius x:Key="RadiusXl">10</CornerRadius>
+  <CornerRadius x:Key="RadiusTab">6,6,0,0</CornerRadius>
+
+  <!-- Everything that floats over the work: menus, flyouts, dropdown lists, popups, dialogs, the palette, the
+       search card, the alert banner. One radius, so they read as one family; Fluent's popups read
+       OverlayCornerRadius, so it is the same value. -->
+  <CornerRadius x:Key="RadiusOverlay">8</CornerRadius>
+  <StaticResource x:Key="OverlayCornerRadius" ResourceKey="RadiusOverlay"/>
+
+  <!-- Control heights, applied as Height (not MinHeight, which let padding decide and put 24, 26 and 28 px controls
+       side by side). Sm is anything inside a row or a line: row editors, glyph and text buttons in pane headers and
+       toolbars, pills, chips, inline actions and the fields and buttons that sit in a row with them. The full height
+       is for controls that stand alone: dialog buttons, the title bar's command box, a pane's own search box.
+       Siblings in one row always share one height. -->
+  <sys:Double x:Key="ControlHeightSm">24</sys:Double>
+  <sys:Double x:Key="ControlHeight">28</sys:Double>
+
+  <!-- Disabled controls and rows fade by one amount everywhere. -->
+  <sys:Double x:Key="DisabledOpacity">0.5</sys:Double>
+
+  <!-- Fluent draws placeholders in its own grey at half opacity; ours is a colour token at full strength. -->
+  <sys:Double x:Key="TextControlPlaceholderOpacity">1</sys:Double>
+  <!-- Dropdown lists and menus: a 4 px inset between the card's edge and the rows' rounded hover. -->
+  <Thickness x:Key="ComboBoxDropdownBorderPadding">4</Thickness>
+  <Thickness x:Key="ComboBoxDropdownContentMargin">0</Thickness>
+  <Thickness x:Key="MenuFlyoutPresenterThemePadding">4</Thickness>
+  <Thickness x:Key="MenuFlyoutScrollerMargin">0</Thickness>
+
+  <!-- Geist for the interface, IBM Plex Mono for GDT values and keys (both OFL, bundled in Assets/Fonts). -->
+  <FontFamily x:Key="UiFont">avares://Apex/Assets/Fonts#Geist, Segoe UI Variable Text, Segoe UI</FontFamily>
+  <FontFamily x:Key="MonoFont">avares://Apex/Assets/Fonts#IBM Plex Mono, Cascadia Mono, Consolas</FontFamily>
+</ResourceDictionary>

@@ -1,0 +1,580 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Apex.Editor.ViewModels"
+             xmlns:controls="using:Apex.Editor.Controls"
+             xmlns:preview="using:Apex.Editor.Services.Preview"
+             xmlns:views="using:Apex.Editor.Views"
+             xmlns:c="using:Apex.Editor.Commands"
+             x:Class="Apex.Editor.Views.PreviewPaneView"
+             x:DataType="vm:PreviewPaneViewModel">
+
+  <!--
+    One layout on every 3D render (xmodel, material, xanim, recoil), drawn on the render as overlay pills and chips so
+    the pane spends no rows on them: lighting top left, view chips top right, what is drawn bottom left (Loading…, the
+    renderer's state, the caption, the stats, stacked so none cuts another), the renderer's warnings bottom right.
+  -->
+
+  <UserControl.Styles>
+    <Style Selector="DockPanel.animroot">
+      <Setter Property="Margin" Value="10,0,10,10"/>
+    </Style>
+    <Style Selector="DockPanel.animroot.compact">
+      <Setter Property="Margin" Value="0"/>
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.Resources>
+    <ItemsPanelTemplate x:Key="PillRow">
+      <StackPanel Orientation="Horizontal" Spacing="4"/>
+    </ItemsPanelTemplate>
+
+    <!-- OpenGL fallback viewport: only created while there is a GL scene (a hidden viewport would still init GL) -->
+    <DataTemplate x:Key="GlScene" x:DataType="preview:ModelScene">
+      <Panel>
+        <controls:GlPreviewViewport x:Name="GlViewport" Scene="{Binding}"/>
+        <Border Classes="overlay" IsVisible="{Binding #GlViewport.IsGlUnavailable}" HorizontalAlignment="Center" VerticalAlignment="Center">
+          <TextBlock FontSize="{StaticResource FontSizeSm}" Text="3D preview unavailable"/>
+        </Border>
+      </Panel>
+    </DataTemplate>
+
+    <!-- The same for an anim: Home goes to the first frame there instead of framing the model -->
+    <DataTemplate x:Key="GlAnimScene" x:DataType="preview:ModelScene">
+      <Panel>
+        <controls:GlPreviewViewport x:Name="GlViewport" Scene="{Binding}" HomeFrames="False"/>
+        <Border Classes="overlay" IsVisible="{Binding #GlViewport.IsGlUnavailable}" HorizontalAlignment="Center" VerticalAlignment="Center">
+          <TextBlock FontSize="{StaticResource FontSizeSm}" Text="3D preview unavailable"/>
+        </Border>
+      </Panel>
+    </DataTemplate>
+
+    <!-- Alpha checkerboard behind transparent previews -->
+    <VisualBrush x:Key="CheckerBrush" TileMode="Tile" Stretch="None"
+                 SourceRect="0,0,16,16" DestinationRect="0,0,16,16">
+      <VisualBrush.Visual>
+        <Canvas Width="16" Height="16" Background="{DynamicResource CheckerBaseBrush}">
+          <Rectangle Width="8" Height="8" Fill="{DynamicResource CheckerAltBrush}"/>
+          <Rectangle Canvas.Left="8" Canvas.Top="8" Width="8" Height="8" Fill="{DynamicResource CheckerAltBrush}"/>
+        </Canvas>
+      </VisualBrush.Visual>
+    </VisualBrush>
+
+  </UserControl.Resources>
+
+  <Panel>
+      <ContentControl Content="{Binding Content}">
+        <ContentControl.DataTemplates>
+
+          <!-- ── Image asset ─────────────────────────────────────── -->
+          <DataTemplate DataType="vm:ImagePreviewViewModel">
+            <DockPanel Margin="10,0,10,10">
+              <DockPanel DockPanel.Dock="Bottom" Margin="2,7,2,0">
+                <ItemsControl DockPanel.Dock="Left" ItemsSource="{Binding Modes}" VerticalAlignment="Center"
+                              ItemsPanel="{StaticResource PillRow}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:ChannelModeOption">
+                      <ToggleButton Classes="pill small" MinWidth="34"
+                                    IsChecked="{Binding IsActive}" Command="{Binding SelectCommand}"
+                                    HorizontalContentAlignment="Center"
+                                    AutomationProperties.Name="{Binding Tip}" ToolTip.Tip="{Binding Tip}">
+                        <TextBlock Text="{Binding Label}" FontSize="{StaticResource FontSizeXs}" HorizontalAlignment="Center"/>
+                      </ToggleButton>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Classes="faint mono" FontSize="{StaticResource FontSizeXs}" Text="{Binding Info}"
+                           HorizontalAlignment="Right" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis" Margin="12,0,0,0"/>
+              </DockPanel>
+              <Panel>
+                <Border Classes="viewport" Background="{StaticResource CheckerBrush}">
+                  <Panel>
+                    <Image Source="{Binding Bitmap}" Stretch="Uniform" StretchDirection="DownOnly" Margin="10"
+                           RenderOptions.BitmapInterpolationMode="HighQuality"/>
+                    <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="{Binding Error}"
+                               IsVisible="{Binding ShowError}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap"
+                               TextAlignment="Center" MaxWidth="420"/>
+                    <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Loading…" IsVisible="{Binding IsLoading}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                  </Panel>
+                </Border>
+                <Border Classes="viewportedge"/>
+              </Panel>
+            </DockPanel>
+          </DataTemplate>
+
+          <!-- ── Material asset: lit sphere + texture slot grid ──── -->
+          <DataTemplate DataType="vm:MaterialPreviewViewModel">
+            <Panel>
+            <!-- No install: one line, no empty viewport or blank slots. -->
+            <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="{Binding Error}" IsVisible="{Binding IsOffline}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"
+                       MaxWidth="260" Margin="20"/>
+            <DockPanel Margin="10,0,10,10" IsVisible="{Binding !IsOffline}">
+              <!-- Texture slots along the bottom; the shading ball takes the rest. -->
+              <StackPanel DockPanel.Dock="Bottom" Spacing="6" Margin="0,8,0,0">
+                <TextBlock Classes="faint mono" FontSize="{StaticResource FontSizeXs}" Text="{Binding Summary}" Margin="2,0"
+                           IsVisible="{Binding Summary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                <!-- Slots wrap; past one row they scroll (the wheel works) so a short pane keeps room for the ball. -->
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" MaxHeight="128">
+                <ItemsControl ItemsSource="{Binding Slots}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="8"/>
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:MaterialSlotViewModel">
+                      <Button Classes="refitem" Command="{Binding OpenCommand}" Padding="5" IsEnabled="{Binding CanOpen}"
+                              ToolTip.Tip="{Binding OpenTip}" ToolTip.ShowOnDisabled="True">
+                        <StackPanel Width="84" Spacing="2">
+                          <Border Height="64" Background="{StaticResource CheckerBrush}" CornerRadius="{StaticResource RadiusSm}" Margin="0,0,0,1"
+                                  ClipToBounds="True" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1">
+                            <Image Source="{Binding Thumbnail}" Stretch="Uniform" Margin="2"
+                                   RenderOptions.BitmapInterpolationMode="HighQuality"/>
+                          </Border>
+                          <TextBlock Classes="dim" FontSize="{StaticResource FontSizeXs}" Text="{Binding Label}" TextTrimming="CharacterEllipsis"/>
+                          <TextBlock Classes="faint mono" FontSize="{StaticResource FontSizeXs}" Text="{Binding ImageAssetName}"
+                                     TextTrimming="CharacterEllipsis"/>
+                          <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding Status}"
+                                     TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                </ScrollViewer>
+              </StackPanel>
+              <!-- Shading ball: ToolsGfx sphere, GL approximation as fallback; one line when there is none -->
+              <Panel>
+                <Border Classes="viewport">
+                  <Panel>
+                    <controls:ToolsGfxPreviewViewport x:Name="MaterialGfx" Environment="{Binding Gfx.Environment}" Model="{Binding Gfx.Model}"
+                                                      LightState="{Binding Gfx.Lighting.LightState}" IsVisible="{Binding Gfx.IsActive}"
+                                                      Failed="GfxViewport_Failed"/>
+                    <ContentControl Content="{Binding Scene}" ContentTemplate="{StaticResource GlScene}" IsVisible="{Binding !Gfx.IsActive}"
+                                    HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+
+                    <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Top" Margin="10">
+                      <Button Name="LightingChip" Classes="chip" IsVisible="{Binding Gfx.IsActive}" Click="LightingChip_Click"
+                              AutomationProperties.Name="Lighting" ToolTip.Tip="Lighting, for every preview">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                          <TextBlock Classes="overlaytext" Text="{Binding Gfx.Lighting.LightState}"/>
+                          <Path Classes="icon" Data="{StaticResource IconChevronDown}"/>
+                        </StackPanel>
+                      </Button>
+                      <Button Grid.Column="2" Classes="chip" Content="Frame" Click="Frame_Click" IsVisible="{Binding HasSphere}"
+                              ToolTip.Tip="{x:Static views:PreviewPaneView.FrameTip}"/>
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Bottom" Margin="10">
+                      <StackPanel Spacing="4" HorizontalAlignment="Left" VerticalAlignment="Bottom">
+                        <Border Classes="overlay" HorizontalAlignment="Left" IsVisible="{Binding IsLoading}">
+                          <TextBlock FontSize="{StaticResource FontSizeXs}" Text="Loading…"/>
+                        </Border>
+                        <Border Classes="overlay" HorizontalAlignment="Left" ToolTip.Tip="{Binding Gfx.FallbackDetail}"
+                                IsVisible="{Binding Gfx.FallbackStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                          <TextBlock FontSize="{StaticResource FontSizeXs}" Text="{Binding Gfx.FallbackStatus}" TextTrimming="CharacterEllipsis"/>
+                        </Border>
+                      </StackPanel>
+                      <Border Grid.Column="1" Classes="overlay" Margin="8,0,0,0" VerticalAlignment="Bottom" ToolTip.Tip="{Binding #MaterialGfx.StatusDetail}"
+                              IsVisible="{Binding #MaterialGfx.StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Classes="mono" FontSize="{StaticResource FontSizeXs}" Text="{Binding #MaterialGfx.StatusText}"/>
+                      </Border>
+                    </Grid>
+
+                    <Border Classes="overlay" IsVisible="{Binding ShowError}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            MaxWidth="420" Margin="12">
+                      <TextBlock FontSize="{StaticResource FontSizeSm}" Text="{Binding Error}" TextWrapping="Wrap" TextAlignment="Center"/>
+                    </Border>
+                  </Panel>
+                </Border>
+                <Border Classes="viewportedge"/>
+              </Panel>
+            </DockPanel>
+            </Panel>
+          </DataTemplate>
+
+          <!-- ── XModel asset: ToolsGfx viewport (APE's frame), GL approximation as fallback ── -->
+          <DataTemplate DataType="vm:ModelPreviewViewModel">
+            <Panel Margin="10,0,10,10">
+              <Border Classes="viewport">
+                <Panel>
+                  <controls:ToolsGfxPreviewViewport x:Name="ModelGfx" Environment="{Binding Gfx.Environment}" Model="{Binding Gfx.Model}"
+                                                    LightState="{Binding Gfx.Lighting.LightState}" IsVisible="{Binding Gfx.IsActive}"
+                                                    Failed="GfxViewport_Failed"/>
+                  <ContentControl Content="{Binding Scene}" ContentTemplate="{StaticResource GlScene}" IsVisible="{Binding !Gfx.IsActive}"
+                                  HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+
+                  <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Top" Margin="10">
+                    <Button Name="LightingChip" Classes="chip" IsVisible="{Binding Gfx.IsActive}" Click="LightingChip_Click"
+                            AutomationProperties.Name="Lighting" ToolTip.Tip="Lighting, for every preview">
+                      <StackPanel Orientation="Horizontal" Spacing="4">
+                        <TextBlock Classes="overlaytext" Text="{Binding Gfx.Lighting.LightState}"/>
+                        <Path Classes="icon" Data="{StaticResource IconChevronDown}"/>
+                      </StackPanel>
+                    </Button>
+                    <Button Grid.Column="2" Classes="chip" Content="Frame" Click="Frame_Click" ToolTip.Tip="{x:Static views:PreviewPaneView.FrameTip}"
+                            IsVisible="{Binding Stats, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                  </Grid>
+
+                  <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Bottom" Margin="10">
+                    <StackPanel Spacing="4" HorizontalAlignment="Left" VerticalAlignment="Bottom">
+                      <Border Classes="overlay" HorizontalAlignment="Left" IsVisible="{Binding IsLoading}">
+                        <TextBlock FontSize="{StaticResource FontSizeXs}" Text="Loading…"/>
+                      </Border>
+                      <Border Classes="overlay" HorizontalAlignment="Left" ToolTip.Tip="{Binding Gfx.FallbackDetail}"
+                              IsVisible="{Binding Gfx.FallbackStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock FontSize="{StaticResource FontSizeXs}" Text="{Binding Gfx.FallbackStatus}" TextTrimming="CharacterEllipsis"/>
+                      </Border>
+                      <Border Classes="overlay" HorizontalAlignment="Left" ToolTip.Tip="{Binding Stats}"
+                              IsVisible="{Binding Stats, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Classes="mono" FontSize="{StaticResource FontSizeXs}" Text="{Binding Stats}" TextTrimming="CharacterEllipsis"/>
+                      </Border>
+                    </StackPanel>
+                    <Border Grid.Column="1" Classes="overlay" Margin="8,0,0,0" VerticalAlignment="Bottom" ToolTip.Tip="{Binding #ModelGfx.StatusDetail}"
+                            IsVisible="{Binding #ModelGfx.StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                      <TextBlock Classes="mono" FontSize="{StaticResource FontSizeXs}" Text="{Binding #ModelGfx.StatusText}"/>
+                    </Border>
+                  </Grid>
+
+                  <Border Classes="overlay" IsVisible="{Binding ShowError}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                          MaxWidth="420" Margin="12">
+                    <TextBlock FontSize="{StaticResource FontSizeSm}" Text="{Binding Error}" TextWrapping="Wrap" TextAlignment="Center"/>
+                  </Border>
+                </Panel>
+              </Border>
+              <Border Classes="viewportedge"/>
+            </Panel>
+          </DataTemplate>
+
+          <!-- ── XAnim asset: ToolsGfx viewport skinned on the GPU (APE's frame), GL CPU-skinning as fallback ──
+               In the xanim editor (Compact) the notetracks dock under the viewport carries the transport; elsewhere it
+               sits below: the steps, play, the frame slider over its notetracks, Loop, and the readout under them. -->
+          <DataTemplate DataType="vm:AnimPreviewViewModel">
+            <DockPanel Classes="animroot" Classes.compact="{Binding $parent[views:PreviewPaneView].Compact}" Focusable="True"
+                       Loaded="AnimRoot_Loaded" Unloaded="AnimRoot_Unloaded" KeyDown="AnimRoot_KeyDown">
+
+              <Panel DockPanel.Dock="Bottom" IsVisible="{Binding !$parent[views:PreviewPaneView].Compact}">
+              <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" RowDefinitions="Auto,Auto,Auto" Margin="2,7,2,0"
+                    IsVisible="{Binding HasTransport}">
+                <Button Grid.Column="0" Classes="tool" MinWidth="28"
+                        Command="{Binding StepBackCommand}"
+                        AutomationProperties.Name="{c:Name preview.previousFrame}" ToolTip.Tip="{c:Tip preview.previousFrame}">
+                  <Path Data="M0,0 H2 V10 H0 Z M9,0 L3,5 L9,10 Z" Fill="{Binding $parent[Button].Foreground}"/>
+                </Button>
+                <ToggleButton Grid.Column="1" Name="PlayToggle" Classes="tool" MinWidth="34" Margin="2,0"
+                              IsChecked="{Binding IsPlaying}"
+                              AutomationProperties.Name="Play or pause animation"
+                              ToolTip.Tip="{c:Tip preview.playPause}">
+                  <Panel>
+                    <Path Data="M0,0 H3 V10 H0 Z M6,0 H9 V10 H6 Z" Fill="{Binding $parent[ToggleButton].Foreground}" IsVisible="{Binding IsPlaying}"/>
+                    <Path Data="M0,0 L9,5 L0,10 Z" Fill="{Binding $parent[ToggleButton].Foreground}" IsVisible="{Binding !IsPlaying}"/>
+                  </Panel>
+                </ToggleButton>
+                <Button Grid.Column="2" Classes="tool" MinWidth="28"
+                        Command="{Binding StepForwardCommand}"
+                        AutomationProperties.Name="{c:Name preview.nextFrame}" ToolTip.Tip="{c:Tip preview.nextFrame}">
+                  <Path Data="M0,0 L6,5 L0,10 Z M7,0 H9 V10 H7 Z" Fill="{Binding $parent[Button].Foreground}"/>
+                </Button>
+                <!-- A press pauses playback until the release (the clock would fight the pointer); it never takes the keyboard. -->
+                <Slider Grid.Column="3" Name="FrameSlider" Classes="transport" Margin="10,0" MinWidth="120" VerticalAlignment="Center"
+                        Minimum="0" Maximum="{Binding LastFrame}" Value="{Binding CurrentFrame}"
+                        AutomationProperties.Name="Animation frame"/>
+                <ToggleButton Grid.Column="4" Name="PaneLoopToggle" Classes="tool" Content="Loop" IsChecked="{Binding Loop}"
+                              ToolTip.Tip="Play the anim on a loop; off, playback stops on the last frame"/>
+                <!-- Notetrack timeline: the same frames as the slider's track (its 12 px handle inset 6 px either side) -->
+                <controls:NotetrackTimelineBar Grid.Row="1" Grid.Column="3" Name="NotetrackTimeline" Margin="16,2,16,0"
+                                               Timeline="{Binding Timeline}" Frame="{Binding CurrentFrame}"
+                                               AutomationProperties.Name="Notetracks"/>
+                <!-- The readout under the controls, so the slider keeps its width at any pane size. -->
+                <TextBlock Grid.Row="2" Grid.ColumnSpan="5" Name="TransportReadout" Classes="faint mono" FontSize="{StaticResource FontSizeXs}"
+                           Text="{Binding TransportLabel}" Margin="4,3,0,0" TextTrimming="CharacterEllipsis"/>
+              </Grid>
+              </Panel>
+
+              <Panel MinHeight="60">
+                <Panel IsVisible="{Binding HasTransport}">
+                <Border Classes="viewport">
+                  <Panel>
+                    <controls:ToolsGfxPreviewViewport x:Name="AnimGfx" Environment="{Binding Gfx.Environment}" Model="{Binding Gfx.Model}"
+                                                      Pose="{Binding Pose}" LightState="{Binding Gfx.Lighting.LightState}"
+                                                      FirstPerson="{Binding FirstPerson}" FieldOfView="{Binding ViewmodelFov, Mode=TwoWay}"
+                                                      WheelChangesFieldOfView="True" HomeFrames="False"
+                                                      IsVisible="{Binding Gfx.IsActive}" Failed="GfxViewport_Failed"/>
+                    <ContentControl Content="{Binding Scene}" ContentTemplate="{StaticResource GlAnimScene}" IsVisible="{Binding !Gfx.IsActive}"
+                                    HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+
+                    <!-- Top: lighting (ToolsGfx only) left; first person, joints, framing and pop-out right. -->
+                    <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Top" Margin="10">
+                      <Button Name="LightingChip" Classes="chip" IsVisible="{Binding Gfx.IsActive}" Click="LightingChip_Click" Margin="0,0,6,0"
+                              AutomationProperties.Name="Lighting" ToolTip.Tip="Lighting, for every preview">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                          <TextBlock Classes="overlaytext" Text="{Binding Gfx.Lighting.LightState}"/>
+                          <Path Classes="icon" Data="{StaticResource IconChevronDown}"/>
+                        </StackPanel>
+                      </Button>
+                      <StackPanel Grid.Column="2" Name="ViewChips" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right" VerticalAlignment="Top">
+                        <!-- First person and its options (field of view; for an anim with no previewModel, the hands and gun) as one
+                             group: one fill, one radius, one disabled state for a rig with no camera tag. -->
+                        <Border Name="FirstPersonGroup" Classes="overlay group" IsVisible="{Binding Gfx.IsActive}" IsEnabled="{Binding HasViewTag}"
+                                ToolTip.Tip="{Binding FirstPersonTip}" ToolTip.ShowOnDisabled="True">
+                          <StackPanel Orientation="Horizontal">
+                            <ToggleButton Name="FirstPersonToggle" Classes="segment" IsChecked="{Binding LooksThroughCamera}" Content="First person"
+                                          AutomationProperties.Name="First person"/>
+                            <Border Classes="divider"/>
+                            <Button Name="ViewmodelOptionsButton" Classes="segment" Padding="5,4"
+                                    AutomationProperties.Name="First-person options" ToolTip.Tip="Field of view, and the hands and gun the anim plays on">
+                              <Path Classes="icon" Data="{StaticResource IconChevronDown}"/>
+                              <Button.Flyout>
+                                <Flyout Placement="BottomEdgeAlignedRight">
+                                  <StackPanel Name="ViewmodelOptions" Width="272" Spacing="4">
+                                    <DockPanel>
+                                      <TextBlock DockPanel.Dock="Right" Classes="faint mono" FontSize="{StaticResource FontSizeXs}" VerticalAlignment="Center"
+                                                 Text="{Binding ViewmodelFov, StringFormat='{}{0:0}'}"/>
+                                      <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Field of view" VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                    <Slider Name="FovSlider" Minimum="{x:Static vm:AnimPreviewViewModel.MinFov}" Maximum="{x:Static vm:AnimPreviewViewModel.MaxFov}"
+                                            TickFrequency="1" IsSnapToTickEnabled="True" SmallChange="1" LargeChange="5"
+                                            Value="{Binding ViewmodelFov}" IsEnabled="{Binding LooksThroughCamera}"
+                                            ToolTip.Tip="Field of view in first person, as cg_fov (BO3 default 65). The wheel on the render changes it too"
+                                            AutomationProperties.Name="First-person field of view"/>
+                                    <StackPanel Spacing="4" IsVisible="{Binding ShowViewmodelChoice}">
+                                      <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Hands" Margin="0,6,0,0"
+                                                 ToolTip.Tip="{Binding HandsField.Description}"/>
+                                      <views:PropertyEditorView Name="HandsBox" DataContext="{Binding HandsField}" AutomationProperties.Name="Viewhands xmodel"/>
+                                      <TextBlock Name="HandsNote" Classes="faint" Classes.fielderror="{Binding HandsField.HasProblem}" FontSize="{StaticResource FontSizeXs}"
+                                                 Text="{Binding HandsNote}" ToolTip.Tip="{Binding HandsNote}" TextTrimming="CharacterEllipsis" MinHeight="15"/>
+                                      <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Gun" Margin="0,4,0,0"
+                                                 ToolTip.Tip="{Binding GunField.Description}"/>
+                                      <views:PropertyEditorView Name="GunBox" DataContext="{Binding GunField}" AutomationProperties.Name="Gun xmodel"/>
+                                      <TextBlock Name="GunNote" Classes="faint" Classes.fielderror="{Binding GunField.HasProblem}" FontSize="{StaticResource FontSizeXs}"
+                                                 Text="{Binding GunNote}" ToolTip.Tip="{Binding GunNote}" TextTrimming="CharacterEllipsis" MinHeight="15"/>
+                                    </StackPanel>
+                                  </StackPanel>
+                                </Flyout>
+                              </Button.Flyout>
+                            </Button>
+                          </StackPanel>
+                        </Border>
+                        <ToggleButton Name="JointsToggle" Classes="chip" IsChecked="{Binding ShowJoints}" Content="Joints"
+                                      IsVisible="{Binding Gfx.IsActive}" ToolTip.Tip="Draw the animated skeleton over the model"/>
+                        <Button Name="FrameChip" Classes="chip" Content="Frame" Click="Frame_Click" IsVisible="{Binding CanFrame}"
+                                ToolTip.Tip="{x:Static views:PreviewPaneView.FrameTip}"/>
+                        <Button Name="PopOutChip" Classes="chip" Padding="5,3" c:Cmd.Id="view.previewWindow" Click="PopOut_Click"
+                                IsVisible="{Binding $parent[views:PreviewPaneView].Compact}">
+                          <Path Classes="icon" Data="{StaticResource IconPopOut}"/>
+                        </Button>
+                      </StackPanel>
+                    </Grid>
+
+                    <!-- Bottom: what is drawn, stacked so none cuts another (left); the renderer's warnings (right). -->
+                    <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Bottom" Margin="10">
+                      <StackPanel Spacing="4" HorizontalAlignment="Left" VerticalAlignment="Bottom">
+                        <Border Classes="overlay" HorizontalAlignment="Left" IsVisible="{Binding IsLoading}">
+                          <TextBlock FontSize="{StaticResource FontSizeXs}" Text="Loading…"/>
+                        </Border>
+                        <Border Classes="overlay" HorizontalAlignment="Left" ToolTip.Tip="{Binding Gfx.FallbackDetail}"
+                                IsVisible="{Binding Gfx.FallbackStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                          <TextBlock FontSize="{StaticResource FontSizeXs}" Text="{Binding Gfx.FallbackStatus}" TextTrimming="CharacterEllipsis"/>
+                        </Border>
+                        <Border Name="CaptionChip" Classes="overlay" HorizontalAlignment="Left"
+                                IsVisible="{Binding ViewmodelInfo, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                ToolTip.Tip="{Binding ViewmodelInfo}">
+                          <TextBlock Classes="mono" FontSize="{StaticResource FontSizeXs}" Text="{Binding ViewmodelInfo}"
+                                     TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/>
+                        </Border>
+                        <Border Name="StatsChip" Classes="overlay" HorizontalAlignment="Left" ToolTip.Tip="{Binding StatsTip}"
+                                IsVisible="{Binding Stats, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                          <TextBlock Classes="mono" FontSize="{StaticResource FontSizeXs}" Text="{Binding Stats}" TextTrimming="CharacterEllipsis"/>
+                        </Border>
+                      </StackPanel>
+                      <Border Grid.Column="1" Classes="overlay" Margin="8,0,0,0" VerticalAlignment="Bottom" ToolTip.Tip="{Binding #AnimGfx.StatusDetail}"
+                              IsVisible="{Binding #AnimGfx.StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Classes="mono" FontSize="{StaticResource FontSizeXs}" Text="{Binding #AnimGfx.StatusText}"/>
+                      </Border>
+                    </Grid>
+
+                    <Border Classes="overlay" IsVisible="{Binding ShowError}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            MaxWidth="420" Margin="12">
+                      <TextBlock FontSize="{StaticResource FontSizeSm}" Text="{Binding Error}" TextWrapping="Wrap" TextAlignment="Center"/>
+                    </Border>
+                  </Panel>
+                </Border>
+                <Border Classes="viewportedge"/>
+                </Panel>
+                <!-- Nothing to play yet (or nothing could be): the line sits on the pane, not on a render. -->
+                <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="{Binding Error}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap"
+                           TextAlignment="Center" MaxWidth="420" Margin="12">
+                  <TextBlock.IsVisible>
+                    <MultiBinding Converter="{x:Static BoolConverters.And}">
+                      <Binding Path="ShowError"/>
+                      <Binding Path="!HasTransport"/>
+                    </MultiBinding>
+                  </TextBlock.IsVisible>
+                </TextBlock>
+                <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Loading…"
+                           HorizontalAlignment="Center" VerticalAlignment="Center">
+                  <TextBlock.IsVisible>
+                    <MultiBinding Converter="{x:Static BoolConverters.And}">
+                      <Binding Path="IsLoading"/>
+                      <Binding Path="!HasTransport"/>
+                    </MultiBinding>
+                  </TextBlock.IsVisible>
+                </TextBlock>
+              </Panel>
+            </DockPanel>
+          </DataTemplate>
+
+          <!-- ── Weapon with an extension's preview module: the viewmodel in first person, kicked by the module ──
+               The spray overlay sits on the render (drawn as UI, so APE's frame is untouched) and carries the preview
+               when there is no gun to draw. Under it: the module's line (reserved, so nothing moves when a note
+               appears), Fire / Hip | ADS / Reset, and the last burst's readout. The module's question, when it is
+               asked, is a card on the render: it never takes the keyboard unless the keyboard is already here. -->
+          <DataTemplate DataType="vm:WeaponPreviewViewModel">
+            <DockPanel Classes="animroot" Focusable="True" Loaded="RecoilRoot_Loaded" Unloaded="RecoilRoot_Unloaded"
+                       KeyDown="RecoilRoot_KeyDown" KeyUp="RecoilRoot_KeyUp">
+
+              <!-- The last burst, measured from the view's kick (SprayTrace): four values that hold their places. -->
+              <Grid Name="RecoilReadout" DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" Margin="2,8,2,0" MinHeight="32">
+                <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" IsVisible="{Binding MeasureNote, Converter={x:Static ObjectConverters.IsNull}}">
+                  <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Climb"
+                             ToolTip.Tip="How far the view went up during the last burst"/>
+                  <TextBlock Grid.Column="1" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Drift"
+                             ToolTip.Tip="How far the view went sideways during the last burst, and which way"/>
+                  <TextBlock Grid.Column="2" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Settles in"
+                             ToolTip.Tip="From the last round until the view is back within 0.05° of where it started, and stays there for 0.1 s"/>
+                  <TextBlock Grid.Row="1" Name="ClimbValue" Classes="mono" FontSize="{StaticResource FontSizeSm}" Text="{Binding ClimbText}"/>
+                  <TextBlock Grid.Row="1" Grid.Column="1" Name="DriftValue" Classes="mono" FontSize="{StaticResource FontSizeSm}" Text="{Binding DriftText}"/>
+                  <TextBlock Grid.Row="1" Grid.Column="2" Name="SettleValue" Classes="mono" FontSize="{StaticResource FontSizeSm}" Text="{Binding SettleText}"/>
+                </Grid>
+                <!-- No view kick from the module: said in the measurements' place, never blanks. -->
+                <TextBlock Name="MeasureNote" Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding MeasureNote}" VerticalAlignment="Center"
+                           TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding MeasureNote}"
+                           IsVisible="{Binding MeasureNote, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                  <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Shots" HorizontalAlignment="Right"
+                             ToolTip.Tip="Rounds in the last burst. A round fired before the view settles joins the burst"/>
+                  <TextBlock Name="ShotsValue" Classes="mono" FontSize="{StaticResource FontSizeSm}" Text="{Binding ShotsText}"
+                             HorizontalAlignment="Right" MinWidth="40" TextAlignment="Right"/>
+                </StackPanel>
+              </Grid>
+
+              <!-- Fire (hold, or tap for one round) is the main action, outlined; Hip | ADS one segmented pair; Reset -->
+              <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="10" Margin="2,7,2,0">
+                <Button Name="FireButton" Classes="line small" MinWidth="64" Content="Fire"
+                        HorizontalContentAlignment="Center" IsEnabled="{Binding CanFire}" Click="FireButton_Click"
+                        AutomationProperties.Name="Fire" ToolTip.Tip="{Binding FireTip}" ToolTip.ShowOnDisabled="True"/>
+                <Border Classes="segmented">
+                  <StackPanel Orientation="Horizontal">
+                    <Button Name="HipToggle" Classes="seg" Content="Hip" Classes.checked="{Binding IsHip}" Command="{Binding HipCommand}"
+                            AutomationProperties.Name="Hip" ToolTip.Tip="{c:Tip preview.aimDownSights}"/>
+                    <Button Name="AdsToggle" Classes="seg" Content="ADS" Classes.checked="{Binding IsAds}" Command="{Binding AdsCommand}"
+                            AutomationProperties.Name="Aim down sights" ToolTip.Tip="{c:Tip preview.aimDownSights}"/>
+                  </StackPanel>
+                </Border>
+                <Button Name="ResetButton" Classes="tool" Content="Reset"
+                        Command="{Binding ResetCommand}" AutomationProperties.Name="Reset recoil"
+                        ToolTip.Tip="{c:Tip preview.resetRecoil}" ToolTip.ShowOnDisabled="True"/>
+              </StackPanel>
+
+              <!-- The module: why it isn't simulating (with Load module… when asking again can help), or what it leaves out,
+                   in the form's words (the keys in the tooltip). Two lines are reserved, so a note never moves the controls. -->
+              <DockPanel DockPanel.Dock="Bottom" MinHeight="36" Margin="2,6,2,0">
+                <Button Name="LoadModuleButton" DockPanel.Dock="Right" Classes="tool" Margin="8,0,0,0" Content="Load module…"
+                        VerticalAlignment="Center" Command="{Binding LoadModuleCommand}" IsVisible="{Binding CanLoadModule}"
+                        ToolTip.Tip="Ask again whether to load the extension's preview module"/>
+                <TextBlock Name="RecoilNotice" Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="{Binding Notice}"
+                           ToolTip.Tip="{Binding NoticeTip}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center"/>
+              </DockPanel>
+
+              <Panel MinHeight="160">
+                <Border Classes="viewport">
+                  <Panel>
+                    <controls:ToolsGfxPreviewViewport x:Name="RecoilGfx" Environment="{Binding Gfx.Environment}" Model="{Binding Gfx.Model}"
+                                                      Pose="{Binding Pose}" Kick="{Binding Kick}" LightState="{Binding Gfx.Lighting.LightState}"
+                                                      FirstPerson="True" FieldOfView="{Binding FieldOfView}" IsVisible="{Binding Gfx.IsActive}"
+                                                      Failed="GfxViewport_Failed"/>
+                    <controls:RecoilOverlay Name="RecoilOverlay" Trace="{Binding Trace}" FieldOfView="{Binding FieldOfView}"
+                                            MarkBrush="{DynamicResource OverlayTextBrush}" LatestBrush="{DynamicResource OverlayAccentBrush}"
+                                            TraceBrush="{DynamicResource OverlayTraceBrush}" OutlineBrush="{DynamicResource ScrimBrush}"/>
+                    <Button Name="LightingChip" Classes="chip" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10"
+                            IsVisible="{Binding Gfx.IsActive}" Click="LightingChip_Click"
+                            AutomationProperties.Name="Lighting" ToolTip.Tip="Lighting, for every preview">
+                      <StackPanel Orientation="Horizontal" Spacing="4">
+                        <TextBlock Classes="overlaytext" Text="{Binding Gfx.Lighting.LightState}"/>
+                        <Path Classes="icon" Data="{StaticResource IconChevronDown}"/>
+                      </StackPanel>
+                    </Button>
+                    <!-- Bottom: Loading…, what is drawn, or why there is no gun (left); the renderer's warnings (right). -->
+                    <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Bottom" Margin="10">
+                      <StackPanel Spacing="4" HorizontalAlignment="Left" VerticalAlignment="Bottom">
+                        <Border Name="RecoilLoading" Classes="overlay" HorizontalAlignment="Left" IsVisible="{Binding IsLoading}">
+                          <TextBlock FontSize="{StaticResource FontSizeXs}" Text="Loading…"/>
+                        </Border>
+                        <Border Name="RecoilError" Classes="overlay" HorizontalAlignment="Left" IsVisible="{Binding ShowError}" ToolTip.Tip="{Binding ErrorDetail}">
+                          <TextBlock FontSize="{StaticResource FontSizeSm}" Text="{Binding Error}" TextWrapping="Wrap"/>
+                        </Border>
+                        <Border Classes="overlay" HorizontalAlignment="Left"
+                                IsVisible="{Binding ViewmodelInfo, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                ToolTip.Tip="{Binding ViewmodelInfo}">
+                          <TextBlock Classes="mono" FontSize="{StaticResource FontSizeXs}" Text="{Binding ViewmodelInfo}"
+                                     TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/>
+                        </Border>
+                      </StackPanel>
+                      <Border Grid.Column="1" Classes="overlay" Margin="8,0,0,0" ToolTip.Tip="{Binding #RecoilGfx.StatusDetail}" VerticalAlignment="Bottom"
+                              IsVisible="{Binding #RecoilGfx.StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Classes="mono" FontSize="{StaticResource FontSizeXs}" Text="{Binding #RecoilGfx.StatusText}"/>
+                      </Border>
+                    </Grid>
+
+                    <!-- The module's question, in place. Don't load comes first and is the default (Enter or Esc here). -->
+                    <ScrollViewer Name="ModuleQuestionPanel" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
+                                  IsVisible="{Binding Question, Converter={x:Static ObjectConverters.IsNotNull}}">
+                      <Border DataContext="{Binding Question}" x:DataType="vm:ModuleQuestion" Margin="12" MaxWidth="400"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" Padding="16,14"
+                              Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
+                              CornerRadius="{StaticResource RadiusOverlay}" BoxShadow="{DynamicResource ShadowDialog}">
+                        <StackPanel Spacing="10">
+                          <TextBlock Name="ModuleQuestionTitle" Text="{Binding Title}" FontSize="{StaticResource FontSizeBase}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                          <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap"
+                                     Text="{x:Static vm:ModuleQuestion.Lead}"/>
+                          <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="2">
+                            <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="Extension"/>
+                            <TextBlock Grid.Column="1" FontSize="{StaticResource FontSizeSm}" Text="{Binding ExtensionLine}" TextWrapping="Wrap"/>
+                            <TextBlock Grid.Row="1" Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="File"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" Classes="mono" FontSize="{StaticResource FontSizeSm}" Text="{Binding FileName}" TextWrapping="Wrap"/>
+                          </Grid>
+                          <TextBlock Name="ModuleQuestionChange" FontSize="{StaticResource FontSizeSm}" Text="{Binding Change}" TextWrapping="Wrap"
+                                     IsVisible="{Binding Change, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                          <StackPanel Spacing="4">
+                            <ToggleButton Name="ModuleQuestionDetails" Classes="tool" HorizontalAlignment="Left"
+                                          IsChecked="{Binding ShowDetails}" Content="Details"
+                                          AutomationProperties.Name="Show the module's full path and SHA-256"
+                                          ToolTip.Tip="The module's full path and SHA-256"/>
+                            <SelectableTextBlock Classes="mono" FontSize="{StaticResource FontSizeXs}" Text="{Binding Details}" TextWrapping="Wrap"
+                                                 IsVisible="{Binding ShowDetails}"/>
+                          </StackPanel>
+                          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                            <Button Name="DontLoadButton" Classes="outline" Content="Don't load" Command="{Binding DontLoadCommand}" Click="ModuleQuestionButton_Click"/>
+                            <Button Name="LoadButton" Classes="accent" Command="{Binding LoadCommand}" Click="ModuleQuestionButton_Click" AutomationProperties.Name="Load">
+                              <TextBlock Text="Load"/>
+                            </Button>
+                          </StackPanel>
+                        </StackPanel>
+                      </Border>
+                    </ScrollViewer>
+                  </Panel>
+                </Border>
+                <Border Classes="viewportedge"/>
+              </Panel>
+            </DockPanel>
+          </DataTemplate>
+
+        </ContentControl.DataTemplates>
+      </ContentControl>
+  </Panel>
+</UserControl>

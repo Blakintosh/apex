@@ -1,0 +1,17 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Apex.Editor.ViewModels"
+        xmlns:views="using:Apex.Editor.Views"
+        x:Class="Apex.Editor.Views.PreviewWindow"
+        x:DataType="vm:MainViewModel"
+        Title="{Binding PreviewWindowTitle}"
+        Icon="/Assets/apex.ico"
+        Width="980" Height="660" MinWidth="360" MinHeight="260"
+        Background="{DynamicResource BgWindowBrush}">
+
+  <!-- The Preview popped out to its own OS window (a second monitor, typically). It follows the
+       active editor tab; closing it docks the preview back into the main window. -->
+  <Border Classes="layer" Margin="6">
+    <views:PreviewDockView/>
+  </Border>
+</Window>

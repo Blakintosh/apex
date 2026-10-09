@@ -1,0 +1,26 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- The shell's own pieces (title bar, tab strip, banners). Colours only from Resources/Tokens.axaml. -->
+
+  <!-- Tab strip: no tab is ever wider for being current, hovered or focused, so clicking one never moves its neighbours
+       under the cursor. Every tab is as wide as its name. Its ✕ appears with the pointer on the tab (or keyboard focus
+       on the ✕), over the end of the tab on the tab's own fill, the way Safari's tabs do: 24 px wide, it reaches 16 px
+       back over the name and 8 px into the right padding, adding nothing to the tab's width. Ctrl+W and a middle-click
+       close a tab without it. -->
+  <Style Selector="ListBox.doctabs ListBoxItem, ListBox.doctabs ListBoxItem:selected">
+    <Setter Property="Padding" Value="12,0,12,0"/>
+  </Style>
+  <Style Selector="ListBox.doctabs ListBoxItem Button.tabclose">
+    <Setter Property="IsVisible" Value="False"/>
+    <Setter Property="Opacity" Value="1"/>
+    <Setter Property="Margin" Value="-16,0,-8,0"/>
+    <Setter Property="Background" Value="{DynamicResource BgRowHoverBrush}"/>
+  </Style>
+  <Style Selector="ListBox.doctabs ListBoxItem:selected Button.tabclose">
+    <Setter Property="Background" Value="{DynamicResource BgCardBrush}"/>
+  </Style>
+  <Style Selector="ListBox.doctabs ListBoxItem:pointerover Button.tabclose, ListBox.doctabs ListBoxItem Button.tabclose:focus-visible">
+    <Setter Property="IsVisible" Value="True"/>
+  </Style>
+</Styles>

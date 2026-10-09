@@ -1,0 +1,189 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Apex.Editor.ViewModels"
+             xmlns:views="using:Apex.Editor.Views"
+             xmlns:c="using:Apex.Editor.Commands"
+             x:Class="Apex.Editor.Views.AnimPropertiesView"
+             x:DataType="vm:AssetEditorViewModel">
+
+  <!--
+    An xanim's properties, short: its notetracks live in the dock under the preview, so what is left (Source Files,
+    Settings, MP Specific, AssetViewer Preview) fits the right column as cards. All / Changed / Problems count this panel
+    only; ⌕ (or Ctrl+F) filters it. Values edit through the same rows and editors as the full form.
+  -->
+  <UserControl.Styles>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{DynamicResource BgCardBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="{StaticResource RadiusLg}"/>
+    </Style>
+    <Style Selector="Border.cardrow">
+      <Setter Property="CornerRadius" Value="{StaticResource RadiusSm}"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Padding" Value="0,3"/>
+    </Style>
+    <Style Selector="Border.cardrow.disabled">
+      <Setter Property="Opacity" Value="{StaticResource DisabledOpacity}"/>
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.DataTemplates>
+    <!-- A switch: the knob and its label on one line. -->
+    <DataTemplate x:DataType="vm:TogglePropertyViewModel">
+      <Border Classes="cardrow" Classes.disabled="{Binding IsRuleDisabled}" ToolTip.Tip="{Binding Tooltip}">
+        <DockPanel>
+          <Border DockPanel.Dock="Left" Width="2" Height="16" CornerRadius="1" Margin="-8,0,6,0" Background="{DynamicResource MarkBrush}"
+                  IsVisible="{Binding IsChanged}" ToolTip.Tip="Changed this session"/>
+          <TextBlock DockPanel.Dock="Right" Text="⚠" Classes="problem" FontSize="{StaticResource FontSizeSm}" VerticalAlignment="Center"
+                     IsVisible="{Binding HasProblem}" ToolTip.Tip="{Binding Problem}"/>
+          <ToggleButton Classes="miniswitch" IsChecked="{Binding IsOn}" IsEnabled="{Binding !IsRuleDisabled}"
+                        AutomationProperties.Name="{Binding Label}" HorizontalAlignment="Left">
+            <TextBlock Text="{Binding Label}" FontSize="{StaticResource FontSizeBase}" TextTrimming="CharacterEllipsis"/>
+          </ToggleButton>
+        </DockPanel>
+      </Border>
+    </DataTemplate>
+
+    <!-- Any other value: its label above its editor. -->
+    <DataTemplate x:DataType="vm:PropertyItemViewModel">
+      <Border Classes="cardrow" Classes.disabled="{Binding IsRuleDisabled}">
+        <DockPanel>
+          <Border DockPanel.Dock="Left" Width="2" CornerRadius="1" Margin="-8,0,6,0" Background="{DynamicResource MarkBrush}"
+                  IsVisible="{Binding IsChanged}" ToolTip.Tip="Changed this session"/>
+          <StackPanel Spacing="4">
+            <DockPanel ToolTip.Tip="{Binding Tooltip}">
+              <TextBlock DockPanel.Dock="Right" Text="⚠" Classes="problem" FontSize="{StaticResource FontSizeSm}"
+                         IsVisible="{Binding HasProblem}" ToolTip.Tip="{Binding Problem}"/>
+              <TextBlock Name="CardLabel" Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding Label}" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+            <views:PropertyEditorView AutomationProperties.LabeledBy="{Binding #CardLabel}" IsEnabled="{Binding !IsRuleDisabled}"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+    </DataTemplate>
+
+    <!-- A deffile button group (Populate): its buttons, as the form draws them. -->
+    <DataTemplate x:DataType="vm:ButtonGroupRowViewModel">
+      <Border Classes="cardrow" Classes.disabled="{Binding !IsEnabled}" ToolTip.Tip="{Binding ToolTip}">
+        <ItemsControl ItemsSource="{Binding Buttons}" IsEnabled="{Binding IsEnabled}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" ItemSpacing="4" LineSpacing="4"/>
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:DeffileButtonViewModel">
+              <Button Classes="line small" Content="{Binding Label}" Command="{Binding Command}" AutomationProperties.Name="{Binding Title}"/>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Border>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
+  <DockPanel>
+    <!-- ── Header · All / Changed / Problems · ⌕ ── -->
+    <Border DockPanel.Dock="Top" Height="36" Padding="14,0,8,0">
+      <TextBlock Classes="pane-title" Text="Properties" VerticalAlignment="Center"/>
+    </Border>
+    <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
+      <StackPanel>
+        <Grid Height="32" Margin="14,0,8,0" ColumnDefinitions="*,Auto">
+          <StackPanel Name="PanelTabs" Orientation="Horizontal" Spacing="16">
+            <RadioButton Classes="viewtab" GroupName="{Binding Name, StringFormat='{}{0}·panel'}" IsChecked="{Binding IsAllView}"
+                         ToolTip.Tip="Every property in this panel" AutomationProperties.Name="{Binding PanelShownCount, StringFormat='All, {0}'}">
+              <StackPanel Orientation="Horizontal" Spacing="5">
+                <TextBlock Text="All"/>
+                <TextBlock Classes="faint" FontWeight="Normal" Text="{Binding PanelShownCount}"/>
+              </StackPanel>
+            </RadioButton>
+            <RadioButton Classes="viewtab" GroupName="{Binding Name, StringFormat='{}{0}·panel'}" IsChecked="{Binding IsChangedView}"
+                         ToolTip.Tip="Properties you changed in this session" AutomationProperties.Name="{Binding PanelChangedCount, StringFormat='Changed, {0}'}">
+              <StackPanel Orientation="Horizontal" Spacing="5">
+                <TextBlock Text="Changed"/>
+                <TextBlock Classes="faint" FontWeight="Normal" Text="{Binding PanelChangedCount}"/>
+              </StackPanel>
+            </RadioButton>
+            <RadioButton Classes="viewtab" GroupName="{Binding Name, StringFormat='{}{0}·panel'}" IsChecked="{Binding IsProblemsView}"
+                         ToolTip.Tip="Properties with validation problems" AutomationProperties.Name="{Binding PanelProblemCount, StringFormat='Problems, {0}'}">
+              <StackPanel Orientation="Horizontal" Spacing="5">
+                <TextBlock Text="Problems"/>
+                <TextBlock FontWeight="Normal" Text="{Binding PanelProblemCount}" Foreground="{DynamicResource DangerTextBrush}" IsVisible="{Binding !!PanelProblemCount}"/>
+                <TextBlock FontWeight="Normal" Text="0" Classes="faint" IsVisible="{Binding !PanelProblemCount}"/>
+              </StackPanel>
+            </RadioButton>
+          </StackPanel>
+          <Button Grid.Column="1" Name="PanelFilterButton" Classes="icon" ContentTemplate="{x:Null}" FontSize="{StaticResource FontSizeMd}" Click="FilterButton_Click"
+                  AutomationProperties.Name="Filter properties" ToolTip.Tip="{c:Tip edit.filterProperties}">
+            <Panel>
+              <TextBlock Text="⌕" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              <Ellipse Width="5" Height="5" Fill="{DynamicResource AccentBrush}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,-4,0"
+                       IsVisible="{Binding SearchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+            </Panel>
+          </Button>
+        </Grid>
+        <!-- The filter opens under the tabs while it has focus or text: the cards move down once, never while typing. -->
+        <TextBox Name="PanelFilter" Classes="field small" Margin="10,0,10,8" IsVisible="False"
+                 Text="{Binding SearchText}" PlaceholderText="Filter properties" AutomationProperties.Name="Filter properties">
+          <TextBox.InnerLeftContent>
+            <TextBlock Text="⌕" FontSize="{StaticResource FontSizeSm}" Classes="dim" Margin="4,0,0,0" VerticalAlignment="Center"/>
+          </TextBox.InnerLeftContent>
+        </TextBox>
+      </StackPanel>
+    </Border>
+
+    <!-- ── Cards ── -->
+    <Panel>
+      <ScrollViewer Name="CardScroll" HorizontalScrollBarVisibility="Disabled">
+        <ItemsControl Name="Cards" ItemsSource="{Binding PanelCards}" Margin="10">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="10"/>
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:CategoryViewModel">
+              <Border Classes="card">
+                <DockPanel>
+                  <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource LineBrush}"
+                          BorderThickness="{Binding IsExpanded, Converter={x:Static views:AnimPropertiesView.HeaderRule}}">
+                    <ToggleButton Classes="sectiontoggle" Margin="0" Padding="12,0" Height="34" CornerRadius="8"
+                                  IsChecked="{Binding IsExpanded}" AutomationProperties.Name="{Binding Name}">
+                      <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding Summary}"
+                                   VerticalAlignment="Center" IsVisible="{Binding !IsExpanded}"/>
+                        <TextBlock DockPanel.Dock="Left" Classes="dim" FontSize="{StaticResource FontSizeXs}" Width="14" VerticalAlignment="Center"
+                                   Text="▸" IsVisible="{Binding !IsExpanded}"/>
+                        <TextBlock DockPanel.Dock="Left" Classes="dim" FontSize="{StaticResource FontSizeXs}" Width="14" VerticalAlignment="Center"
+                                   Text="▾" IsVisible="{Binding IsExpanded}"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding Name}" FontSize="{StaticResource FontSizeSm}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                          <!-- Folded, the count says what's inside; open, the fields themselves do. -->
+                          <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding VisibleCount}" VerticalAlignment="Center"
+                                     IsVisible="{Binding !IsExpanded}"/>
+                        </StackPanel>
+                      </DockPanel>
+                    </ToggleButton>
+                  </Border>
+                  <ItemsControl ItemsSource="{Binding VisibleRows}" Margin="12,6,12,8" IsVisible="{Binding IsExpanded}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <StackPanel Spacing="2"/>
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                  </ItemsControl>
+                </DockPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" Margin="16,40,16,16" Spacing="8" IsVisible="{Binding !PanelCards.Count}">
+        <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" HorizontalAlignment="Center" TextAlignment="Center"
+                   Text="{Binding EmptyText}" TextWrapping="Wrap" MaxWidth="320"/>
+        <Button Classes="line" HorizontalAlignment="Center" Content="{c:Name editor.viewAll}" Click="ShowAll_Click"/>
+      </StackPanel>
+    </Panel>
+  </DockPanel>
+</UserControl>

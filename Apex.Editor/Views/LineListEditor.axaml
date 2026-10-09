@@ -1,0 +1,129 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Apex.Editor.ViewModels"
+             xmlns:controls="using:Apex.Editor.Controls"
+             xmlns:c="using:Apex.Editor.Commands"
+             xmlns:views="using:Apex.Editor.Views"
+             x:Class="Apex.Editor.Views.LineListEditor"
+             x:DataType="vm:LinesPropertyViewModel"
+             Focusable="False">
+
+  <!--
+    A line-list field (hideTags, xmodel materials and skinOverride, comments…): one row per item and an "Add" field at
+    the end. skinOverride lists every surface material of the model (its LODs too), each with its replacement, as APE
+    does; it has an Add field only when the model file can't be read. Each item edits like the field it holds (a material suggests materials, a tag suggests the model's bones)
+    and commits like any text field (Enter or focus loss; Esc reverts). Enter moves on to the next item, Delete in an
+    empty item removes it, ↑↓ walk the items. Past eight items the list scrolls. In a table cell the list is a one-line
+    summary ("3 tags") that opens it below the cell.
+  -->
+  <UserControl.Styles>
+    <!--
+      ✕ draws on the hovered or focused item only; its column keeps its width, so nothing moves when it shows. Only its
+      glyph hides, and it acts on press: clicking ✕ again where the next item has just moved up (the row's hover doesn't
+      update until the mouse moves) removes that one too.
+    -->
+    <Style Selector="Grid.litem Button.lremove">
+      <Setter Property="Foreground" Value="Transparent"/>
+    </Style>
+    <!-- skinOverride's halves share a narrow row: a field never asks for more than its half (it scrolls its text). -->
+    <Style Selector="Grid.litem TextBox">
+      <Setter Property="MinWidth" Value="0"/>
+    </Style>
+    <Style Selector="Grid.litem:pointerover Button.lremove, Grid.litem:focus-within Button.lremove">
+      <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    </Style>
+    <!-- A surface of the model: its name, set where the field's text sits, dim while nothing replaces it. Trimmed from
+         the front: a model's surfaces often share a long prefix and differ at the end (…_image_off, …_image_on). -->
+    <Style Selector="TextBlock.lsurface">
+      <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+      <Setter Property="Margin" Value="8,0"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="TextTrimming" Value="PrefixCharacterEllipsis"/>
+    </Style>
+    <!-- The same name as a link: it takes the button's colour, so hover and press show it opens. -->
+    <Style Selector="Button.lsurfacelink TextBlock">
+      <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+      <Setter Property="TextTrimming" Value="PrefixCharacterEllipsis"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="Button.lsurfacelink">
+      <Setter Property="Margin" Value="8,0,0,0"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="HorizontalContentAlignment" Value="Left"/>
+    </Style>
+    <Style Selector="TextBlock.lsurface.plain">
+      <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.DataTemplates>
+    <DataTemplate DataType="vm:RefPropertyViewModel">
+      <Grid>
+        <views:RefField Classes="pfield mono" Text="{Binding Value, Mode=OneWay}" Padding="26,0,2,0" IsUndoEnabled="False"/>
+        <TextBlock Text="{Binding RefGlyph}" Foreground="{Binding RefBrush}" FontSize="{StaticResource FontSizeXs}" Margin="9,0,0,0"
+                   VerticalAlignment="Center" HorizontalAlignment="Left" IsHitTestVisible="False" ToolTip.Tip="{Binding RefType}"/>
+        <!-- Left of the field's own ▾ (a name with a problem doesn't resolve, so its open arrow isn't there). -->
+        <TextBlock Text="⚠" Classes="problem" FontSize="{StaticResource FontSizeSm}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                   Margin="0,0,28,0" IsVisible="{Binding HasProblem}" ToolTip.Tip="{Binding Problem}"/>
+      </Grid>
+    </DataTemplate>
+    <DataTemplate DataType="vm:SuggestPropertyViewModel">
+      <controls:SuggestBox/>
+    </DataTemplate>
+    <DataTemplate DataType="vm:TextPropertyViewModel">
+      <TextBox Classes="pfield" Text="{Binding Value, Mode=OneWay}" IsUndoEnabled="False"/>
+    </DataTemplate>
+
+    <DataTemplate DataType="vm:LineItemViewModel">
+      <Grid Classes="litem" ColumnDefinitions="*,24" Margin="0,0,0,2">
+        <!-- skinOverride: surface material | replacement, half each. A surface of the model is its name, not a field. -->
+        <UniformGrid Rows="1" Columns="{Binding Columns}">
+          <Panel>
+            <ContentControl Content="{Binding Main}" HorizontalContentAlignment="Stretch" Focusable="False"
+                            IsVisible="{Binding !IsModelSurface}"/>
+            <TextBlock Classes="lsurface" Classes.plain="{Binding !IsOverridden}" Text="{Binding Surface}"
+                       ToolTip.Tip="{Binding Surface}" IsVisible="{Binding IsPlainSurface}"/>
+            <Button Classes="link lsurfacelink" Classes.dim="{Binding !IsOverridden}" Command="{Binding GoToCommand}" Focusable="False"
+                    IsVisible="{Binding CanGoTo}" ToolTip.Tip="{Binding Surface, StringFormat='Open {0}'}"
+                    AutomationProperties.Name="{Binding Surface, StringFormat='Open {0}'}">
+              <TextBlock Text="{Binding Surface}"/>
+            </Button>
+          </Panel>
+          <ContentControl Content="{Binding Replacement}" HorizontalContentAlignment="Stretch" Focusable="False" Margin="4,0,0,0"
+                          IsVisible="{Binding IsPair}"/>
+        </UniformGrid>
+        <Button Grid.Column="1" Classes="rowaction lremove" Content="✕" Focusable="False" ClickMode="Press" IsVisible="{Binding CanRemove}"
+                ToolTip.Tip="Remove" AutomationProperties.Name="Remove"/>
+      </Grid>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
+  <Panel>
+    <!-- A table cell: the count, which opens the list (built on first open). -->
+    <Button Name="SummaryButton" Classes="lsummary" IsVisible="False" Height="24" MinHeight="24" Padding="8,0"
+            HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" VerticalContentAlignment="Center"
+            Background="{DynamicResource BgFieldBrush}" ToolTip.Tip="{Binding ItemsTip}">
+      <TextBlock Text="{Binding Summary}" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FontSizeSm}"
+                 TextTrimming="CharacterEllipsis"/>
+    </Button>
+
+    <StackPanel Name="Full" Margin="0,3,0,1">
+      <!-- A pair list says which side is which: the right is what replaces the left. -->
+      <Grid ColumnDefinitions="*,24" Margin="0,0,0,2" IsVisible="{Binding IsPairList}">
+        <UniformGrid Rows="1" Columns="2">
+          <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding SurfaceTitle}" Margin="8,0,0,0"/>
+          <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding ReplacementTitle}" Margin="12,0,0,0"/>
+        </UniformGrid>
+      </Grid>
+      <ScrollViewer Name="ItemsScroll" MaxHeight="208" HorizontalScrollBarVisibility="Disabled">
+        <ItemsControl Name="ItemsList" ItemsSource="{Binding Items}" Focusable="False"/>
+      </ScrollViewer>
+      <ContentControl Name="AddRow" Content="{Binding AddItem}" HorizontalContentAlignment="Stretch" Focusable="False"
+                      IsVisible="{Binding CanAdd}"/>
+    </StackPanel>
+  </Panel>
+</UserControl>

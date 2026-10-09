@@ -1,0 +1,239 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!--
+    The Preview pane's own pieces: the viewport frame, what sits on the render (overlay pills, chips and groups),
+    the transport slider and the recoil controls' segmented pair. The render is dark in both themes, so everything on
+    it takes the Overlay* tokens, never the pane's. Colours come only from Resources/Tokens.axaml.
+  -->
+
+  <Styles.Resources>
+    <!-- One edge for everything on the render: the active chip's graphite, a step up from the chip fill, so a chip
+         keeps its outline on a render of the same dark (it is the same in both themes, like the render). -->
+    <SolidColorBrush x:Key="OverlayEdgeBrush" Color="{StaticResource Graphite600}"/>
+
+    <!-- Icons drawn as strokes (12 px box, 1.25 px pen): crisp at every scale, unlike the ▾ ⧉ ⤢ glyphs, which fall back
+         to whatever font has them. -->
+    <StreamGeometry x:Key="IconChevronDown">M2.5,4.5 L6,8 L9.5,4.5</StreamGeometry>
+    <StreamGeometry x:Key="IconCaret">M2,3.5 L5,6.5 L8,3.5</StreamGeometry>
+    <StreamGeometry x:Key="IconPopOut">M10.5,7 V10.5 H1.5 V1.5 H5 M7.5,1.5 H10.5 V4.5 M10.5,1.5 L5.5,6.5</StreamGeometry>
+    <StreamGeometry x:Key="IconMaximize">M7.5,1.5 H10.5 V4.5 M10.5,1.5 L7,5 M4.5,10.5 H1.5 V7.5 M1.5,10.5 L5,7</StreamGeometry>
+  </Styles.Resources>
+
+  <Style Selector="Path.icon">
+    <Setter Property="StrokeThickness" Value="1.25"/>
+    <Setter Property="StrokeLineCap" Value="Round"/>
+    <Setter Property="StrokeJoin" Value="Round"/>
+    <Setter Property="Width" Value="12"/>
+    <Setter Property="Height" Value="12"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="HorizontalAlignment" Value="Center"/>
+  </Style>
+
+  <!-- An icon takes its button's text colour in every state (a Path's stroke doesn't inherit it). -->
+  <Style Selector="Button.chip Path.icon, Button.segment Path.icon, ToggleButton.chip Path.icon">
+    <Setter Property="Stroke" Value="{DynamicResource OverlayTextBrush}"/>
+  </Style>
+  <Style Selector="Button.icon Path.icon, Button.menu Path.icon">
+    <Setter Property="Stroke" Value="{DynamicResource TextDimBrush}"/>
+  </Style>
+  <Style Selector="Button.icon:pointerover Path.icon, Button.menu:pointerover Path.icon">
+    <Setter Property="Stroke" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.icon:disabled Path.icon, Button.menu:disabled Path.icon">
+    <Setter Property="Stroke" Value="{DynamicResource TextFaintBrush}"/>
+  </Style>
+  <!-- A menu button's ▾, drawn: small and faint, like the caret glyph it replaces. -->
+  <Style Selector="Path.icon.caret">
+    <Setter Property="Width" Value="10"/>
+    <Setter Property="Height" Value="10"/>
+  </Style>
+  <Style Selector="Button.menu Path.icon.caret">
+    <Setter Property="Stroke" Value="{DynamicResource TextFaintBrush}"/>
+  </Style>
+
+  <!-- ── The viewport frame ─────────────────────────────────────────
+       The fill is inset a pixel inside its own stroke, drawn above it and out of hit testing: one border carrying a dark
+       fill, a hairline stroke and a radius anti-aliases the stroke to the pane colour at the corners while the fill's
+       edge pixel stays near-black, so a dark pixel poked out of every corner. The fill keeps the edge's radius, so at
+       the 45° point its anti-aliased pixel softens into the hairline instead of meeting the pane. -->
+  <Style Selector="Border.viewport">
+    <Setter Property="Background" Value="{DynamicResource ViewportBgBrush}"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Margin" Value="1"/>
+    <Setter Property="ClipToBounds" Value="True"/>
+  </Style>
+  <Style Selector="Border.viewportedge">
+    <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="IsHitTestVisible" Value="False"/>
+  </Style>
+
+  <!-- ── On the render ──────────────────────────────────────────────
+       Pills (Border.overlay), chips (.chip) and groups (Border.overlay.group of .segment) all carry the same inset
+       hairline, so they stand off a render of their own colour. -->
+  <Style Selector="Border.overlay">
+    <Setter Property="BorderBrush" Value="{DynamicResource OverlayEdgeBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="Padding" Value="8,3"/>
+  </Style>
+  <Style Selector="Border.overlay.group">
+    <Setter Property="Padding" Value="1"/>
+  </Style>
+  <Style Selector="Border.overlay.group:disabled">
+    <Setter Property="Opacity" Value="0.55"/>
+  </Style>
+  <!-- The 1 px rule between a group's halves (First person | ▾). -->
+  <Style Selector="Border.overlay.group Border.divider">
+    <Setter Property="Width" Value="1"/>
+    <Setter Property="Margin" Value="1,5"/>
+    <Setter Property="Background" Value="{DynamicResource OverlayEdgeBrush}"/>
+  </Style>
+
+  <Style Selector="Button.chip, ToggleButton.chip">
+    <Setter Property="BorderBrush" Value="{DynamicResource OverlayEdgeBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="Padding" Value="8,3"/>
+  </Style>
+  <Style Selector="Button.chip /template/ ContentPresenter, ToggleButton.chip /template/ ContentPresenter,
+                   Button.chip:pointerover /template/ ContentPresenter, ToggleButton.chip:pointerover /template/ ContentPresenter,
+                   Button.chip:pressed /template/ ContentPresenter, ToggleButton.chip:pressed /template/ ContentPresenter,
+                   ToggleButton.chip:checked /template/ ContentPresenter,
+                   Button.chip:disabled /template/ ContentPresenter, ToggleButton.chip:disabled /template/ ContentPresenter">
+    <Setter Property="BorderBrush" Value="{DynamicResource OverlayEdgeBrush}"/>
+  </Style>
+
+  <!-- A segment that is a plain button (the ▾ half of First person), and segments in a disabled group: the group's
+       opacity says disabled, so the label keeps its colour. -->
+  <Style Selector="Button.segment">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource OverlayTextBrush}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXs}"/>
+    <Setter Property="Padding" Value="7,4"/>
+    <Setter Property="MinHeight" Value="24"/>
+    <Setter Property="MinWidth" Value="24"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.segment:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource OverlayChipHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource OverlayTextBrush}"/>
+  </Style>
+  <Style Selector="Button.segment:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource OverlayChipActiveBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.segment:checked:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource OverlayChipActiveBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource OverlayAccentBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.segment:checked /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource OverlayAccentBrush}"/>
+  </Style>
+  <Style Selector="Button.segment:disabled /template/ ContentPresenter, ToggleButton.segment:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource OverlayTextBrush}"/>
+  </Style>
+
+  <!-- A label of its own inside a chip (beside an icon): the render's text colour in both themes. A plain string
+       content is drawn by the chip itself and takes its state's colour. Matched by class, never as a descendant of the
+       chip, so no other TextBlock in the app pays for the selector. -->
+  <Style Selector="TextBlock.overlaytext">
+    <Setter Property="Foreground" Value="{DynamicResource OverlayTextBrush}"/>
+  </Style>
+
+  <!-- ── The transport slider ───────────────────────────────────────
+       The same accent and shape as the notetrack playhead it sits above: a hairline track and a 12 px accent handle.
+       It never takes the keyboard (the preview's transport keys stay live after a click on it). -->
+  <Style Selector="Slider.transport">
+    <Setter Property="Focusable" Value="False"/>
+    <Setter Property="MinHeight" Value="24"/>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Grid Background="Transparent">
+          <Border Name="TrackLine" Height="2" Margin="6,0" CornerRadius="1" VerticalAlignment="Center"
+                  Background="{DynamicResource LineBrush}"/>
+          <Track Name="PART_Track" Orientation="Horizontal"
+                 Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}"
+                 Value="{TemplateBinding Value, Mode=TwoWay}" IsDirectionReversed="{TemplateBinding IsDirectionReversed}">
+            <Track.DecreaseButton>
+              <RepeatButton Name="PART_DecreaseButton" Classes="transporttrack" Focusable="False"/>
+            </Track.DecreaseButton>
+            <Track.IncreaseButton>
+              <RepeatButton Name="PART_IncreaseButton" Classes="transporttrack" Focusable="False"/>
+            </Track.IncreaseButton>
+            <Thumb Name="thumb" Classes="transport" Focusable="False" Width="12" Height="14"/>
+          </Track>
+        </Grid>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="RepeatButton.transporttrack">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="Transparent"/>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Thumb.transport">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}" CornerRadius="2"/>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Slider.transport:pointerover Thumb.transport">
+    <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}"/>
+  </Style>
+  <Style Selector="Thumb.transport:pressed">
+    <Setter Property="Background" Value="{DynamicResource AccentPressBrush}"/>
+  </Style>
+  <Style Selector="Slider.transport:disabled Thumb.transport">
+    <Setter Property="Background" Value="{DynamicResource TextFaintBrush}"/>
+  </Style>
+
+  <!-- ── A segmented pair in the pane (Hip | ADS) ───────────────────
+       A recessed track; the chosen segment is a raised fill. Checked is a class the view model drives one way, so a
+       second click on the chosen segment can never leave neither chosen. -->
+  <Style Selector="Border.segmented">
+    <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Height" Value="24"/>
+  </Style>
+  <Style Selector="Button.seg">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Padding" Value="10,0"/>
+    <Setter Property="MinWidth" Value="44"/>
+    <Setter Property="Height" Value="24"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.seg:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.seg:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.seg.checked /template/ ContentPresenter,
+                   Button.seg.checked:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentDimBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}"/>
+  </Style>
+  <Style Selector="Button.seg:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+  </Style>
+
+  <!-- The line under a field that says what's wrong with it (the hands / gun boxes). -->
+  <Style Selector="TextBlock.fielderror">
+    <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}"/>
+  </Style>
+</Styles>

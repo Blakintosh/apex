@@ -1,0 +1,523 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Apex.Editor.ViewModels"
+             xmlns:views="using:Apex.Editor.Views"
+             xmlns:c="using:Apex.Editor.Commands"
+             xmlns:controls="using:Apex.Editor.Controls"
+             x:Class="Apex.Editor.Views.AssetEditorView"
+             x:DataType="vm:AssetEditorViewModel">
+
+  <!--
+    The property list renders as ONE flat virtualized list (FlatRows): per category a section header
+    followed by its visible property rows. Nested per-category ItemsControls cannot virtualize; flat +
+    RowPanel keeps a 1,300-property weapon at ~viewport-many live controls, and keeps the rows it built
+    (hidden, per kind) so the next asset rebinds them instead of building and styling new ones.
+
+    Rows are calm by default: one marker bar (amber = changed this session), a ⚠ beside a value with a
+    problem, one text weight, and the key, range bar, step arrows and ↶ only on the hovered or focused
+    row. Values the asset merely inherits from its parent render dim.
+  -->
+  <UserControl.Resources>
+    <!-- The label column's width: fitted to the open asset's labels in the code-behind (FitLabels). -->
+    <x:Double x:Key="FormLabelWidth">200</x:Double>
+  </UserControl.Resources>
+
+  <UserControl.DataTemplates>
+    <!-- Section header: its name, nothing counted (how many rows show changed meaning with every view and filter, and
+         which rows changed is the rows' own bar and the rail's dot). An extension's section looks like any other and
+         names its extension after its title: the values live in the .gdtx, not the GDT, and the tooltip says so. -->
+    <!-- A section that folds while it holds nothing (an extension's collapsedUnlessSet) is a toggle across its title:
+         ▸ / ▾, and how many of its rows hold a value, so a folded section still says whether anything is in it. An
+         extension's first header carries its export while the extension is on. -->
+    <DataTemplate x:DataType="vm:CategoryViewModel">
+      <Border Classes="psection" Classes.first="{Binding IsFirst}">
+        <DockPanel VerticalAlignment="Bottom">
+          <!-- The manifest's words as plain text: a string content would read an underscore (weapon_tech.cfg) as an access key. -->
+          <Button DockPanel.Dock="Right" Classes="line small" Command="{Binding ExportCommand}" IsVisible="{Binding CanExport}"
+                  ToolTip.Tip="{Binding ExportTip}" AutomationProperties.Name="{Binding ExportLabel}" Margin="8,0,0,0">
+            <TextBlock Text="{Binding ExportLabel}"/>
+          </Button>
+          <!-- A section that is a grid of its keys (surface × hit type): the one switch between the matrix and the list. -->
+          <Button DockPanel.Dock="Right" Classes="line small" Command="{Binding ToggleMatrixCommand}" IsVisible="{Binding HasGrid}"
+                  Margin="8,0,0,0" ToolTip.Tip="The keys of this section are a grid of two names">
+            <TextBlock Text="{Binding MatrixToggleText}"/>
+          </Button>
+          <ToggleButton Classes="sectiontoggle" IsVisible="{Binding IsCollapsible}" IsChecked="{Binding IsExpanded}"
+                        HorizontalAlignment="Left" Margin="-22,0,0,0" Padding="4,0" AutomationProperties.Name="{Binding Name}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Panel Width="10">
+                <TextBlock Classes="dim" FontSize="{StaticResource FontSizeXs}" Text="▾" IsVisible="{Binding IsExpanded}" VerticalAlignment="Center"/>
+                <TextBlock Classes="dim" FontSize="{StaticResource FontSizeXs}" Text="▸" IsVisible="{Binding !IsExpanded}" VerticalAlignment="Center"/>
+              </Panel>
+              <TextBlock Classes="ptitle" Text="{Binding Name}" VerticalAlignment="Center"/>
+              <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding SetText}" VerticalAlignment="Center"/>
+              <TextBlock Classes="faint mono" FontSize="{StaticResource FontSizeXs}" Text="{Binding Extension}" VerticalAlignment="Center"
+                         ToolTip.Tip="{Binding ExtensionTip}"/>
+            </StackPanel>
+          </ToggleButton>
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom" IsVisible="{Binding !IsCollapsible}">
+            <TextBlock Classes="ptitle" Text="{Binding Name}"/>
+            <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="{Binding VisibleCount}" VerticalAlignment="Bottom"/>
+            <TextBlock Name="ExtensionTag" Classes="faint mono" FontSize="{StaticResource FontSizeXs}" Text="{Binding Extension}"
+                       VerticalAlignment="Bottom" IsVisible="{Binding IsExtension}" ToolTip.Tip="{Binding ExtensionTip}"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+    </DataTemplate>
+
+    <!-- A section's keys as the grid they make: names across and down, values in the squares, the selected one's editor below. -->
+    <DataTemplate x:DataType="vm:MatrixRowViewModel">
+      <views:KeyMatrixView/>
+    </DataTemplate>
+
+    <!-- An extension off for this asset: the manifest's own line, and Turn on. Calm: no colour, no box. -->
+    <DataTemplate x:DataType="vm:ExtensionOffRowViewModel">
+      <Border Classes="pextline off">
+        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding Text}" VerticalAlignment="Center"
+                     TextTrimming="CharacterEllipsis"/>
+          <Button Classes="line small" Content="Turn on" Command="{Binding TurnOnCommand}"/>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+
+    <!-- A sub-section's title (LOD 1 under LODs): quieter than a section header, with room above to read as a break. -->
+    <DataTemplate x:DataType="vm:SubsectionRowViewModel">
+      <Border Classes="psub">
+        <TextBlock Text="{Binding Title}" VerticalAlignment="Bottom" TextTrimming="CharacterEllipsis"/>
+      </Border>
+    </DataTemplate>
+
+    <!-- A manifest's notice under a header: one quiet line, the whole of it in the tooltip when it doesn't fit. -->
+    <DataTemplate x:DataType="vm:ExtensionNoticeRowViewModel">
+      <Border Classes="pextline">
+        <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding Text}" VerticalAlignment="Center"
+                   TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Text}"/>
+      </Border>
+    </DataTemplate>
+
+    <!-- A value in named parts (an extension field's parts): the label line as a table's, then a row per part, each with the
+         form's own editor for its kind. ↶ / ↑ on the label line act on the whole value; beside a part, on that part. -->
+    <DataTemplate x:DataType="vm:PartsPropertyViewModel">
+      <Border Classes="prow lines"
+              Classes.focused="{Binding IsFocused}"
+              Classes.inherited="{Binding IsInherited}"
+              Classes.disabled="{Binding IsRuleDisabled}"
+              ToolTip.Tip="{Binding DisabledTip}">
+        <Grid ColumnDefinitions="2,12,*" RowDefinitions="30,Auto">
+          <Border Grid.Column="0" Width="2" Height="18" CornerRadius="1" Background="{DynamicResource MarkBrush}" IsVisible="{Binding IsChanged}"/>
+          <DockPanel Grid.Column="2" ToolTip.Tip="{Binding Tooltip}" VerticalAlignment="Center">
+            <Panel DockPanel.Dock="Right" Classes="live" Width="24" Margin="2,0,0,0">
+              <Button Classes="rowaction" Content="↶" Command="{Binding RevertChangeCommand}" IsVisible="{Binding IsChanged}"
+                      AutomationProperties.Name="Undo this change" ToolTip.Tip="{Binding BaselineValue, StringFormat='Undo this change (was {0})'}"/>
+              <Button Classes="rowaction" Content="↑" Command="{Binding RevertToParentCommand}" IsVisible="{Binding ShowRevertParent}"
+                      AutomationProperties.Name="Use the parent's value" ToolTip.Tip="{Binding ProvenanceTip}"/>
+            </Panel>
+            <TextBlock DockPanel.Dock="Right" Text="⚠" Classes="problem" FontSize="{StaticResource FontSizeSm}"
+                       VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding HasProblem}" ToolTip.Tip="{Binding Problem}"/>
+            <TextBlock Name="PropLabel" Classes="plabel" Text="{Binding Label}" ToolTip.Tip="{Binding Key}" DockPanel.Dock="Left" Margin="0"/>
+          </DockPanel>
+          <ItemsControl Grid.Row="1" Grid.ColumnSpan="3" Classes="partlist" ItemsSource="{Binding Parts}" IsEnabled="{Binding !IsRuleDisabled}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:PropertyItemViewModel">
+                <Grid ColumnDefinitions="2,12,Auto,12,*" Height="30">
+                  <Border Grid.Column="0" Width="2" Height="14" CornerRadius="1" Background="{DynamicResource MarkBrush}" Opacity="0.6"
+                          IsVisible="{Binding IsChanged}"/>
+                  <TextBlock Grid.Column="2" Classes="plabel dim" Width="{DynamicResource FormLabelWidth}" Padding="16,0,0,0"
+                             Text="{Binding Label}" ToolTip.Tip="{Binding Description}"/>
+                  <views:PropertyEditorView Grid.Column="4" ShowMarks="True" VerticalAlignment="Center" AutomationProperties.Name="{Binding AccessibleName}"/>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Grid>
+      </Border>
+    </DataTemplate>
+
+    <!-- A record list (wtKick#): the label line across the row, its rows' count and ⚠, ↶ / ↑ for the whole table; the
+         table under it across the row's full width (eight columns don't fit the value column). -->
+    <DataTemplate x:DataType="vm:RecordsPropertyViewModel">
+      <Border Classes="prow lines"
+              Classes.focused="{Binding IsFocused}"
+              Classes.inherited="{Binding IsInherited}"
+              Classes.disabled="{Binding IsRuleDisabled}"
+              ToolTip.Tip="{Binding DisabledTip}">
+        <Grid ColumnDefinitions="2,12,*" RowDefinitions="30,Auto">
+          <Border Grid.Column="0" Width="2" Height="18" CornerRadius="1" Background="{DynamicResource MarkBrush}" IsVisible="{Binding IsChanged}"/>
+          <DockPanel Grid.Column="2" ToolTip.Tip="{Binding Tooltip}" VerticalAlignment="Center">
+            <Panel DockPanel.Dock="Right" Classes="live" Width="24" Margin="2,0,0,0">
+              <Button Classes="rowaction" Content="↶" Command="{Binding RevertChangeCommand}" IsVisible="{Binding IsChanged}"
+                      AutomationProperties.Name="Undo this change" ToolTip.Tip="Undo this session's changes to the table"/>
+              <Button Classes="rowaction" Content="↑" Command="{Binding RevertToParentCommand}" IsVisible="{Binding ShowRevertParent}"
+                      AutomationProperties.Name="Use the parent's value" ToolTip.Tip="Use the parent's table"/>
+            </Panel>
+            <TextBlock DockPanel.Dock="Right" Text="⚠" Classes="problem" FontSize="{StaticResource FontSizeSm}"
+                       VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding HasProblem}" ToolTip.Tip="{Binding Problem}"/>
+            <TextBlock DockPanel.Dock="Right" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding CountText}"
+                       VerticalAlignment="Center" Margin="8,0,0,0"/>
+            <TextBlock Name="PropLabel" Classes="plabel" Text="{Binding Label}" ToolTip.Tip="{Binding Key}" DockPanel.Dock="Left" Margin="0"/>
+          </DockPanel>
+          <views:RecordTableEditor Grid.Row="1" Grid.Column="2" AutomationProperties.LabeledBy="{Binding #PropLabel}"
+                                   IsEnabled="{Binding !IsRuleDisabled}"/>
+        </Grid>
+      </Border>
+    </DataTemplate>
+
+    <!-- One property row: bar · label (key on hover) · value (was) ⚠ · action. The label column is one width down the
+         whole form, fitted to this asset's labels and clamped (FormLabelWidth, set in the code-behind): no dead space
+         beside short labels, and a label past the clamp trims, whole in its tooltip. -->
+    <DataTemplate x:DataType="vm:PropertyItemViewModel">
+      <Border Classes="prow"
+              Classes.focused="{Binding IsFocused}"
+              Classes.inherited="{Binding IsInherited}"
+              Classes.changed="{Binding IsChanged}"
+              Classes.problem="{Binding HasProblem}"
+              Classes.disabled="{Binding IsRuleDisabled}"
+              Classes.lines="{Binding IsMultiLine}"
+              ToolTip.Tip="{Binding DisabledTip}">
+        <Grid ColumnDefinitions="3,9,Auto,12,*">
+          <!-- One channel, one meaning: the bar is "changed this session". A problem is the value's colour and the mark beside it. -->
+          <Border Grid.Column="0" Width="2" Height="16" CornerRadius="1" Background="{DynamicResource MarkBrush}" IsVisible="{Binding IsChanged}"/>
+
+          <DockPanel Grid.Column="2" Classes="pcell" Width="{DynamicResource FormLabelWidth}" ToolTip.Tip="{Binding Tooltip}">
+            <TextBlock Name="PropLabel" Classes="plabel" Text="{Binding Label}" ToolTip.Tip="{Binding Key}" DockPanel.Dock="Left"/>
+          </DockPanel>
+
+          <!-- IsEnabled mirrors the deffile's .Enable(...) rule. LabeledBy ties the editor to its label so a
+               screen reader announces "Damage", not a bare field. ⚠ / ⊘ sit in the editor's own reserved slot. -->
+          <views:PropertyEditorView Grid.Column="4" ShowMarks="True" VerticalAlignment="Center"
+                                    AutomationProperties.LabeledBy="{Binding #PropLabel}" IsEnabled="{Binding !IsRuleDisabled}"/>
+        </Grid>
+      </Border>
+    </DataTemplate>
+
+    <!-- A deffile vector (an offset's X, Y, Z): its title once, a box per component side by side in the value column, each
+         named by its component (the deffile's .SetLabels, or X / Y / Z / W). Each box is its component's own field: Tab
+         walks them, and the Inspector follows the box the keyboard is in. ⚠ and ↶ / ↑ speak for the whole row. -->
+    <DataTemplate x:DataType="vm:VectorRowViewModel">
+      <Border Classes="prow"
+              Classes.focused="{Binding IsFocused}"
+              Classes.inherited="{Binding IsInherited}"
+              Classes.disabled="{Binding IsRuleDisabled}"
+              ToolTip.Tip="{Binding DisabledTip}">
+        <Grid ColumnDefinitions="2,12,Auto,12,*">
+          <Border Grid.Column="0" Width="2" Height="18" CornerRadius="1" Background="{DynamicResource MarkBrush}" IsVisible="{Binding IsChanged}"/>
+          <DockPanel Grid.Column="2" Classes="pcell" Width="{DynamicResource FormLabelWidth}" ToolTip.Tip="{Binding Tooltip}">
+            <TextBlock Name="PropLabel" Classes="plabel" Text="{Binding Label}" ToolTip.Tip="{Binding Key}" DockPanel.Dock="Left"/>
+          </DockPanel>
+          <!-- The boxes may run wider than the one value width (their names need room); ⚠ and ↶ / ↑ follow at its edge, as on any row. -->
+          <Grid Grid.Column="4" VerticalAlignment="Center">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" MaxWidth="{x:Static vm:PropertyItemViewModel.WideValueWidth}"/>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <!-- A slot per component a vector can have; the ones it lacks are hidden and take no room. -->
+            <UniformGrid Name="VectorParts" Rows="1" ColumnSpacing="6" IsEnabled="{Binding !IsRuleDisabled}"
+                         AutomationProperties.LabeledBy="{Binding #PropLabel}">
+              <DockPanel DataContext="{Binding Part0}" IsVisible="{Binding $self.DataContext, Converter={x:Static ObjectConverters.IsNotNull}}"
+                         ToolTip.Tip="{Binding Tooltip, FallbackValue={x:Null}}" x:DataType="vm:PropertyItemViewModel">
+                <TextBlock DockPanel.Dock="Left" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding Def.VectorPart, FallbackValue=''}"
+                           VerticalAlignment="Center" Margin="0,0,5,0" MaxWidth="132" TextTrimming="CharacterEllipsis"/>
+                <controls:ScrubNumberBox AutomationProperties.Name="{Binding Label, FallbackValue=''}"/>
+              </DockPanel>
+              <DockPanel DataContext="{Binding Part1}" IsVisible="{Binding $self.DataContext, Converter={x:Static ObjectConverters.IsNotNull}}"
+                         ToolTip.Tip="{Binding Tooltip, FallbackValue={x:Null}}" x:DataType="vm:PropertyItemViewModel">
+                <TextBlock DockPanel.Dock="Left" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding Def.VectorPart, FallbackValue=''}"
+                           VerticalAlignment="Center" Margin="0,0,5,0" MaxWidth="132" TextTrimming="CharacterEllipsis"/>
+                <controls:ScrubNumberBox AutomationProperties.Name="{Binding Label, FallbackValue=''}"/>
+              </DockPanel>
+              <DockPanel DataContext="{Binding Part2}" IsVisible="{Binding $self.DataContext, Converter={x:Static ObjectConverters.IsNotNull}}"
+                         ToolTip.Tip="{Binding Tooltip, FallbackValue={x:Null}}" x:DataType="vm:PropertyItemViewModel">
+                <TextBlock DockPanel.Dock="Left" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding Def.VectorPart, FallbackValue=''}"
+                           VerticalAlignment="Center" Margin="0,0,5,0" MaxWidth="132" TextTrimming="CharacterEllipsis"/>
+                <controls:ScrubNumberBox AutomationProperties.Name="{Binding Label, FallbackValue=''}"/>
+              </DockPanel>
+              <DockPanel DataContext="{Binding Part3}" IsVisible="{Binding $self.DataContext, Converter={x:Static ObjectConverters.IsNotNull}}"
+                         ToolTip.Tip="{Binding Tooltip, FallbackValue={x:Null}}" x:DataType="vm:PropertyItemViewModel">
+                <TextBlock DockPanel.Dock="Left" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding Def.VectorPart, FallbackValue=''}"
+                           VerticalAlignment="Center" Margin="0,0,5,0" MaxWidth="132" TextTrimming="CharacterEllipsis"/>
+                <controls:ScrubNumberBox AutomationProperties.Name="{Binding Label, FallbackValue=''}"/>
+              </DockPanel>
+            </UniformGrid>
+            <Panel Grid.Column="1" Width="22">
+              <TextBlock Text="⚠" Classes="problem" FontSize="{StaticResource FontSizeSm}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                         IsVisible="{Binding HasProblem}" ToolTip.Tip="{Binding Problem}" ToolTip.ShowOnDisabled="True"/>
+              <TextBlock Text="⊘" Classes="faint" FontSize="{StaticResource FontSizeSm}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                         IsVisible="{Binding ShowDisabledMark}" ToolTip.Tip="{Binding DisabledTip}" ToolTip.ShowOnDisabled="True"/>
+            </Panel>
+            <Panel Grid.Column="2" Classes="live" Width="24" Margin="2,0,0,0">
+              <Button Classes="rowaction" Content="↶" Command="{Binding RevertChangeCommand}" IsVisible="{Binding ShowRevert}"
+                      AutomationProperties.Name="Undo these changes" ToolTip.Tip="{Binding RevertTip}"/>
+              <Button Classes="rowaction" Content="↑" Command="{Binding RevertToParentCommand}" IsVisible="{Binding ShowRevertParent}"
+                      AutomationProperties.Name="Use the parent's values" ToolTip.Tip="{Binding ProvenanceTip}"/>
+            </Panel>
+          </Grid>
+        </Grid>
+      </Border>
+    </DataTemplate>
+
+    <!-- A deffile button group (APE's AddEntry_ButtonGroup): its title where a label goes, its buttons where a value
+         goes, in deffile order. Each click is one undo step. Buttons that don't fit the value column wrap onto more
+         lines (the row grows, like a line list), with the title on the first line. -->
+    <DataTemplate x:DataType="vm:ButtonGroupRowViewModel">
+      <Border Classes="prow lines" Classes.disabled="{Binding !IsEnabled}" ToolTip.Tip="{Binding ToolTip}">
+        <Grid ColumnDefinitions="2,12,Auto,12,*">
+          <DockPanel Grid.Column="2" Classes="pcell" Width="{DynamicResource FormLabelWidth}">
+            <TextBlock Name="GroupLabel" Classes="plabel" Text="{Binding Title}"/>
+          </DockPanel>
+          <ItemsControl Grid.Column="4" Name="GroupButtons" ItemsSource="{Binding Buttons}" IsEnabled="{Binding IsEnabled}"
+                        VerticalAlignment="Top" Margin="0,3">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel Orientation="Horizontal" ItemSpacing="4" LineSpacing="4"/>
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:DeffileButtonViewModel">
+                <Button Classes="line small" Content="{Binding Label}" Command="{Binding Command}" MinWidth="26"
+                        HorizontalContentAlignment="Center" AutomationProperties.Name="{Binding Title}"/>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Grid>
+      </Border>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
+  <DockPanel>
+    <!-- ── Header: where it lives · glyph + name · what it's based on — Compare · ⋯ ──────── -->
+    <!-- Back and forward (Alt+← / Alt+→) stay keys and palette commands: the header keeps to what this asset is. -->
+    <DockPanel DockPanel.Dock="Top" Margin="24,18,16,14">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top" Margin="0,18,0,0">
+        <Button Classes="line" Content="{c:Name asset.compare}" c:Cmd.Id="asset.compare"/>
+        <Button Classes="icon line" Content="⋯" Width="28" Height="28" ToolTip.Tip="More actions"
+                AutomationProperties.Name="More actions">
+          <Button.Flyout>
+            <MenuFlyout Placement="BottomEdgeAlignedRight">
+              <!-- APE's asset actions, in its groups: the asset itself, where it lives and what it inherits, then
+                   the window's ways to it, then going back. Each item greys out when it can't apply here. -->
+              <MenuItem c:Cmd.Id="asset.rename"/>
+              <MenuItem c:Cmd.Id="asset.duplicate"/>
+              <MenuItem c:Cmd.Id="asset.duplicateTo"/>
+              <MenuItem c:Cmd.Id="asset.moveTo"/>
+              <Separator/>
+              <MenuItem c:Cmd.Id="asset.derive"/>
+              <MenuItem c:Cmd.Id="asset.underive"/>
+              <MenuItem c:Cmd.Id="asset.goToParent"/>
+              <Separator/>
+              <MenuItem c:Cmd.Id="asset.copyName"/>
+              <MenuItem c:Cmd.Id="asset.pin"/>
+              <MenuItem c:Cmd.Id="asset.reveal"/>
+              <Separator/>
+              <MenuItem c:Cmd.Id="asset.undoAll"/>
+              <MenuItem c:Cmd.Id="gdt.restorePrevious"/>
+              <Separator/>
+              <!-- Plain language: "safe" described the implementation (a reference check), not
+                   anything the user could act on. The check still runs; it just isn't the label. -->
+              <MenuItem c:Cmd.Id="asset.delete"/>
+            </MenuFlyout>
+          </Button.Flyout>
+        </Button>
+      </StackPanel>
+      <!-- Name and provenance take what the buttons leave and trim to it (the full text in a tooltip): a long name
+           in a narrow pane never runs under Compare. -->
+      <StackPanel Name="HeaderTitle" Spacing="6" VerticalAlignment="Center" ClipToBounds="True" Margin="0,0,12,0">
+        <!-- "zm_weapons.gdt / weapon": the GDT path is the part that trims. -->
+        <TextBlock Name="ProvenanceText" Classes="faint" FontSize="{StaticResource FontSizeBase}" Text="{Binding Breadcrumb}"
+                   TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Provenance}"/>
+        <DockPanel>
+          <controls:GlyphIcon DockPanel.Dock="Left" Glyph="{Binding Glyph}" Size="16" Foreground="{Binding TypeBrush}"
+                              VerticalAlignment="Center" Margin="0,0,10,0"/>
+          <SelectableTextBlock Name="AssetTitle" Text="{Binding Name}" FontSize="19" FontWeight="SemiBold"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}"/>
+        </DockPanel>
+        <!-- "Based on wpn_ar_havoc · 6 overrides · opened from fx_muzzle_flash_05" -->
+        <StackPanel Orientation="Horizontal" Spacing="6" MinHeight="18">
+          <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasParent}">
+            <TextBlock Classes="dim" FontSize="{StaticResource FontSizeBase}" Text="Based on" VerticalAlignment="Center"/>
+            <Button Classes="link teal" c:Cmd.Id="asset.goToParent" IsVisible="{Binding !IsParentMissing}" MinHeight="18">
+              <TextBlock Text="{Binding Parent}" FontSize="{StaticResource FontSizeBase}"/>
+            </Button>
+            <!-- A parent that isn't loaded is said here, beside its name, not in a window-wide alert. -->
+            <TextBlock Classes="dim" FontSize="{StaticResource FontSizeBase}" VerticalAlignment="Center" IsVisible="{Binding IsParentMissing}">
+              <Run Text="{Binding Parent, Mode=OneWay}"/><Run Text=", which isn't in any loaded GDT" Foreground="{DynamicResource DangerTextBrush}"/>
+            </TextBlock>
+            <TextBlock Classes="faint" FontSize="{StaticResource FontSizeBase}" Text="·" VerticalAlignment="Center"/>
+            <TextBlock Classes="dim" FontSize="{StaticResource FontSizeBase}" VerticalAlignment="Center"
+                       Text="{Binding OverrideCount, StringFormat='{}{0} overrides'}"/>
+          </StackPanel>
+          <TextBlock Classes="faint" FontSize="{StaticResource FontSizeBase}" IsVisible="{Binding !HasParent}" VerticalAlignment="Center"
+                     Text="No parent"/>
+          <TextBlock Classes="faint" FontSize="{StaticResource FontSizeBase}" IsVisible="{Binding HasOpenedFrom}" VerticalAlignment="Center"
+                     Text="{Binding OpenedFrom, StringFormat='· opened from {0}'}"/>
+        </StackPanel>
+      </StackPanel>
+    </DockPanel>
+
+    <Panel>
+    <!-- ── An xanim: its preview, the notetracks dock under it (the splitter resizes it, a double-click folds it to the
+         transport; its height is kept per asset type). The properties are the short panel on the right. ── -->
+    <Grid Name="AnimArea" IsVisible="{Binding IsAnim}" Margin="12,0,12,12" RowDefinitions="*,10,340">
+      <Panel Grid.Row="0" MinHeight="140">
+        <views:PreviewPaneView Name="CentrePreview" Compact="True" DataContext="{Binding CentrePreview}"
+                               IsVisible="{Binding $parent[views:AssetEditorView].((vm:AssetEditorViewModel)DataContext).HasCentrePreview}"/>
+        <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                   TextAlignment="Center" TextWrapping="Wrap" MaxWidth="320" IsVisible="{Binding PreviewPane, Converter={x:Static ObjectConverters.IsNull}}"
+                   Text="Anim previews need the BO3 install."/>
+      </Panel>
+      <GridSplitter Grid.Row="1" Name="DockSplitter" Classes="gutter" ResizeDirection="Rows" Background="Transparent"
+                    ToolTip.Tip="Drag to resize the notetracks; double-click to fold them to the transport"/>
+      <views:NotetrackDockView Grid.Row="2" Name="AnimDock" DataContext="{Binding Notetracks}"/>
+    </Grid>
+
+    <DockPanel Name="FormArea" IsVisible="{Binding !IsAnim}">
+    <!-- ── View tabs · filter ──────────────────────────────────────── -->
+    <!-- The filter box gives way first: from 220 px down to 140, then (a narrow pane, or a long tab row) it folds to a
+         ⌕ button. Clicking it, Tab or Ctrl+F opens the box across the row until it is empty and loses focus. The row
+         never wraps, so the form below never moves. Sizes are set in code (FitFilter). -->
+    <Panel DockPanel.Dock="Top">
+      <Grid Name="ViewTabRow" Height="26" Margin="20,0,16,12" ColumnDefinitions="*,Auto">
+        <StackPanel Name="ViewTabs" Orientation="Horizontal" Spacing="4" ClipToBounds="True">
+          <RadioButton Classes="viewtab" GroupName="{Binding Name}" IsChecked="{Binding IsAllView}" ToolTip.Tip="Every property the deffile shows for this asset"
+                       AutomationProperties.Name="{Binding ShownPropertyCount, StringFormat='All, {0:N0}'}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="All" Foreground="{Binding $parent[RadioButton].Foreground}"/>
+              <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding ShownPropertyCount, StringFormat='{}{0:N0}'}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </RadioButton>
+          <RadioButton Classes="viewtab" GroupName="{Binding Name}" IsChecked="{Binding IsSetView}"
+                       ToolTip.Tip="Only the properties this asset has a value for; Add property brings in others"
+                       AutomationProperties.Name="{Binding SetPropertyCount, StringFormat='Set, {0:N0}'}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="Set" Foreground="{Binding $parent[RadioButton].Foreground}"/>
+              <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="{Binding SetPropertyCount, StringFormat='{}{0:N0}'}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </RadioButton>
+          <RadioButton Classes="viewtab" GroupName="{Binding Name}" IsChecked="{Binding IsChangedView}" ToolTip.Tip="Properties you changed in this session"
+                       AutomationProperties.Name="{Binding Changes.Count, StringFormat='Changed, {0}'}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Ellipse Width="6" Height="6" Fill="{DynamicResource MarkBrush}" VerticalAlignment="Center"/>
+              <TextBlock Text="Changed" Foreground="{Binding $parent[RadioButton].Foreground}"/>
+              <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="{Binding Changes.Count}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </RadioButton>
+          <RadioButton Classes="viewtab" GroupName="{Binding Name}" IsChecked="{Binding IsProblemsView}" ToolTip.Tip="Properties with validation problems"
+                       AutomationProperties.Name="{Binding ProblemCount, StringFormat='Problems, {0}'}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Ellipse Width="6" Height="6" Fill="{DynamicResource DangerBrush}" VerticalAlignment="Center"/>
+              <TextBlock Text="Problems" Foreground="{Binding $parent[RadioButton].Foreground}"/>
+              <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="{Binding ProblemCount}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </RadioButton>
+          <RadioButton Classes="viewtab" GroupName="{Binding Name}" IsChecked="{Binding IsOverridesView}" IsVisible="{Binding HasParent}"
+                       ToolTip.Tip="{Binding Parent, StringFormat='Properties whose value differs from {0}'}"
+                       AutomationProperties.Name="{Binding OverrideCount, StringFormat='Overrides, {0}'}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="Overrides" Foreground="{Binding $parent[RadioButton].Foreground}"/>
+              <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="{Binding OverrideCount}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </RadioButton>
+          <!-- In the Set view only: the properties the asset holds nothing for, one pick away. -->
+          <Button Name="AddPropertyButton" Classes="line small" IsVisible="{Binding IsSetView}" Margin="4,0,0,0" Click="AddProperty_Click"
+                  ToolTip.Tip="{c:Tip editor.addProperty, Detail='Bring a property this asset has no value for into the Set view'}"
+                  AutomationProperties.Name="Add property">
+            <TextBlock Text="Add property"/>
+          </Button>
+        </StackPanel>
+        <!-- Name and tooltip set in code: they say what it filters by. The dot marks a filter in effect. -->
+        <Button Grid.Column="1" Name="FilterButton" Classes="icon" ContentTemplate="{x:Null}" Width="26" Height="26" Margin="12,0,0,0"
+                HorizontalAlignment="Right" VerticalAlignment="Center" IsVisible="False" Click="FilterButton_Click">
+          <Panel>
+            <controls:GlyphIcon Glyph="search" Size="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Ellipse Name="FilterActiveDot" Width="5" Height="5" Fill="{DynamicResource AccentBrush}"
+                     HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,-4,0"
+                     IsVisible="{Binding SearchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+          </Panel>
+        </Button>
+        <TextBox Grid.Column="1" Name="PropertyFilter" Classes="field small" Width="220" Margin="12,0,0,0" VerticalAlignment="Center"
+                 Text="{Binding SearchText}" PlaceholderText="Filter properties" AutomationProperties.Name="Filter properties"
+                 ToolTip.Tip="{c:Tip edit.filterProperties, Detail='Matches property labels, keys and values on this asset'}">
+          <TextBox.InnerLeftContent>
+            <controls:GlyphIcon Glyph="search" Size="14" Foreground="{DynamicResource TextFaintBrush}" Margin="2,0,0,0" VerticalAlignment="Center"/>
+          </TextBox.InnerLeftContent>
+          <TextBox.InnerRightContent>
+            <TextBlock Name="FilterKeyHint" Text="{c:Gesture edit.filterProperties}" Classes="faint" FontSize="{StaticResource FontSizeXs}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+          </TextBox.InnerRightContent>
+        </TextBox>
+      </Grid>
+    </Panel>
+
+    <!-- ── Rail + form, under a hairline ─────────────────────────────── -->
+    <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0">
+    <Grid ColumnDefinitions="168,*">
+      <Border Grid.Column="0" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,1,0">
+      <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <!-- A weapon has dozens of sections: virtualized and recycled like the form, so opening one doesn't
+             tear down and rebuild every rail button. -->
+        <controls:RowItemsControl ItemsSource="{Binding RailItems}" Margin="10,12,10,12">
+          <controls:RowItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <controls:RowPanel StartAtTopOnReset="True"/>
+            </ItemsPanelTemplate>
+          </controls:RowItemsControl.ItemsPanel>
+          <controls:RowItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:CategoryViewModel">
+              <!-- Only sections the deffile shows something in are listed; one a filter or view empties dims. The tooltip
+                   names the section in full and says what its marks mean. -->
+              <Button Classes="railitem" Classes.current="{Binding IsCurrent}" Click="Rail_Click" AutomationProperties.Name="{Binding Name}"
+                      IsEnabled="{Binding !!VisibleCount}" ToolTip.Tip="{Binding RailTip}" ToolTip.ShowOnDisabled="True">
+                <Panel>
+                  <!-- NavigationView-style pill on the section in view -->
+                  <Border Classes="railpill" Width="3" Height="14" CornerRadius="1.5" Background="{DynamicResource AccentBrush}"
+                          HorizontalAlignment="Left" Margin="-10,0,0,0"/>
+                  <!-- The problem and changed dots sit in slots that are always there, so a mark coming or going never moves
+                       the name. -->
+                  <Grid ColumnDefinitions="*,12,9">
+                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                               Foreground="{Binding $parent[Button].Foreground}"/>
+                    <Ellipse Grid.Column="1" Width="5" Height="5" Fill="{DynamicResource DangerBrush}" HorizontalAlignment="Right"
+                             IsVisible="{Binding HasProblems}" VerticalAlignment="Center"
+                             ToolTip.Tip="{Binding ProblemCount, StringFormat='{}{0} with problems'}"/>
+                    <Ellipse Grid.Column="2" Width="5" Height="5" Fill="{DynamicResource MarkBrush}" HorizontalAlignment="Right"
+                             IsVisible="{Binding HasChanges}" VerticalAlignment="Center"/>
+                  </Grid>
+                </Panel>
+              </Button>
+            </DataTemplate>
+          </controls:RowItemsControl.ItemTemplate>
+        </controls:RowItemsControl>
+      </ScrollViewer>
+      </Border>
+
+      <Panel Grid.Column="1">
+        <controls:RowItemsControl Name="Form" ItemsSource="{Binding FlatRows}" Focusable="False">
+          <controls:RowItemsControl.Template>
+            <ControlTemplate>
+              <!-- The space above and below the rows is the presenter's margin, not the scroller's padding: the scroller
+                   arranges a padded child short of its height, so the form's last row could never scroll fully into view. -->
+              <ScrollViewer Name="FormScroll" Padding="12,0,20,0">
+                <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" Margin="0,6,0,16"/>
+              </ScrollViewer>
+            </ControlTemplate>
+          </controls:RowItemsControl.Template>
+          <controls:RowItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <controls:RowPanel StartAtTopOnReset="True"/>
+            </ItemsPanelTemplate>
+          </controls:RowItemsControl.ItemsPanel>
+        </controls:RowItemsControl>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,40,0,16" Spacing="8"
+                    IsVisible="{Binding IsFormEmpty}">
+          <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" HorizontalAlignment="Center" TextAlignment="Center"
+                     Text="{Binding EmptyText}" TextWrapping="Wrap" MaxWidth="420"/>
+          <Button Classes="line" HorizontalAlignment="Center" Content="{c:Name editor.viewAll}" Click="ShowAll_Click"/>
+        </StackPanel>
+      </Panel>
+    </Grid>
+    </Border>
+    </DockPanel>
+    </Panel>
+  </DockPanel>
+</UserControl>

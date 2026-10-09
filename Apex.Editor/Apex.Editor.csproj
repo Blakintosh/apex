@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\apex.ico</ApplicationIcon>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <AssemblyName>Apex</AssemblyName>
+    <Version>0.2.0</Version>
+    <RootNamespace>Apex.Editor</RootNamespace>
+    <!-- Preview-simulator modules are called through function pointers (Services/Extensions/Simulation). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <!-- Published builds ship precompiled (ReadyToRun), so startup doesn't JIT Avalonia and the app.
+       Publish-only: build/run and the Apex.Shots reference stay RID-less. -->
+  <PropertyGroup Condition="'$(_IsPublishing)' == 'true'">
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.0" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.0" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="NAudio.Core" Version="3.1.0" />
+    <PackageReference Include="NAudio.Wasapi" Version="3.1.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+    <PackageReference Include="System.IO.Hashing" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ThirdParty\CallOfFile\CallOfFile.csproj" />
+    <!-- ToolsGfx preview renderer (D3D11) and its data layer; reads the install at run time, ships nothing of it. -->
+    <ProjectReference Include="..\Apex.Render\Apex.Render.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\apex.ico" />
+    <AvaloniaResource Include="Assets\apex-logo.png" />
+    <AvaloniaResource Include="Assets\Fonts\*.ttf" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- APE's captured reflection-probe studio, baked to an RGBM equirect (see docs/preview-lighting.md). -->
+    <EmbeddedResource Include="Assets\Env\studio_probe.png">
+      <LogicalName>Apex.Editor.studio_probe.png</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+</Project>

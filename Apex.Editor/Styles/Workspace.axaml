@@ -1,0 +1,1196 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:Apex.Editor.Controls">
+
+  <!--
+    Workspace styles: the Fluent shell (layer panes on Mica, pane headers, tab strip, rail) and the
+    calm property row. Loaded after Apex.axaml, so these win where both style a control.
+
+    Rules the classes below encode:
+      · Amber means one thing — what you changed. Teal is the interactive accent; headings and
+        selection fills are neutral.
+      · Bright is yours, quiet is inherited.
+      · Details on demand: keys, − + steps and ↶ appear on hover or focus (".live").
+      · Fewer lines: panes separate by the Mica gutter and one hairline, not by card borders.
+      · Every hit area is at least 24×24 px, even around a smaller glyph.
+  -->
+
+  <Style Selector="Window, UserControl">
+    <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+  </Style>
+
+  <!-- ── Shell: the Explorer sits on the window; the editor and its right column are one card ── -->
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource BgPaneBrush}"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXl}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource PaneStrokeBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="ClipToBounds" Value="True"/>
+  </Style>
+  <!-- A pane inside the card: no surface of its own; hairlines separate neighbours. -->
+  <Style Selector="Border.flat">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="ClipToBounds" Value="True"/>
+  </Style>
+  <!-- One laid over others in the card (table, compare, the anim properties panel) takes the card's colour. -->
+  <Style Selector="Border.flat.solid">
+    <Setter Property="Background" Value="{DynamicResource BgPaneBrush}"/>
+  </Style>
+  <!-- A splitter that is also the hairline between two panes in the card: 1 px drawn, 7 px to grab. -->
+  <Style Selector="GridSplitter.hairline">
+    <Setter Property="Background" Value="{DynamicResource LineBrush}"/>
+    <Setter Property="MinWidth" Value="1"/>
+    <Setter Property="MinHeight" Value="1"/>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="Transparent" Margin="-3">
+          <Border Background="{TemplateBinding Background}" Margin="3"/>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="GridSplitter.hairline:pointerover">
+    <Setter Property="Background" Value="{DynamicResource LineStrongBrush}"/>
+  </Style>
+
+  <!-- ── Full-area overlays (table, compare, install): a card of their own ── -->
+  <Style Selector="Border.layer">
+    <Setter Property="Background" Value="{DynamicResource BgPaneBrush}"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXl}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource PaneStrokeBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="ClipToBounds" Value="True"/>
+  </Style>
+
+  <!-- A collapsed pane: a thin strip in the gutter that restores it on click. The strip is drawn
+       at its 12 px column's width; the button reaches 6 px into the window margin and the (then
+       empty) gutter on either side so the hit area is 24 px. -->
+  <Style Selector="Button.edgestrip">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Margin" Value="-6,0"/>
+    <Setter Property="MinWidth" Value="24"/>
+    <Setter Property="VerticalAlignment" Value="Stretch"/>
+    <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="Transparent">
+          <Border Name="PART_Strip" Margin="6,0" CornerRadius="{StaticResource RadiusXs}"
+                  Background="{TemplateBinding Background}"/>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.edgestrip:pointerover /template/ Border#PART_Strip">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+  </Style>
+  <Style Selector="Button.edgestrip:pressed /template/ Border#PART_Strip">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+  <Style Selector="Button.edgestrip:focus-visible /template/ Border#PART_Strip">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFocus}"/>
+  </Style>
+
+  <!-- Splitters live in the 6 px gutter: invisible until hovered. -->
+  <Style Selector="GridSplitter.gutter">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <Style Selector="GridSplitter.gutter:pointerover">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+  </Style>
+
+  <!-- Small glyph buttons in pane headers and toolbars (⋯ ⤢ ⧉ + ‹ ›). -->
+  <Style Selector="Button.icon, ToggleButton.icon">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="MinWidth" Value="26"/>
+    <Setter Property="Height" Value="26"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+  </Style>
+  <!-- A string content (↶ ⌕ ⋯ ✕ …) draws as a line icon. The content stays the string, so names and checks keep it. -->
+  <Style Selector="Button.icon, ToggleButton.icon, Button.rowaction">
+    <Setter Property="ContentTemplate">
+      <controls:GlyphTemplate Size="14"/>
+    </Setter>
+  </Style>
+  <Style Selector="Button.tabclose, Button.chipclose, Button.chev">
+    <Setter Property="ContentTemplate">
+      <controls:GlyphTemplate Size="11"/>
+    </Setter>
+  </Style>
+  <Style Selector="Button.captionbtn">
+    <Setter Property="ContentTemplate">
+      <controls:GlyphTemplate Size="10"/>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon:pointerover /template/ ContentPresenter, ToggleButton.icon:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.icon:pressed /template/ ContentPresenter, ToggleButton.icon:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.icon:checked /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.icon:disabled /template/ ContentPresenter, ToggleButton.icon:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+    <Setter Property="Opacity" Value="{StaticResource DisabledOpacity}"/>
+  </Style>
+
+  <!-- Quiet text menus: "Group: GDT file ▾", "Filter ▾", "View ▾", "25 more ▾". -->
+  <Style Selector="Button.menu">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXs}"/>
+    <Setter Property="Padding" Value="6,0"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeightSm}"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.menu:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.menu:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+  <Style Selector="Button.menu:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+    <Setter Property="Opacity" Value="{StaticResource DisabledOpacity}"/>
+  </Style>
+  <!-- The Apex mark, which opens the app menu: the mark at rest, with the icon buttons' hover and press behind it. The
+       padding is taken back by the window's margins (MainWindow.ApplyLayout) so the mark sits where it always has.
+       Disabled (no install yet) it is only the mark: no dimming. -->
+  <Style Selector="Button.appmark">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Padding" Value="6,4"/>
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="Button.appmark:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.appmark:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+  <Style Selector="Button.appmark:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <!-- Selection is neutral everywhere (amber is reserved for changes). -->
+  <Style Selector="ListBox.palette ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+  <Style Selector="ListBox.palette ListBoxItem:selected">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="ListBox.palette ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+  </Style>
+  <Style Selector="Button.menu TextBlock.caret, TextBlock.caret">
+    <Setter Property="FontSize" Value="{StaticResource FontSizeXs}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+
+  <!-- Hairline-outlined secondary action ("Review", "Cancel"). .outline is the same button under its older name.
+       The full control height, beside .accent in dialogs; .small (below) is the in-row height. -->
+  <Style Selector="Button.line, Button.outline">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextSoftBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource LineStrongBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusCtl}"/>
+    <Setter Property="Padding" Value="10,0"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeight}"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.line:pointerover /template/ ContentPresenter, Button.outline:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource LineStrongBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.line:pressed /template/ ContentPresenter, Button.outline:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+  <Style Selector="Button.line:disabled /template/ ContentPresenter, Button.outline:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource LineStrongBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+  </Style>
+
+  <!-- Inline text links inside sentences ("Go to field", "Show them", "Use parent value").
+       No horizontal padding so the text sits on the sentence; 24 px tall for the hit area. -->
+  <Style Selector="Button.link">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeightSm}"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.link:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}"/>
+  </Style>
+  <Style Selector="Button.link:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource AccentPressBrush}"/>
+  </Style>
+  <Style Selector="Button.link.teal">
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}"/>
+  </Style>
+  <Style Selector="Button.link.dim">
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+  </Style>
+  <Style Selector="Button.link.danger">
+    <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}"/>
+  </Style>
+  <Style Selector="Button.link:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+  </Style>
+
+  <!-- ── Card top row ───────────────────────────────────────────── -->
+  <Style Selector="Button.commandbox">
+    <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusCtl}"/>
+    <Setter Property="Padding" Value="10,0,8,0"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeight}"/>
+    <Setter Property="Width" Value="260"/>
+    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.commandbox /template/ ContentPresenter">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFieldEdge}"/>
+  </Style>
+  <!-- The session pill: ● 3 unsaved · Save, one field-like group. -->
+  <Style Selector="Border.sessionpill">
+    <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFieldEdge}"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusCtl}"/>
+    <Setter Property="Height" Value="28"/>
+    <Setter Property="Padding" Value="3,0"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Border.sessionpill Button.accent">
+    <Setter Property="MinHeight" Value="22"/>
+    <Setter Property="Height" Value="22"/>
+    <Setter Property="Padding" Value="10,0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusSm}"/>
+  </Style>
+  <!-- The update control's glyph takes the accent while an update waits on the user; the flyout's failure glyph and the
+       release notes' recessed well. Neutral, not a hue, for up to date and couldn't (here and in the app menu's Updates):
+       neither is a problem nor a change. -->
+  <Style Selector="controls|GlyphIcon.updateglyph">
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+  </Style>
+  <Style Selector="controls|GlyphIcon.updateglyph.pending">
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}"/>
+  </Style>
+  <Style Selector="controls|GlyphIcon.updatestate">
+    <Setter Property="Size" Value="15"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    <Setter Property="VerticalAlignment" Value="Top"/>
+    <Setter Property="Margin" Value="0,2,10,0"/>
+  </Style>
+  <!-- The app menu's Updates status line: information, not a command, so while it can't be clicked it reads dim rather than
+       disabled. Its glyph sits in the menu's icon column. -->
+  <Style Selector="MenuItem.updatestatus:disabled /template/ ContentPresenter#PART_HeaderPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+  </Style>
+  <Style Selector="Border.updatenotes">
+    <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFieldEdge}"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Padding" Value="10,8"/>
+  </Style>
+  <Style Selector="Button.commandbox:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+  </Style>
+  <Style Selector="Button.commandbox:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+  <Style Selector="Button.captionbtn">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="0"/>
+    <Setter Property="Width" Value="40"/>
+    <Setter Property="Height" Value="40"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeXs}"/>
+  </Style>
+  <Style Selector="Button.captionbtn:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.captionbtn:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.captionbtn.close:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource CaptionCloseBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource OnCaptionCloseBrush}"/>
+  </Style>
+  <Style Selector="Button.captionbtn.close:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource CaptionClosePressBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource OnCaptionCloseBrush}"/>
+  </Style>
+
+  <!-- ── Fields ─────────────────────────────────────────────────── -->
+  <!-- Flat filled field: search boxes, pickers, bulk values. No border but a hairline edge (it is
+       what separates a field from a light pane); the focus ring carries focus. TextBox and
+       ComboBox both take .field (the full control height, standing alone) and .field.small (the in-row height,
+       beside 24 px editors and buttons: the table's bulk bar, the search menu's property row, a pane's filter). -->
+  <Style Selector="TextBox.field, ComboBox.field">
+    <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusCtl}"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeight}"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+  </Style>
+  <Style Selector="TextBox.field">
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="ComboBox.field">
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="TextBox.field /template/ Border#PART_BorderElement, ComboBox.field /template/ Border#Background">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFieldEdge}"/>
+  </Style>
+  <Style Selector="TextBox.field:pointerover /template/ Border#PART_BorderElement,
+                   TextBox.field:focus /template/ Border#PART_BorderElement,
+                   ComboBox.field:pointerover /template/ Border#Background">
+    <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFieldHover}"/>
+  </Style>
+  <Style Selector="ComboBox.field:pressed /template/ Border#Background">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+  </Style>
+  <Style Selector="TextBox.field:focus-within /template/ Border#PART_BorderElement,
+                   ComboBox.field:focus-visible /template/ Border#Background">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFocusInset}"/>
+  </Style>
+  <!-- In a row: the row editors' height, radius and size (TextBox.pfield), so a bar of them lines up. -->
+  <Style Selector="TextBox.field.small, ComboBox.field.small">
+    <Setter Property="Height" Value="26"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+    <Setter Property="Padding" Value="8,0"/>
+  </Style>
+  <Style Selector="TextBox.field:disabled /template/ Border#PART_BorderElement, ComboBox.field:disabled /template/ Border#Background">
+    <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+    <Setter Property="Opacity" Value="{StaticResource DisabledOpacity}"/>
+  </Style>
+
+  <!-- ── Dropdowns ──────────────────────────────────────────────── -->
+  <!-- One dropdown everywhere. The list is a plain StackPanel: choice lists are short, and a virtualizing panel sized
+       the popup to the widest item realised so far, so scrolling resized every entry (246 → 220 → 253 px). With all
+       items measured at open, the popup is as wide as its widest item (and never narrower than the box) from the
+       first frame. Rows have a fixed height per box size, and option labels are names people read, so they are in
+       the UI face at regular weight even under a mono value box. The selected value trims with an ellipsis. -->
+  <Style Selector="ComboBox">
+    <!-- Fluent tops a combo box in its slot; every other control centres, so in a row it sat 2-3 px high. -->
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="ItemsPanel">
+      <ItemsPanelTemplate>
+        <StackPanel/>
+      </ItemsPanelTemplate>
+    </Setter>
+  </Style>
+  <!-- TextTrimming inherits: set once on the box's value presenter, not matched against every TextBlock in the app. -->
+  <Style Selector="ComboBox /template/ ContentControl#ContentPresenter">
+    <Setter Property="TextBlock.TextTrimming" Value="CharacterEllipsis"/>
+  </Style>
+  <Style Selector="ComboBox /template/ Border#PopupBorder">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowDialog}"/>
+  </Style>
+  <Style Selector="ComboBoxItem">
+    <Setter Property="Height" Value="{StaticResource ControlHeight}"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXs}"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+    <Setter Property="FontWeight" Value="Normal"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+  </Style>
+  <Style Selector="ComboBox.pfield ComboBoxItem, ComboBox.small ComboBoxItem">
+    <Setter Property="Height" Value="{StaticResource ControlHeightSm}"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+  </Style>
+  <!-- A list too long to measure at once (every GDT in the install): it stays virtualized, and its popup is held to
+       the box's width so it can't grow as items scroll in; long names trim. -->
+  <Style Selector="ComboBox.long">
+    <Setter Property="ItemsPanel">
+      <ItemsPanelTemplate>
+        <VirtualizingStackPanel/>
+      </ItemsPanelTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="ComboBox.long /template/ Popup#PART_Popup">
+    <Setter Property="MaxWidth" Value="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}"/>
+  </Style>
+
+  <!-- ── Explorer rows ──────────────────────────────────────────── -->
+  <Style Selector="ListBox.xtree">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Padding" Value="0,0,0,8"/>
+  </Style>
+  <Style Selector="ListBox.xtree ListBoxItem">
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="MinHeight" Value="28"/>
+    <Setter Property="Height" Value="28"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Margin" Value="0"/>
+  </Style>
+  <Style Selector="ListBox.xtree TextBlock.rowname">
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+  </Style>
+  <Style Selector="ListBox.xtree TextBlock.rowname.group">
+    <Setter Property="Foreground" Value="{DynamicResource TextSoftBrush}"/>
+  </Style>
+  <Style Selector="ListBox.xtree ListBoxItem:selected TextBlock.rowname">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="ListBox.xtree ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgRowHoverBrush}"/>
+  </Style>
+  <Style Selector="ListBox.xtree ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+  <Style Selector="ListBox.xtree ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+  <!-- Section headings ("Pinned", "All assets") sit in the list but are not rows. -->
+  <Style Selector="ListBox.xtree ListBoxItem.heading">
+    <Setter Property="IsHitTestVisible" Value="False"/>
+    <Setter Property="Focusable" Value="False"/>
+  </Style>
+  <Style Selector="ListBox.xtree ListBoxItem.heading:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+
+  <!-- Search-result facets ("All 38 · 3 weapons"). -->
+  <Style Selector="Button.facet">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeightSm}"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Margin" Value="0,0,10,0"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.facet:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.facet:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+  </Style>
+  <Style Selector="Button.facet.active">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
+
+  <!-- ── Search chips and the search menu ───────────────────────── -->
+  <!-- A filter in a search box (type:xanim, gdt:…): glyph · mono name · ✕, on the accent tint. -->
+  <Style Selector="Border.chip">
+    <Setter Property="Background" Value="{DynamicResource AccentDimBrush}"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXs}"/>
+    <Setter Property="Height" Value="22"/>
+    <Setter Property="Padding" Value="7,0,0,0"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Border.chip TextBlock.chiplabel">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+  </Style>
+  <!-- The chip's ✕: the full 24 px hit area, laid out as 22 so it sits inside the chip's height. -->
+  <Style Selector="Border.chip Button.chipclose">
+    <Setter Property="Margin" Value="-2,-1,0,-1"/>
+  </Style>
+
+  <!-- A text box with no field of its own: it sits inside something that already looks like a field
+       (the chip boxes), whose focus ring it borrows through :focus-within. -->
+  <Style Selector="TextBox.bare">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="2,0"/>
+    <Setter Property="MinHeight" Value="22"/>
+    <Setter Property="MinWidth" Value="40"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="TextBox.bare /template/ Border#PART_BorderElement,
+                   TextBox.bare:pointerover /template/ Border#PART_BorderElement,
+                   TextBox.bare:focus /template/ Border#PART_BorderElement,
+                   TextBox.bare:focus-within /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="BoxShadow" Value="0 0 0 0 Transparent"/>
+  </Style>
+
+  <!-- A field made of chips and a bare text box (the Explorer box, the menu's GDT field). It is a .field at the full
+       control height and radius; the menu's GDT field wraps its chips onto more lines, so the height is a minimum. -->
+  <Style Selector="Border.chipfield">
+    <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusCtl}"/>
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFieldEdge}"/>
+    <Setter Property="MinHeight" Value="{StaticResource ControlHeight}"/>
+    <Setter Property="Padding" Value="4,3"/>
+  </Style>
+  <Style Selector="Border.chipfield:pointerover">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFieldHover}"/>
+  </Style>
+  <Style Selector="Border.chipfield:focus-within">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFocusInset}"/>
+  </Style>
+
+  <!-- The search menu: a raised card over the Explorer and editor. -->
+  <Style Selector="Border.menucard">
+    <Setter Property="Background" Value="{DynamicResource BgCardBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusOverlay}"/>
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowDialog}"/>
+    <Setter Property="ClipToBounds" Value="True"/>
+  </Style>
+  <Style Selector="TextBlock.menulabel">
+    <Setter Property="FontSize" Value="{StaticResource FontSizeXs}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+  </Style>
+
+  <!-- ── Editor tab strip ───────────────────────────────────────── -->
+  <Style Selector="ListBox.doctabs">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+    <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled"/>
+  </Style>
+  <Style Selector="ListBox.doctabs ListBoxItem">
+    <Setter Property="Padding" Value="10,0,2,0"/>
+    <Setter Property="Height" Value="28"/>
+    <Setter Property="MinHeight" Value="28"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusCtl}"/>
+    <Setter Property="Margin" Value="0,0,2,0"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="ListBox.doctabs ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgRowHoverBrush}"/>
+  </Style>
+  <!-- The selected tab: a filled pill, the same fill as the Explorer's selected row. -->
+  <Style Selector="ListBox.doctabs ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+  <Style Selector="ListBox.doctabs ListBoxItem:selected">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="ListBox.doctabs ListBoxItem:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFocusInset}"/>
+  </Style>
+  <!-- Focused and current: the ring and the bar together, so the current tab still reads as current. -->
+  <Style Selector="ListBox.doctabs ListBoxItem:selected:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowTabActiveFocus}"/>
+  </Style>
+  <Style Selector="ListBox.doctabs ListBoxItem Button.tabclose">
+    <Setter Property="Opacity" Value="0"/>
+  </Style>
+  <Style Selector="ListBox.doctabs ListBoxItem:selected Button.tabclose, ListBox.doctabs ListBoxItem:pointerover Button.tabclose, ListBox.doctabs ListBoxItem Button.tabclose:focus-visible">
+    <Setter Property="Opacity" Value="1"/>
+  </Style>
+  <Style Selector="Button.tabclose">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Width" Value="24"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeightSm}"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXs}"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeXs}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.tabclose:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.tabclose:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.previewtab">
+    <Setter Property="FontStyle" Value="Italic"/>
+  </Style>
+
+  <!-- All / Changed / Problems and Uses / Used by / Family — underline on the current view, not a
+       filled pill. Both share the template; focus draws the shared ring around the label. -->
+  <Style Selector="RadioButton.viewtab, RadioButton.linktab">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Name="PART_Root" Background="Transparent" CornerRadius="{StaticResource RadiusXs}">
+          <Panel>
+            <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}"
+                              VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+            <Border Name="Underline" Height="2" VerticalAlignment="Bottom" CornerRadius="1"
+                    Background="{DynamicResource TextBrush}" IsVisible="False"/>
+          </Panel>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="MinHeight" Value="24"/>
+  </Style>
+  <!-- All / Changed / Problems / Overrides: 26 px chips, the current one filled. -->
+  <Style Selector="RadioButton.viewtab">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Name="PART_Root" Background="{TemplateBinding Background}" CornerRadius="{StaticResource RadiusMd}"
+                Padding="{TemplateBinding Padding}" Height="26">
+          <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" VerticalAlignment="Center"/>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="RadioButton.viewtab:pointerover">
+    <Setter Property="Background" Value="{DynamicResource BgRowHoverBrush}"/>
+  </Style>
+  <Style Selector="RadioButton.viewtab:checked">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+  </Style>
+  <Style Selector="RadioButton.linktab">
+    <Setter Property="Padding" Value="0,3,0,4"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+  </Style>
+  <Style Selector="RadioButton.viewtab:pointerover, RadioButton.linktab:pointerover">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="RadioButton.viewtab:pressed, RadioButton.linktab:pressed">
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+  </Style>
+  <Style Selector="RadioButton.viewtab:checked, RadioButton.linktab:checked">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="RadioButton.viewtab:checked /template/ Border#Underline, RadioButton.linktab:checked /template/ Border#Underline">
+    <Setter Property="IsVisible" Value="True"/>
+  </Style>
+  <Style Selector="RadioButton.viewtab:focus-visible /template/ Border#PART_Root, RadioButton.linktab:focus-visible /template/ Border#PART_Root">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFocus}"/>
+  </Style>
+  <Style Selector="RadioButton.viewtab:disabled, RadioButton.linktab:disabled">
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+  </Style>
+
+  <!-- ── Category rail ──────────────────────────────────────────── -->
+  <Style Selector="Button.railitem">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Padding" Value="10,0"/>
+    <Setter Property="Height" Value="28"/>
+    <Setter Property="Margin" Value="0,0,0,1"/>
+    <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+  </Style>
+  <Style Selector="Button.railitem:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgRowHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <!-- The section in view: the selected fill, as the Explorer's row and the tab. -->
+  <Style Selector="Button.railitem.current /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.railitem:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <!-- An empty section: no fill (Fluent's disabled grey fill made it look selected), faint text. -->
+  <Style Selector="Button.railitem:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+    <Setter Property="Opacity" Value="{StaticResource DisabledOpacity}"/>
+  </Style>
+  <!-- The rail's label binds the button's foreground: dim at rest, bright on hover and for the section in view. -->
+  <Style Selector="Button.railitem:pointerover, Button.railitem.current">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.railitem:disabled">
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+  </Style>
+  <Style Selector="Button.railitem Border.railpill">
+    <Setter Property="IsVisible" Value="False"/>
+  </Style>
+  <Style Selector="Button.railitem.current Border.railpill">
+    <Setter Property="IsVisible" Value="False"/>
+  </Style>
+
+  <!-- ── Property row ───────────────────────────────────────────── -->
+  <Style Selector="Border.prow">
+    <Setter Property="Height" Value="30"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Padding" Value="0,0,4,0"/>
+  </Style>
+  <Style Selector="Border.prow DockPanel.pcell">
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <!-- A line list grows the row (to eight items; past that it scrolls): label and list start on its first line. -->
+  <Style Selector="Border.prow.lines">
+    <Setter Property="Height" Value="NaN"/>
+    <Setter Property="MinHeight" Value="30"/>
+  </Style>
+  <Style Selector="Border.prow.lines DockPanel.pcell">
+    <Setter Property="VerticalAlignment" Value="Top"/>
+  </Style>
+  <Style Selector="Border.prow.lines DockPanel.pcell > TextBlock.plabel">
+    <Setter Property="Margin" Value="0,7,0,0"/>
+  </Style>
+  <Style Selector="Border.prow:pointerover, Border.prow.focused">
+    <Setter Property="Background" Value="{DynamicResource BgRowHoverBrush}"/>
+  </Style>
+  <Style Selector="Border.prow.disabled">
+    <Setter Property="Opacity" Value="{StaticResource DisabledOpacity}"/>
+  </Style>
+  <!-- Details on demand: anything classed .live shows only on the hovered or focused row. The row says so through an
+       inherited property rather than a descendant selector (see RowDetails). -->
+  <Style Selector="Border.prow">
+    <Setter Property="controls:RowDetails.Show" Value="False"/>
+  </Style>
+  <Style Selector="Border.prow:pointerover, Border.prow.focused">
+    <Setter Property="controls:RowDetails.Show" Value="True"/>
+  </Style>
+  <Style Selector=":is(Control).live">
+    <Setter Property="IsVisible" Value="{Binding $self.(controls:RowDetails.Show)}"/>
+  </Style>
+  <Style Selector="TextBlock.plabel">
+    <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextSoftBrush}"/>
+    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Border.prow.focused TextBlock.plabel">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.pkey">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeXs}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <!-- The value's colour is its state: yours bright, inherited faint, changed this session amber, a problem rose.
+       Later rules win, so a changed value with a problem reads as the problem. -->
+  <Style Selector="Border.prow.inherited TextBlock.pvalue">
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+  </Style>
+  <Style Selector="Border.prow.inherited ComboBox.pfield">
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+  </Style>
+  <Style Selector="Border.prow.inherited TextBox.pfield">
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+  </Style>
+  <Style Selector="Border.prow.inherited controls|ScrubNumberBox">
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+  </Style>
+  <Style Selector="Border.prow.changed TextBlock.pvalue">
+    <Setter Property="Foreground" Value="{DynamicResource MarkTextBrush}"/>
+  </Style>
+  <Style Selector="Border.prow.changed ComboBox.pfield">
+    <Setter Property="Foreground" Value="{DynamicResource MarkTextBrush}"/>
+  </Style>
+  <Style Selector="Border.prow.changed TextBox.pfield">
+    <Setter Property="Foreground" Value="{DynamicResource MarkTextBrush}"/>
+  </Style>
+  <Style Selector="Border.prow.changed controls|ScrubNumberBox">
+    <Setter Property="Foreground" Value="{DynamicResource MarkTextBrush}"/>
+  </Style>
+  <Style Selector="Border.prow.problem TextBlock.pvalue">
+    <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}"/>
+  </Style>
+  <Style Selector="Border.prow.problem ComboBox.pfield">
+    <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}"/>
+  </Style>
+  <Style Selector="Border.prow.problem TextBox.pfield">
+    <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}"/>
+  </Style>
+  <Style Selector="Border.prow.problem controls|ScrubNumberBox">
+    <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}"/>
+  </Style>
+  <!-- The value before this session's change, struck through beside the new one. -->
+  <Style Selector="TextBlock.pwas">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+    <Setter Property="TextDecorations" Value="Strikethrough"/>
+    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="MaxWidth" Value="140"/>
+  </Style>
+
+  <!-- Section header in the property list. -->
+  <Style Selector="Border.psection">
+    <Setter Property="Height" Value="36"/>
+    <Setter Property="Padding" Value="12,0,0,8"/>
+    <Setter Property="Margin" Value="0,8,0,0"/>
+  </Style>
+  <Style Selector="Border.psection TextBlock.ptitle">
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextSoftBrush}"/>
+  </Style>
+  <Style Selector="Border.psection.first">
+    <Setter Property="Margin" Value="0"/>
+  </Style>
+  <!-- Sub-section title in the property list: under a section header, above its first row. -->
+  <Style Selector="Border.psub">
+    <Setter Property="Height" Value="34"/>
+    <Setter Property="Padding" Value="12,0,0,6"/>
+  </Style>
+  <Style Selector="Border.psub TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    <Setter Property="FontWeight" Value="Medium"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextSoftBrush}"/>
+  </Style>
+  <!-- An extension's line in the form (off for this asset, a manifest's notice): text where a section title starts. -->
+  <Style Selector="Border.pextline">
+    <Setter Property="Height" Value="26"/>
+    <Setter Property="Padding" Value="14,0,8,0"/>
+  </Style>
+  <Style Selector="Border.pextline.off">
+    <Setter Property="Height" Value="40"/>
+  </Style>
+  <!-- A hairline action in a row: a section header, the off line, a deffile button, beside a ⋯ or a field. -->
+  <Style Selector="Button.line.small">
+    <Setter Property="Height" Value="{StaticResource ControlHeightSm}"/>
+    <Setter Property="Padding" Value="8,0"/>
+  </Style>
+
+  <!-- Flat editors inside rows: 24 px, filled, hairline edge; hover strengthens the hairline,
+       focus draws the ring. Every value is a GDT value, so every editor is mono (12 px mono sits
+       level with 13 px text): text and references here, choices below, numbers in ScrubNumberBox. -->
+  <!-- Editors in a row read as text until hovered (the field appears) or focused (the ring). -->
+  <Style Selector="TextBox.pfield">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusSm}"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeightSm}"/>
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="TextBox.pfield /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BoxShadow" Value="0 0 0 0 Transparent"/>
+  </Style>
+  <Style Selector="TextBox.pfield:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFieldHover}"/>
+  </Style>
+  <Style Selector="TextBox.pfield:focus /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFocusInset}"/>
+  </Style>
+  <Style Selector="ComboBox.pfield">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusSm}"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeightSm}"/>
+    <Setter Property="Padding" Value="8,0,6,0"/>
+    <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+    <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="ComboBox.pfield /template/ Border#Background">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BoxShadow" Value="0 0 0 0 Transparent"/>
+  </Style>
+  <!-- A box that opens a list (a choice, a reference) keeps its edge at rest, so it reads as something to open; its
+       buttons sit at full strength, not dim. Hover and focus below draw over it. -->
+  <Style Selector="ComboBox.dropfield /template/ Border#Background">
+    <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFieldEdge}"/>
+  </Style>
+  <Style Selector="TextBox.dropfield /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFieldEdge}"/>
+  </Style>
+  <Style Selector="ComboBox.pfield:pointerover /template/ Border#Background">
+    <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFieldHover}"/>
+  </Style>
+  <Style Selector="ComboBox.pfield:pressed /template/ Border#Background">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+  </Style>
+  <Style Selector="ComboBox.pfield:focus-visible /template/ Border#Background">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFocusInset}"/>
+  </Style>
+
+  <!-- The 26×14 switch the design calls for; Fluent's ToggleSwitch is 40×20 and carries labels.
+       On is a filled track, off a hollow one. On is neutral (not the accent): the row's change
+       mark, not the switch, says whether you changed it. An inherited on keeps the filled shape
+       and only drops to the dim tone. -->
+  <Style Selector="ToggleButton.miniswitch">
+    <!-- Focus rings the track (below); Fluent's square adorner sits on the switch's bounds and covers On/Off's edge. -->
+    <Setter Property="FocusAdorner" Value="{x:Null}"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="MinHeight" Value="24"/>
+    <Setter Property="MinWidth" Value="28"/>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <StackPanel Orientation="Horizontal" Spacing="8" Background="Transparent">
+          <!-- 2 px in from the switch's edge, which clips (as the cell or row around it may): room for the ring. -->
+          <Border Name="Track" Width="24" Height="14" CornerRadius="7" VerticalAlignment="Center" Margin="2,0,0,0"
+                  Background="{DynamicResource LineStrongBrush}">
+            <Border Name="Knob" Width="10" Height="10" CornerRadius="5" HorizontalAlignment="Left"
+                    Margin="2,0,0,0" VerticalAlignment="Center" Background="{DynamicResource TextFaintBrush}"/>
+          </Border>
+          <ContentPresenter Content="{TemplateBinding Content}" VerticalAlignment="Center"/>
+        </StackPanel>
+      </ControlTemplate>
+    </Setter>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+  </Style>
+  <Style Selector="ToggleButton.miniswitch:pointerover /template/ Border#Knob">
+    <Setter Property="Background" Value="{DynamicResource TextSoftBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.miniswitch:pressed /template/ Border#Knob">
+    <Setter Property="Width" Value="12"/>
+  </Style>
+  <Style Selector="ToggleButton.miniswitch:checked /template/ Border#Track">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.miniswitch:checked /template/ Border#Knob">
+    <Setter Property="Background" Value="{DynamicResource OnAccentBrush}"/>
+    <Setter Property="HorizontalAlignment" Value="Right"/>
+    <Setter Property="Margin" Value="0,0,2,0"/>
+  </Style>
+  <Style Selector="ToggleButton.miniswitch:checked:pointerover /template/ Border#Track">
+    <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.miniswitch:focus-visible /template/ Border#Track">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowFocus}"/>
+  </Style>
+  <Style Selector="ToggleButton.miniswitch:disabled">
+    <Setter Property="Opacity" Value="{StaticResource DisabledOpacity}"/>
+  </Style>
+
+  <!-- Scrubbable number field. It is a Border that clips its bounds, so an outer ring would be cut
+       off: focus draws the ring inset, and Fluent's square white focus adorner is dropped. The edge and ring are
+       its Edge, drawn over its content (the − + buttons' panel included). -->
+  <Style Selector="controls|ScrubNumberBox">
+    <Setter Property="FocusAdorner" Value="{x:Null}"/>
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+    <Setter Property="Edge" Value="0 0 0 0 Transparent"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeightSm}"/>
+    <Setter Property="MaxWidth" Value="180"/>
+    <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+  </Style>
+  <Style Selector="controls|ScrubNumberBox:pointerover">
+    <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+    <Setter Property="Edge" Value="{DynamicResource ShadowFieldHover}"/>
+  </Style>
+  <Style Selector="controls|ScrubNumberBox.focused">
+    <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+    <Setter Property="Edge" Value="{DynamicResource ShadowFocusInset}"/>
+  </Style>
+
+  <!-- Row action glyphs (↶ ↑ →, and a number field's − +). -->
+  <Style Selector="Button.rowaction">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Width" Value="24"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeightSm}"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXs}"/>
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.rowaction:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.rowaction:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="Button.rowaction:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+    <Setter Property="Opacity" Value="{StaticResource DisabledOpacity}"/>
+  </Style>
+
+  <!-- ── Inspector ──────────────────────────────────────────────── -->
+  <!-- A problem in the Inspector: a rose dot, what's wrong, and Go to; no band behind it. -->
+  <Style Selector="Border.problemband">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Padding" Value="2,0"/>
+  </Style>
+  <!-- This asset · Parent · Default: a small table of 32 px rows inside a hairline. -->
+  <Style Selector="Border.valuetable">
+    <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusLg}"/>
+    <Setter Property="ClipToBounds" Value="True"/>
+  </Style>
+  <Style Selector="Border.valuerow">
+    <Setter Property="Height" Value="32"/>
+    <Setter Property="Padding" Value="12,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+  </Style>
+  <Style Selector="Border.valuerow.last">
+    <Setter Property="BorderThickness" Value="0"/>
+  </Style>
+  <Style Selector="Border.valuerow TextBlock.changed">
+    <Setter Property="Foreground" Value="{DynamicResource MarkBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.section">
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
+  <!-- Collapsible section header: the whole line toggles. Hover tints the line; the 4 px padding
+       is cancelled by the margin so the heading text stays aligned with the content below. -->
+  <Style Selector="ToggleButton.sectiontoggle">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXs}"/>
+    <Setter Property="Padding" Value="4,2"/>
+    <Setter Property="Margin" Value="-4,0"/>
+    <Setter Property="MinHeight" Value="24"/>
+    <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="ToggleButton.sectiontoggle:checked /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <Style Selector="ToggleButton.sectiontoggle:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgRowHoverBrush}"/>
+  </Style>
+  <Style Selector="ToggleButton.sectiontoggle:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+  </Style>
+
+  <!-- A full-width row linking to another asset or change. -->
+  <Style Selector="Button.linkrow">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="Height" Value="26"/>
+    <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.linkrow:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgRowHoverBrush}"/>
+  </Style>
+  <Style Selector="Button.linkrow:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+  </Style>
+  <!-- Disabled (e.g. the asset you are on, in its own family): no fill, content fades. -->
+  <Style Selector="Button.linkrow:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+    <Setter Property="Opacity" Value="{StaticResource DisabledOpacity}"/>
+  </Style>
+  <Style Selector="Button.linkrow.small">
+    <Setter Property="Height" Value="24"/>
+  </Style>
+
+  <!-- Menus, context menus, flyouts and dropdown lists are one card: BgCard, the hairline, the overlay radius and the dialog shadow,
+       with a 4 px inset (MenuFlyoutPresenterThemePadding) so the rows' rounded hover sits inside the card's corners. -->
+  <Style Selector="MenuFlyoutPresenter, FlyoutPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgCardBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusOverlay}"/>
+  </Style>
+  <Style Selector="MenuFlyoutPresenter /template/ Border#LayoutRoot, FlyoutPresenter /template/ Border#LayoutRoot">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowDialog}"/>
+  </Style>
+  <!-- A context menu reads the same card, inset and radius resources; its template's border has no name. -->
+  <Style Selector="ContextMenu /template/ Border">
+    <Setter Property="BoxShadow" Value="{DynamicResource ShadowDialog}"/>
+  </Style>
+  <!-- One height for every item, the text 10 px in from the hover's edge, and a hover rounded to sit concentric in the
+       card (overlay radius less the 4 px inset). -->
+  <Style Selector="MenuItem">
+    <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+    <Setter Property="Padding" Value="10,4"/>
+    <Setter Property="Height" Value="{StaticResource ControlHeight}"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusXs}"/>
+  </Style>
+  <Style Selector="MenuItem TextBlock.menukey">
+    <Setter Property="FontSize" Value="{StaticResource FontSizeXs}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+  </Style>
+  <!-- A file field out of editing draws its path through the front-trimmed label over it (PropertyEditorView), so the
+       box's own text, which can only trim at its end, stays out of sight until the field has the keyboard. -->
+  <Style Selector="TextBox.file:not(:focus) /template/ TextPresenter#PART_TextPresenter">
+    <Setter Property="Opacity" Value="0"/>
+  </Style>
+</Styles>

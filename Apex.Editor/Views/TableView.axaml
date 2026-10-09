@@ -1,0 +1,197 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Apex.Editor.ViewModels"
+             xmlns:views="using:Apex.Editor.Views"
+             xmlns:controls="using:Apex.Editor.Controls"
+             x:Class="Apex.Editor.Views.TableView"
+             x:DataType="vm:TableViewModel">
+
+  <!--
+    Cells are the property rows' own editors (PropertyEditorView), so a number scrubs, a switch
+    toggles, a reference validates, and text commits on Enter or focus loss, exactly as in the form.
+    A cell at rest draws its value instead (TableCellValue) and takes an editor when the pointer or
+    the keyboard comes to it.
+    Every edit is an undo step: Ctrl+Z here takes back the table's last cell edit or bulk apply.
+  -->
+  <Border Classes="pane">
+    <DockPanel>
+      <!-- Header -->
+      <Border DockPanel.Dock="Top" Classes="panehead">
+        <DockPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <TextBlock Classes="h-pane" Text="Table" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <TextBlock Text="{Binding Glyph}" Foreground="{Binding GlyphBrush}" FontSize="{StaticResource FontSizeSm}" VerticalAlignment="Center"/>
+            <TextBlock FontSize="{StaticResource FontSizeSm}" Text="{Binding Summary}" VerticalAlignment="Center"/>
+          </StackPanel>
+          <Button DockPanel.Dock="Right" Classes="tool" Content="Close"
+                  ToolTip.Tip="Close table mode (Esc)"
+                  Command="{Binding CloseCommand}" HorizontalAlignment="Right"/>
+          <Panel/>
+        </DockPanel>
+      </Border>
+
+      <!-- What the table leaves out (the row cap, other asset types) is a fact about what's on screen,
+           so it's said on screen, not in the status bar. -->
+      <Border DockPanel.Dock="Top" Padding="14,7" Background="{DynamicResource BgFieldBrush}"
+              BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" IsVisible="{Binding HasNotice}">
+        <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding Notice}" TextWrapping="Wrap"/>
+      </Border>
+
+      <!-- Bulk edit bar. With no rows selected there is nothing to set, so it says how to start
+           instead; its height is held so the grid never moves when the first row is ticked. -->
+      <Border DockPanel.Dock="Top" Padding="{StaticResource PaddingPane}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
+        <DockPanel MinHeight="30">
+          <TextBlock DockPanel.Dock="Right" Classes="faint" FontSize="{StaticResource FontSizeSm}" VerticalAlignment="Center"
+                     Text="Select rows to set one value on all of them." IsVisible="{Binding !SelectedCount}"/>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"
+                      IsVisible="{Binding !!SelectedCount}">
+            <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Set" VerticalAlignment="Center"/>
+            <!-- Lists property names (UI text), so it is a plain field, not a value editor's mono dropdown. -->
+            <ComboBox Classes="field small" Height="{StaticResource ControlHeightSm}" MinWidth="170" ItemsSource="{Binding Columns}" SelectedItem="{Binding SelectedColumn}"
+                      AutomationProperties.Name="Column to set">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:TableColumnViewModel">
+                  <TextBlock Text="{Binding Label}"/>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="to" VerticalAlignment="Center"/>
+            <!-- The value takes the column's own editor: a switch for a toggle, a dropdown for a choice. -->
+            <Border Classes="prow" Width="200" Padding="0" Background="Transparent">
+              <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Text="⚠" FontSize="{StaticResource FontSizeSm}" Classes="problem"
+                           VerticalAlignment="Center" Margin="6,0,0,0" IsVisible="{Binding BulkEditor.HasProblem, FallbackValue=False}"
+                           ToolTip.Tip="{Binding BulkEditor.Problem, FallbackValue=''}"/>
+                <views:PropertyEditorView DataContext="{Binding BulkEditor}" VerticalAlignment="Center"
+                                          AutomationProperties.Name="Value to set"/>
+              </DockPanel>
+            </Border>
+            <!-- The label carries the row count so the blast radius is visible before the click. -->
+            <Button Classes="accent small" Content="{Binding BulkApplyLabel}" Command="{Binding BulkApplyCommand}"
+                    IsEnabled="{Binding CanBulkApply}"/>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <Button Name="ColumnsButton" Classes="menu" ToolTip.Tip="Choose which properties are columns">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <TextBlock Text="Columns" FontSize="{StaticResource FontSizeSm}"/>
+                <TextBlock Classes="caret" Text="▾"/>
+              </StackPanel>
+              <Button.Flyout>
+                <Flyout Placement="BottomEdgeAlignedLeft" Opening="ColumnsFlyout_Opening">
+                  <DockPanel Width="300" Height="380">
+                    <TextBox Name="ColumnFilterBox" DockPanel.Dock="Top" Classes="field small" Margin="0,0,0,8"
+                             Text="{Binding ColumnFilter}" PlaceholderText="Filter properties" AutomationProperties.Name="Filter properties"/>
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                      <ItemsControl ItemsSource="{Binding ColumnChoices}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <VirtualizingStackPanel/>
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:TableColumnChoice">
+                            <CheckBox IsChecked="{Binding IsShown}" ToolTip.Tip="{Binding Key}" MinHeight="28">
+                              <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="{Binding Label}" FontSize="{StaticResource FontSizeSm}"/>
+                                <TextBlock Classes="faint" Text="{Binding Category}" FontSize="{StaticResource FontSizeXs}" VerticalAlignment="Center"/>
+                              </StackPanel>
+                            </CheckBox>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </ScrollViewer>
+                  </DockPanel>
+                </Flyout>
+              </Button.Flyout>
+            </Button>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <!-- Grid -->
+      <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Padding="0,0,0,4">
+        <DockPanel>
+          <!-- Column headers: click to sort (again to reverse). -->
+          <Border DockPanel.Dock="Top" Background="{DynamicResource BgHeaderBrush}"
+                  BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+              <StackPanel Width="250" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <CheckBox IsChecked="{Binding AllSelected}" Margin="10,0,0,0" VerticalAlignment="Center"
+                          AutomationProperties.Name="Select all rows" ToolTip.Tip="Select all or none"/>
+                <TextBlock Classes="h-pane" Text="Asset" VerticalAlignment="Center"/>
+              </StackPanel>
+              <ItemsControl ItemsSource="{Binding Columns}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal"/>
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:TableColumnViewModel">
+                    <Button Classes="menu" Width="{Binding Width}" Height="38" Command="{Binding SortCommand}" ToolTip.Tip="{Binding Tooltip}"
+                            HorizontalContentAlignment="Stretch">
+                      <DockPanel ClipToBounds="True">
+                        <TextBlock DockPanel.Dock="Right" Classes="faint" Text="{Binding SortGlyph}" FontSize="{StaticResource FontSizeXs}"
+                                   VerticalAlignment="Center" Margin="4,0,0,0"/>
+                        <StackPanel VerticalAlignment="Center">
+                          <TextBlock Text="{Binding Label}" FontSize="{StaticResource FontSizeSm}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                          <TextBlock Text="{Binding Key}" Classes="faint mono" FontSize="{StaticResource FontSizeXs}" TextTrimming="CharacterEllipsis"
+                                     IsVisible="{Binding ShowKey}"/>
+                        </StackPanel>
+                      </DockPanel>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+
+          <!-- Rows (virtualized). An ItemsControl, not a ListBox: a list item takes focus on press,
+               and a switch or field that loses focus mid-press cancels its own click. Rows that scroll
+               away are kept and rebound to the rows that scroll in, cells and all. -->
+          <controls:RowItemsControl Name="Rows" ItemsSource="{Binding Rows}" Focusable="False">
+            <controls:RowItemsControl.Template>
+              <ControlTemplate>
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                  <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}"/>
+                </ScrollViewer>
+              </ControlTemplate>
+            </controls:RowItemsControl.Template>
+            <controls:RowItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <controls:RowPanel StartAtTopOnReset="True" ReleasesStaleRows="False"/>
+              </ItemsPanelTemplate>
+            </controls:RowItemsControl.ItemsPanel>
+            <controls:RowItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:TableRowViewModel">
+                <Border Height="32" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
+                <StackPanel Orientation="Horizontal">
+                  <DockPanel Width="250">
+                    <CheckBox IsChecked="{Binding IsSelected}" Margin="10,0,4,0" VerticalAlignment="Center"
+                              AutomationProperties.Name="{Binding Name}"/>
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding Glyph}" Foreground="{Binding GlyphBrush}"
+                               FontSize="{StaticResource FontSizeXs}" Width="18" VerticalAlignment="Center"/>
+                    <TextBlock Classes="mono" FontSize="{StaticResource FontSizeSm}" Text="{Binding Name}"
+                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                  </DockPanel>
+                  <controls:TableCellsPanel Cells="{Binding Cells}">
+                    <controls:TableCellsPanel.CellTemplate>
+                      <DataTemplate x:DataType="vm:TableCellViewModel">
+                        <!-- .prow gives a cell the row's hover and its details on demand (− + steps, ↶ / ↑). -->
+                        <Border Classes="prow" Width="{Binding Width}" Padding="4,0,8,0">
+                          <!-- The value, its change bar and its ⚠ (see TableCellValue). -->
+                          <views:TableCellValue DataContext="{Binding Editor}"/>
+                        </Border>
+                      </DataTemplate>
+                    </controls:TableCellsPanel.CellTemplate>
+                  </controls:TableCellsPanel>
+                </StackPanel>
+                </Border>
+              </DataTemplate>
+            </controls:RowItemsControl.ItemTemplate>
+          </controls:RowItemsControl>
+        </DockPanel>
+      </ScrollViewer>
+    </DockPanel>
+  </Border>
+</UserControl>

@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Apex.Editor.ViewModels"
+             xmlns:views="using:Apex.Editor.Views"
+             xmlns:c="using:Apex.Editor.Commands"
+             xmlns:controls="using:Apex.Editor.Controls"
+             x:Class="Apex.Editor.Views.PreviewDockView"
+             x:DataType="vm:MainViewModel">
+
+  <!--
+    The Preview pane: a dock layer of its own (right column, or its own OS window), not a strip
+    inside the editor. It shows the active asset when that renders, otherwise the asset's primary
+    reference — a weapon previews its View Model — with the subject picker to choose another.
+  -->
+  <DockPanel>
+    <DockPanel DockPanel.Dock="Top" Height="38" Margin="12,0,6,0">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+        <Button Name="MaximizeButton" Classes="icon" c:Cmd.Id="view.maximizePreview"
+                IsVisible="{Binding ShowDockedPreview}"
+                AutomationProperties.Name="{Binding PreviewMaximizeLabel}">
+          <Path Classes="icon" Data="{StaticResource IconMaximize}"/>
+        </Button>
+        <Button Name="PopButton" Classes="icon" c:Cmd.Id="view.previewWindow"
+                AutomationProperties.Name="{Binding PreviewFloatLabel}">
+          <Path Classes="icon" Data="{StaticResource IconPopOut}"/>
+        </Button>
+      </StackPanel>
+      <TextBlock Classes="faint" FontSize="{StaticResource FontSizeBase}" Text="Preview" VerticalAlignment="Center" Margin="0,0,4,0"/>
+      <!-- The subject picker: a menu of the asset and its renderable references, the shown one checked. -->
+      <Button Name="SubjectButton" Classes="menu" IsVisible="{Binding HasActiveTab}" IsEnabled="{Binding HasPreviewChoices}"
+              Click="SubjectButton_Click" AutomationProperties.Name="Choose what the preview shows"
+              ToolTip.Tip="What the preview shows. Pick another referenced asset.">
+        <StackPanel Orientation="Horizontal" Spacing="4">
+          <TextBlock Text="{Binding PreviewSubjectLabel}" FontSize="{StaticResource FontSizeBase}" Foreground="{DynamicResource TextSoftBrush}"
+                     TextTrimming="CharacterEllipsis" MaxWidth="200"/>
+          <controls:GlyphIcon Glyph="chevron-down" Size="12" VerticalAlignment="Center" IsVisible="{Binding HasPreviewChoices}"/>
+        </StackPanel>
+      </Button>
+      <Panel/>
+    </DockPanel>
+
+    <Panel Margin="10,0,10,10">
+      <views:PreviewPaneView DataContext="{Binding DockedPreview}"
+                             IsVisible="{Binding $parent[views:PreviewDockView].((vm:MainViewModel)DataContext).HasPreview}"/>
+      <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                 TextAlignment="Center" TextWrapping="Wrap" Margin="20" MaxWidth="260"
+                 IsVisible="{Binding !HasPreview}" Text="{Binding PreviewEmptyText}"/>
+    </Panel>
+  </DockPanel>
+</UserControl>

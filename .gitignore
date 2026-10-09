@@ -1,0 +1,14 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+
+# IDE state
+.vs/
+.idea/
+*.user
+
+# Headless screenshot output at repo root (Apex.Shots/shots/ baselines stay tracked)
+/shots/
+
+# Release output (publish.ps1)
+/artifacts/

@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Apex.Editor/Apex.Editor.csproj" />
+  <Project Path="Apex.Render.Data/Apex.Render.Data.csproj" />
+  <Project Path="Apex.Render/Apex.Render.csproj" />
+  <Project Path="Apex.Shots/Apex.Shots.csproj" />
+  <Project Path="ThirdParty/CallOfFile/CallOfFile.csproj" />
+</Solution>

@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Apex.Editor.ViewModels"
+             x:Class="Apex.Editor.Views.AddPropertyPicker"
+             Width="420">
+
+  <!--
+    The Set view's Add property: the properties this asset holds no value for, filtered as you type. Enter or a click puts
+    the one on the highlight into the view and focuses it; ↑↓ move the highlight without leaving the box.
+  -->
+  <DockPanel Margin="4">
+    <TextBox Name="Filter" DockPanel.Dock="Top" Classes="field small" Margin="0,0,0,6" PlaceholderText="Find a property"
+             AutomationProperties.Name="Find a property"/>
+    <TextBlock Name="Empty" DockPanel.Dock="Top" Classes="faint" FontSize="{StaticResource FontSizeSm}" Margin="8,6,8,10" IsVisible="False"/>
+    <ListBox Name="List" Classes="palette" MaxHeight="320" AutomationProperties.Name="Properties that aren't set">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="vm:PropertyPick">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding Where}"
+                       VerticalAlignment="Center" Margin="12,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="170"/>
+            <TextBlock Text="{Binding Label}" FontSize="{StaticResource FontSizeBase}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+          </DockPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </DockPanel>
+</UserControl>
