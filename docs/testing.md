@@ -66,7 +66,7 @@ How the tiers run:
 ## Running pieces by hand
 
 ```
-Apex.Shots.exe [shots-folder] [--group a,b] [--fast | --timing | --untimed] [--shard i/N]
+Apex.Shots.exe [shots-folder] [--group a,b] [--skip a,b] [--fast | --timing | --untimed] [--shard i/N]
                [--defer-gates] [--timings] [--results file.json] [--list-groups]
 ```
 

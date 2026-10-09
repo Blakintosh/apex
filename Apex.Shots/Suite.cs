@@ -110,6 +110,18 @@ public partial class Program
             }
             picked = picked.Where(g => wanted.Contains(g.Name));
         }
+        if (Arg(args, "--skip") is { } skipped)
+        {
+            any = true;
+            var left = skipped.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var unknown = left.Where(n => Groups.All(g => g.Name != n)).ToList();
+            if (unknown.Count > 0)
+            {
+                error = $"no such group: {string.Join(", ", unknown)} (--list-groups lists them)";
+                return null;
+            }
+            picked = picked.Where(g => !left.Contains(g.Name));
+        }
         if (args.Contains("--fast"))
         {
             any = true;
@@ -160,7 +172,7 @@ public partial class Program
 
     private static double Cost(Group g) => Costs.GetValueOrDefault(g.Name, DefaultCost);
 
-    private static readonly string[] ValueOptions = ["--group", "--shard", "--results"];
+    private static readonly string[] ValueOptions = ["--group", "--skip", "--shard", "--results"];
 
     private static string? Arg(string[] args, string name)
     {

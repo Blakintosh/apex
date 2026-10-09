@@ -19,9 +19,10 @@ jobs:
         run: dotnet build Apex.slnx -c Release
 
       # Drives the app headlessly over sample data with real keyboard and mouse input and checks what it does.
-      # Needs no game install. Exits non-zero when any check fails.
+      # A runner has no game install, so the groups that copy the game's deffiles into a scratch folder are left out
+      # (run them on a machine that has Black Ops III). Exits non-zero when any check fails.
       - name: Shots
-        run: dotnet run -c Release --no-build --project Apex.Shots -- --fast
+        run: dotnet run -c Release --no-build --project Apex.Shots -- --fast --skip save-ui,placement,extensions,records,hardening,editor-pass
         env:
           APEX_FORCE_MOCK: '1'
 
