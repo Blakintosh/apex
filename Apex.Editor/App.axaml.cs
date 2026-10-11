@@ -52,6 +52,7 @@ public partial class App : Application
             // After the first frame: the check and its download run in the background and only ever show a ready update.
             window.Opened += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(vm.CheckForUpdatesIfDue, Avalonia.Threading.DispatcherPriority.Background);
             window.Opened += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(vm.ShowWhatsNewIfUpdated, Avalonia.Threading.DispatcherPriority.Background);
+            window.Opened += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(vm.WarnIfDecimalComma, Avalonia.Threading.DispatcherPriority.Background);
             // asset:// links: this start's own, then those later starts hand over (Radiant starts Apex per click).
             foreach (var link in Program.StartupLinks)
                 vm.OpenLink(link);

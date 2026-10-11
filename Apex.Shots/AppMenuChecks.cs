@@ -188,6 +188,23 @@ public partial class Program
                 new[] { CommandCatalog.ThemeSystem, CommandCatalog.ThemeGraphite, CommandCatalog.ThemeSlate, CommandCatalog.ThemeLight,
                         CommandCatalog.CheckForUpdates, CommandCatalog.WhatsNew, CommandCatalog.About }.All(id => vm.Registry.Contains(id) && vm.Registry[id].CanRun));
 
+            // A comma as Windows' decimal symbol breaks many mod tools: Apex says so once at start, and says nothing otherwise.
+            var realCulture = System.Globalization.CultureInfo.CurrentCulture;
+            var alertsBefore = vm.Alerts.Count;
+            System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("en-US");
+            vm.WarnIfDecimalComma();
+            Check("regional: a full stop as the decimal symbol raises no banner", vm.Alerts.Count == alertsBefore);
+            System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("de-DE");
+            vm.WarnIfDecimalComma();
+            Check($"regional: a comma raises a banner that stays and offers the Region settings ('{vm.AlertText}')",
+                vm.Alerts.Count == alertsBefore + 1 && vm.AlertText == MainViewModel.DecimalCommaWarning && vm.AlertIsError && vm.HasAlertAction);
+            vm.WarnIfDecimalComma();
+            Check("regional: the same warning again doesn't stack a copy", vm.Alerts.Count == alertsBefore + 1);
+            Pump(200);
+            ShootThemes(vm, window, outDir, "132-appmenu-decimal-comma", crop: false);
+            vm.DismissAlertCommand.Execute(null);
+            System.Globalization.CultureInfo.CurrentCulture = realCulture;
+
             // Shot at rest, the pointer away from it.
             window.MouseMove(new Point(800, 600));
             Pump();
