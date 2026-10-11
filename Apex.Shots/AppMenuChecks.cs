@@ -88,9 +88,9 @@ public partial class Program
             {
                 CommandCatalog.Get(CommandCatalog.ThemeSystem).Name, CommandCatalog.Get(CommandCatalog.ThemeGraphite).Name,
                 CommandCatalog.Get(CommandCatalog.ThemeSlate).Name, CommandCatalog.Get(CommandCatalog.ThemeLight).Name,
-                "—", CommandCatalog.Get(CommandCatalog.SyncWithRadiant).Name, "—", "Updates", CommandCatalog.Get(CommandCatalog.WhatsNew).Name, "—", "About Apex",
+                "—", CommandCatalog.Get(CommandCatalog.SyncWithRadiant).Name, "—", "Updates", CommandCatalog.Get(CommandCatalog.WhatsNew).Name, CommandCatalog.Get(CommandCatalog.Components).Name, "—", "About Apex",
             };
-            Check($"app menu: a click on the mark opens the theme, Radiant sync, Updates and About Apex ({string.Join(", ", items)})",
+            Check($"app menu: a click on the mark opens the theme, Radiant sync, Updates, Components and About Apex ({string.Join(", ", items)})",
                 menu.IsOpen && items.SequenceEqual(expected));
             var radios = menu.Items.OfType<MenuItem>().Where(i => i.ToggleType == MenuItemToggleType.Radio).ToList();
             Check($"app menu: the themes are radio items with the one in use checked ({string.Join(", ", radios.Where(r => r.IsChecked).Select(r => r.Header))})",

@@ -188,10 +188,19 @@ public partial class Program
 
         private static string Fixture(string name) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "stock", name));
 
-        public Task<StockDeps> DepsAsync(string type, string name, string map, string? zone, string? prefix, bool renameAll, CancellationToken cancel = default)
+        /// <summary>What <c>status</c> answers; the checks change it to turn using directly on and off.</summary>
+        public StockStatus Status = StockStatus.Unknown("This fixture backend has not been told what the install has.");
+
+        public Task<StockStatus> StatusAsync(string? project, CancellationToken cancel = default)
         {
-            Calls.Add($"deps {type} {name} {map} prefix={prefix} all={renameAll}");
-            using var doc = JsonDocument.Parse(Fixture(type.Equals("WEAPON", StringComparison.OrdinalIgnoreCase) ? "deps_weapon.json" : "deps_model.json"));
+            Calls.Add("status " + project);
+            return Task.FromResult(Status);
+        }
+
+        public Task<StockDeps> DepsAsync(string type, string name, string map, string? zone, string? prefix, bool renameAll, CancellationToken cancel = default, bool carry = false)
+        {
+            Calls.Add($"deps {type} {name} {map} prefix={prefix} all={renameAll} carry={carry}");
+            using var doc = JsonDocument.Parse(Fixture(carry ? "deps_weapon_carry.json" : type.Equals("WEAPON", StringComparison.OrdinalIgnoreCase) ? "deps_weapon.json" : "deps_model.json"));
             return Task.FromResult(StockDeps.Parse(doc.RootElement.Clone()));
         }
 
@@ -253,6 +262,7 @@ public partial class Program
             StockSearchChecks(vm, window, outDir);
             StockRecordChecks(vm, window, fake, outDir);
             StockCloneChecks(vm, window, fake, outDir);
+            StockUseChecks(vm, window, fake, temp, outDir);
             StockOfferChecks(window, vm, temp, outDir);
         }
         finally
