@@ -31,6 +31,11 @@ public sealed partial class MainViewModel
             Alert($"Apex can't open '{link}': an asset link is asset://<name>.<type>, e.g. asset://ar_standard.bulletweapon.", isError: false);
             return;
         }
+        if (parsed.IsStockClone)
+        {
+            OpenStockClone(parsed);
+            return;
+        }
         if (FindLinked(parsed) is not { } rec)
         {
             Alert(parsed.Type.Length == 0
@@ -40,6 +45,43 @@ public sealed partial class MainViewModel
         }
         OpenAsset(rec);
         Status = $"Opened {rec.Name} from a link";
+    }
+
+    private static readonly string[] LinkKinds = ["xmodel", "material", "image", "weapon", "xanim", "attachmentunique"];
+
+    /// <summary>
+    /// <c>asset://name.type?stock=clone&amp;map=zm_repl</c> (Radiant's "create a local copy of this stock asset"): opens the stock
+    /// asset and the Create local copy dialog on it, with the map the link names as the target.
+    /// </summary>
+    private void OpenStockClone(AssetLink link)
+    {
+        if (!Stock.CanSearch || Stock.Db is not { } db)
+        {
+            Alert(Stock.State == Services.Stock.StockState.Indexing
+                ? "The stock library is still being indexed. Open the link again when it is done."
+                : "The stock library isn't available, so Apex can't offer a copy of a shipped asset.", isError: false);
+            return;
+        }
+        Services.Stock.StockHit? hit;
+        try
+        {
+            hit = db.Find(link.Type, link.Name, LinkKinds);
+        }
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or System.IO.IOException)
+        {
+            hit = null;
+        }
+        if (hit is null)
+        {
+            Alert(link.Type.Length == 0
+                ? $"The game doesn't ship an asset named {link.Name}."
+                : $"The game doesn't ship a {link.Type} named {link.Name}.", isError: false);
+            return;
+        }
+        var record = StockRecordFor(hit);
+        OpenAsset(record);
+        Status = $"Opened {link.Name} from a link";
+        OpenCloneDialog(record, link.Map);
     }
 
     /// <summary>The asset a link names: of its type when there is one; FindAsset's first record of the name otherwise.</summary>

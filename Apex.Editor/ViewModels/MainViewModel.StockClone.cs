@@ -27,8 +27,8 @@ public sealed partial class MainViewModel
     /// <summary>The target a copy goes to unless the dialog says otherwise: the last one used, else the first map or mod.</summary>
     private CloneTarget? DefaultCloneTarget() => CloneTargets().FirstOrDefault();
 
-    /// <summary>Opens Create local copy for a stock asset.</summary>
-    private void OpenCloneDialog(AssetRecord record)
+    /// <summary>Opens Create local copy for a stock asset; <paramref name="map"/> (a name from a link) is the target it starts on.</summary>
+    private void OpenCloneDialog(AssetRecord record, string? map = null)
     {
         if (record.Stock is null || CloneDialog is not null)
             return;
@@ -39,8 +39,14 @@ public sealed partial class MainViewModel
             return;
         }
         var targets = CloneTargets();
+        var preselected = map is { Length: > 0 }
+            ? targets.FirstOrDefault(t => t.Name.Equals(map, StringComparison.OrdinalIgnoreCase) || t.Key.Equals(map, StringComparison.OrdinalIgnoreCase)
+                                          || t.Argument.Equals(map, StringComparison.OrdinalIgnoreCase))
+            : null;
+        if (map is { Length: > 0 } && preselected is null)
+            Status = $"There is no map or mod named {map} to copy into: pick one in the dialog.";
         var dialog = new StockCloneViewModel(record, Stock, _env.IsAvailable ? _env.Bo3Root : null, targets, CloneGdtChoices(record),
-            () => CloneDialog = null, OnCloneFinished, text => Status = text);
+            () => CloneDialog = null, OnCloneFinished, text => Status = text, preselected);
         dialog.CopyText = text => Shell?.CopyTextAsync(text) ?? System.Threading.Tasks.Task.CompletedTask;
         CloneDialog = dialog;
         if (targets.Count > 0)

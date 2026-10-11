@@ -404,6 +404,10 @@ public partial class Program
         WaitFor(() => dlg.Stage == CloneStage.Ready);
         Pump(100);
         window.UpdateLayout();
+        var keepShipped = window.GetVisualDescendants().OfType<CheckBox>().FirstOrDefault(c => c.Name == "CloneKeepShipped");
+        Check("clone: 'Keep the shipped compiled data' is there, greyed and inert, and says it comes with the Rust linker",
+            keepShipped is { IsEffectivelyVisible: true, IsEnabled: false, IsHitTestVisible: false, Focusable: false, IsChecked: false, Opacity: < 0.6 }
+            && keepShipped.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("coming with the Rust linker") == true));
         Capture(window, Path.Combine(outDir, "stock-clone.png"));
 
         dlg.CreateCommand.Execute(null);
@@ -424,6 +428,33 @@ public partial class Program
         Check($"clone: Undo removes what was written ({dlg.ResultTitle})", dlg.Stage == CloneStage.Undone && dlg.ResultTitle.Contains("4 files removed") && fake.Calls.Any(c => c.StartsWith("undo ")));
         dlg.CloseCommand.Execute(null);
         Check("clone: closing returns to the editor", vm.CloneDialog is null && !vm.IsModalOpen);
+        vm.Registry[CommandCatalog.CloseTab].Execute();
+
+        // Radiant's hand-off: the link opens the stock record and the dialog with the link's map as the target.
+        vm.OpenLink("asset://wpn_t7_smg_standard_view.xmodel?stock=clone&map=zm_moreguns");
+        Pump();
+        var linked = vm.CloneDialog;
+        Check($"link: asset://...?stock=clone&map=... opens the stock asset and the Create local copy dialog on it ({linked?.AssetName})",
+            linked is not null && vm.ActiveTab?.Record is { IsStock: true, Name: "wpn_t7_smg_standard_view" } && linked.AssetName == "wpn_t7_smg_standard_view" && vm.IsModalOpen);
+        if (linked is null)
+            return;
+        WaitFor(() => linked.Stage == CloneStage.Ready);
+        Pump(100);
+        window.UpdateLayout();
+        Check($"link: the map from the link is the target ({linked.Target?.Name}) and the plan was made against it",
+            linked.Target is { Name: "zm_moreguns" } && fake.Calls.Any(c => c.StartsWith("deps XMODEL wpn_t7_smg_standard_view mods/zm_moreguns")));
+        Capture(window, Path.Combine(outDir, "stock-link-clone.png"));
+        linked.CloseCommand.Execute(null);
+        vm.Registry[CommandCatalog.CloseTab].Execute();
+        vm.OpenLink("asset://no_such_stock_asset_zz.xmodel?stock=clone&map=zm_guns");
+        Check($"link: a link to an asset the game doesn't ship says so and opens nothing ('{vm.AlertText}')",
+            vm.IsAlertOpen && vm.AlertText.Contains("doesn't ship") && !vm.IsCloneOpen);
+        vm.DismissAlertCommand.Execute(null);
+        vm.OpenLink("asset://p7_zm_zod_master_switch.xmodel?stock=clone&map=not_a_map");
+        Pump();
+        Check($"link: a map Apex doesn't know leaves the first target and says so ({vm.Status})",
+            vm.CloneDialog is { Target.Name: "zm_guns" } && vm.Status.Contains("not_a_map"));
+        vm.CloneDialog?.CloseCommand.Execute(null);
         vm.Registry[CommandCatalog.CloseTab].Execute();
     }
 

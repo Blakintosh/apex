@@ -272,6 +272,30 @@ public sealed class StockDb
         return WithZones(db, new List<(long, string, string)> { (id, engineType, name) })[0].Zones;
     }
 
+    /// <summary>
+    /// The stock asset of a GDT type (or any of <paramref name="kinds"/> when the type is empty) and a name as a GDT writes it
+    /// (a material without its techset folder); null when the index holds none. The first kind that has it wins.
+    /// </summary>
+    public StockHit? Find(string type, string name, IReadOnlyList<string> kinds)
+    {
+        if (name.Length == 0)
+            return null;
+        var wanted = type.Length > 0 ? new[] { StockTypes.KindOfApex(type) } : kinds;
+        var engine = EngineTypes();
+        using var db = Open();
+        foreach (var kind in wanted)
+            foreach (var engineType in StockTypes.EngineTypesOfKind(kind, engine))
+            {
+                var candidates = new List<string> { name };
+                if (engineType == "MATERIAL")
+                    candidates.AddRange(MaterialFolders(db).Select(f => f + name));
+                foreach (var candidate in candidates)
+                    if (ZonesOf(engineType, candidate) is { Count: > 0 } zones)
+                        return new StockHit(engineType, candidate, zones);
+            }
+        return null;
+    }
+
     /// <summary>The names among <paramref name="names"/> that the index also holds as an asset of <paramref name="kind"/> (a local asset hiding a stock one).</summary>
     public HashSet<string> NamesOfKind(string kind, IReadOnlyCollection<string> names)
     {

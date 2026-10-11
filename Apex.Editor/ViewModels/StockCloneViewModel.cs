@@ -87,7 +87,8 @@ public sealed partial class StockCloneViewModel : ObservableObject
     private bool _planned;
 
     public StockCloneViewModel(AssetRecord record, StockLibrary library, string? bo3Root, IReadOnlyList<CloneTarget> targets,
-        IReadOnlyList<CloneGdtChoice> gdts, Action close, Action<StockExtractResult, CloneTarget> finished, Action<string> status)
+        IReadOnlyList<CloneGdtChoice> gdts, Action close, Action<StockExtractResult, CloneTarget> finished, Action<string> status,
+        CloneTarget? preselected = null)
     {
         _record = record;
         _library = library;
@@ -99,7 +100,7 @@ public sealed partial class StockCloneViewModel : ObservableObject
         Targets = targets;
         Gdts = gdts;
         _gdt = gdts.FirstOrDefault();
-        _target = targets.FirstOrDefault();
+        _target = preselected ?? targets.FirstOrDefault();
         Header = StockHeader.Build(Origin, library.Db);
         Subtitle = Header.AlwaysLoaded
             ? $"always loaded ({Header.Zone}.ff)"
