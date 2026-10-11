@@ -167,6 +167,9 @@ public partial class MainWindow : Window, IShellView
             case nameof(MainViewModel.IsClassOpen) when Vm?.IsClassOpen == true:
                 Dispatcher.UIThread.Post(() => ClassTargetBox.Focus());
                 break;
+            case nameof(MainViewModel.IsStockHelperOpen) when Vm?.IsStockHelperOpen == true:
+                Dispatcher.UIThread.Post(() => StockHelperBox.Focus());
+                break;
             case nameof(MainViewModel.IsRenameOpen) when Vm?.IsRenameOpen == true:
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -612,6 +615,43 @@ public partial class MainWindow : Window, IShellView
     {
         Vm?.ClassDialog?.Cancel();
         e.Handled = true;
+    }
+
+    private void CloneBackdrop_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        Vm?.CloneDialog?.CloseCommand.Execute(null);
+        e.Handled = true;
+    }
+
+    private void StockHelperBackdrop_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        Vm?.CancelStockHelperCommand.Execute(null);
+        e.Handled = true;
+    }
+
+    /// <summary>The file picker the stock helper panel opens; null when it was cancelled. Replaceable so the harness can answer it.</summary>
+    public static Func<TopLevel, System.Threading.Tasks.Task<string?>> PickStockHelper { get; set; } = DefaultPickStockHelperAsync;
+
+    private static async System.Threading.Tasks.Task<string?> DefaultPickStockHelperAsync(TopLevel top)
+    {
+        var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Choose stocklib.exe",
+            AllowMultiple = false,
+            FileTypeFilter = new[] { new FilePickerFileType("stocklib.exe") { Patterns = new[] { "stocklib.exe", "*.exe" } } },
+        });
+        return files.Count == 0 ? null : files[0].TryGetLocalPath();
+    }
+
+    private async void StockHelperBrowse_Click(object? sender, RoutedEventArgs e)
+    {
+        if (Vm is not { } vm)
+            return;
+        string? file;
+        try { file = await PickStockHelper(this); }
+        catch { file = null; }
+        if (file is not null)
+            vm.StockHelperPath = file;
     }
 
     private void RenameBackdrop_PointerPressed(object? sender, PointerPressedEventArgs e)

@@ -504,7 +504,6 @@
   <Style Selector="ListBox.xtree ListBoxItem">
     <Setter Property="Padding" Value="0"/>
     <Setter Property="MinHeight" Value="28"/>
-    <Setter Property="Height" Value="28"/>
     <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
     <Setter Property="Margin" Value="0"/>
   </Style>
@@ -525,6 +524,89 @@
   </Style>
   <Style Selector="ListBox.xtree ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+  <!-- Stock rows (shipped with the game, read-only) are italic, as stock names are everywhere in Apex. -->
+  <Style Selector="ListBox.xtree TextBlock.rowname.stock">
+    <Setter Property="FontStyle" Value="Italic"/>
+  </Style>
+  <Style Selector="Border.stocktag">
+    <Setter Property="BorderBrush" Value="{DynamicResource MarkBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="4"/>
+    <Setter Property="Padding" Value="5,1"/>
+    <Setter Property="Opacity" Value="0.85"/>
+  </Style>
+  <Style Selector="Border.stockcard">
+    <Setter Property="Background" Value="{DynamicResource BgCardBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Padding" Value="12,10"/>
+  </Style>
+  <!-- A stock asset's header: the title is italic, the tag says read-only, the banner says what that means. -->
+  <Style Selector="SelectableTextBlock.stock">
+    <Setter Property="FontStyle" Value="Italic"/>
+  </Style>
+  <Style Selector="Border.readonlytag">
+    <Setter Property="BorderBrush" Value="{DynamicResource LineStrongBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="4"/>
+    <Setter Property="Padding" Value="6,2"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource TextDimBrush}"/>
+  </Style>
+  <Style Selector="Border.stockbanner">
+    <Setter Property="Background" Value="{DynamicResource BgCardBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Padding" Value="14,12"/>
+  </Style>
+  <!-- The clone dialog's tree: a dot for what a copy does with the asset (a filled teal dot copies it, a ring uses the
+       shipped one, amber is rebuilt by the linker), and the action in a small pill. -->
+  <Style Selector="Ellipse.actdot">
+    <Setter Property="Fill" Value="{DynamicResource TextFaintBrush}"/>
+  </Style>
+  <Style Selector="Ellipse.actdot.copy">
+    <Setter Property="Fill" Value="{DynamicResource AccentBrush}"/>
+  </Style>
+  <Style Selector="Ellipse.actdot.ship">
+    <Setter Property="Fill" Value="Transparent"/>
+    <Setter Property="Stroke" Value="{DynamicResource TextDimBrush}"/>
+    <Setter Property="StrokeThickness" Value="1.5"/>
+  </Style>
+  <Style Selector="Ellipse.actdot.rebuilt">
+    <Setter Property="Fill" Value="{DynamicResource MarkBrush}"/>
+  </Style>
+  <Style Selector="Ellipse.actdot.odd">
+    <Setter Property="Fill" Value="{DynamicResource DangerBrush}"/>
+  </Style>
+  <Style Selector="Border.actpill">
+    <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource LineStrongBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="5"/>
+    <Setter Property="Padding" Value="9,3"/>
+  </Style>
+  <Style Selector="Border.actpill.rebuilt TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+  </Style>
+  <Style Selector="ListBox.clonerows">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Padding" Value="0"/>
+  </Style>
+  <Style Selector="ListBox.clonerows ListBoxItem">
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="MinHeight" Value="32"/>
+    <Setter Property="Height" Value="32"/>
+    <Setter Property="Margin" Value="0"/>
+    <Setter Property="Focusable" Value="False"/>
+  </Style>
+  <Style Selector="TextBlock.stock">
+    <Setter Property="FontStyle" Value="Italic"/>
+  </Style>
+  <!-- The Stock segment of the source filter is italic: its rows are. -->
+  <Style Selector="Button.seg.stock">
+    <Setter Property="FontStyle" Value="Italic"/>
   </Style>
   <!-- Section headings ("Pinned", "All assets") sit in the list but are not rows. -->
   <Style Selector="ListBox.xtree ListBoxItem.heading">

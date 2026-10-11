@@ -5,6 +5,7 @@
         xmlns:controls="using:Apex.Editor.Controls"
         xmlns:c="using:Apex.Editor.Commands"
         xmlns:svc="using:Apex.Editor.Services"
+        xmlns:stock="using:Apex.Editor.Services.Stock"
         x:Class="Apex.Editor.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="{Binding WindowTitle}"
@@ -223,7 +224,7 @@
                         <!-- Capped so a dozen tabs still fit; the full name is the tab's tooltip. -->
                         <TextBlock Text="{Binding Name, Converter={x:Static views:MiddleTrim.Tab}}" FontSize="{StaticResource FontSizeSm}"
                                    VerticalAlignment="Center" MaxWidth="180" TextTrimming="CharacterEllipsis" Margin="7,0,0,0"
-                                   Classes.previewtab="{Binding IsPreview}"/>
+                                   Classes.previewtab="{Binding IsPreview}" Classes.stock="{Binding IsStock}"/>
                         <!-- Same mark as the Explorer's rows: this asset has edits in this session. -->
                         <Ellipse Width="5" Height="5" Fill="{DynamicResource MarkBrush}" VerticalAlignment="Center" Margin="7,0,0,0"
                                  IsVisible="{Binding !!Changes.Count}" ToolTip.Tip="Changed this session"/>
@@ -663,6 +664,253 @@
             </StackPanel>
           </ScrollViewer>
         </DockPanel>
+      </Border>
+    </Border>
+
+    <!-- ── Create local copy (a stock asset): where it goes, what it is called, what comes with it ─────────────────
+         The helper reads the game's own files; this only asks and shows. Copy, editable · Use shipped · Rebuilt by the
+         linker are the helper's classes for each asset the copy touches. ── -->
+    <Border Grid.Row="0" Grid.RowSpan="3" Classes="dialogbackdrop" IsVisible="{Binding IsCloneOpen}" PointerPressed="CloneBackdrop_PointerPressed">
+      <Border Name="CloneCard" Classes="dialogcard" Width="960" Height="740" Padding="0" PointerPressed="PaletteCard_PointerPressed"
+              KeyboardNavigation.TabNavigation="Cycle" DataContext="{Binding CloneDialog}" x:DataType="vm:StockCloneViewModel">
+        <DockPanel>
+          <!-- Title: the asset (italic, it is stock), its type, where it ships -->
+          <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="24,18,20,14">
+            <StackPanel Spacing="4">
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Name="CloneCloseButton" Classes="icon" Content="✕" Command="{Binding CloseCommand}"
+                        AutomationProperties.Name="Close" ToolTip.Tip="Close"/>
+                <TextBlock FontWeight="SemiBold" FontSize="{StaticResource FontSizeMd}" Text="Create local copy" VerticalAlignment="Center"/>
+              </DockPanel>
+              <TextBlock Name="CloneSubtitle" Classes="dim" FontSize="{StaticResource FontSizeBase}" TextTrimming="CharacterEllipsis">
+                <Run Text="{Binding AssetName, Mode=OneWay}" FontStyle="Italic" Foreground="{DynamicResource TextSoftBrush}"/><Run Text="  ·  "/><Run Text="{Binding Kind, Mode=OneWay}"/><Run Text="  ·  "/><Run Text="{Binding Subtitle, Mode=OneWay}"/>
+              </TextBlock>
+            </StackPanel>
+          </Border>
+
+          <!-- Footer: the summary line, then the buttons (or the progress while it writes) -->
+          <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="24,12">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="16,0,0,0">
+                <Button Name="CloneUndoButton" Classes="outline" Command="{Binding UndoCommand}" IsVisible="{Binding ShowResult}" IsEnabled="{Binding CanUndo}">
+                  <TextBlock Text="Undo"/>
+                </Button>
+                <Button Name="CloneCancelButton" Classes="outline" Command="{Binding CloseCommand}" IsVisible="{Binding !ShowResult}" IsEnabled="{Binding !IsRunning}">
+                  <TextBlock Text="Cancel"/>
+                </Button>
+                <Button Name="CloneCreateButton" Classes="accent" Command="{Binding CreateCommand}" IsVisible="{Binding !ShowResult}" IsEnabled="{Binding CanCreate}">
+                  <TextBlock Text="{Binding CreateLabel}"/>
+                </Button>
+                <Button Name="CloneDoneButton" Classes="accent" Command="{Binding CloseCommand}" IsVisible="{Binding ShowResult}">
+                  <TextBlock Text="Done"/>
+                </Button>
+              </StackPanel>
+              <StackPanel IsVisible="{Binding IsRunning}" VerticalAlignment="Center" Spacing="4">
+                <ProgressBar Height="4" Minimum="0" Maximum="1" Value="{Binding ProgressFraction}" IsIndeterminate="{Binding !ProgressKnown}"/>
+                <TextBlock Name="CloneProgressText" Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding ProgressText}" TextTrimming="CharacterEllipsis"/>
+              </StackPanel>
+              <TextBlock Name="CloneSummary" Classes="dim" FontSize="{StaticResource FontSizeBase}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                         Text="{Binding Summary}" ToolTip.Tip="{Binding Summary}" IsVisible="{Binding IsReady}"/>
+              <TextBlock Name="ClonePlanning" Classes="dim" FontSize="{StaticResource FontSizeBase}" VerticalAlignment="Center"
+                         Text="{Binding PlanNote}" IsVisible="{Binding IsPlanning}"/>
+              <TextBlock Name="CloneFooterError" FontSize="{StaticResource FontSizeSm}" VerticalAlignment="Center" TextWrapping="Wrap" MaxLines="2"
+                         Foreground="{DynamicResource DangerTextBrush}" Text="{Binding Error}" IsVisible="{Binding !!Error.Length}"/>
+            </DockPanel>
+          </Border>
+
+          <!-- After the copy: what was made, the zone lines to add, Undo -->
+          <ScrollViewer IsVisible="{Binding ShowResult}" VerticalScrollBarVisibility="Auto">
+            <StackPanel Name="CloneResult" Spacing="14" Margin="24,20">
+              <StackPanel Spacing="4">
+                <TextBlock Name="CloneResultTitle" FontWeight="SemiBold" FontSize="{StaticResource FontSizeMd}" Text="{Binding ResultTitle}"/>
+                <TextBlock Classes="dim" FontSize="{StaticResource FontSizeBase}" TextWrapping="Wrap" Text="{Binding ResultDetail}"/>
+              </StackPanel>
+              <StackPanel Spacing="6" IsVisible="{Binding HasZoneLines}">
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Classes="link teal" Command="{Binding CopyZoneLinesCommand}" AutomationProperties.Name="Copy the zone lines">
+                    <TextBlock Text="Copy" FontSize="{StaticResource FontSizeSm}"/>
+                  </Button>
+                  <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Add these lines to your zone file" VerticalAlignment="Center"/>
+                </DockPanel>
+                <Border Background="{DynamicResource BgFieldBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
+                        CornerRadius="{StaticResource RadiusMd}" Padding="12,10">
+                  <SelectableTextBlock Name="CloneZoneLines" Classes="mono" FontSize="{StaticResource FontSizeBase}" Text="{Binding ZoneLines}"/>
+                </Border>
+              </StackPanel>
+              <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" Text="{Binding ResultNotes}" IsVisible="{Binding HasResultNotes}"/>
+              <TextBlock Name="CloneAfterText" Classes="faint" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" Text="{Binding AfterText}"/>
+            </StackPanel>
+          </ScrollViewer>
+
+          <!-- Before the copy: options, then the tree -->
+          <DockPanel IsVisible="{Binding ShowPlan}">
+            <Grid DockPanel.Dock="Top" ColumnDefinitions="*,24,*" RowDefinitions="Auto,Auto,Auto" Margin="24,14,24,10" RowSpacing="12">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Copy into"/>
+                <ComboBox Name="CloneTargetBox" Classes="field" HorizontalAlignment="Stretch" ItemsSource="{Binding Targets}" SelectedItem="{Binding Target}"
+                          IsEnabled="{Binding !IsRunning}" AutomationProperties.Name="Map or mod to copy into">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="stock:CloneTarget">
+                      <TextBlock Text="{Binding Label}" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FontSizeSm}"/>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+              <StackPanel Grid.Column="2" Spacing="6">
+                <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Add to GDT"/>
+                <ComboBox Name="CloneGdtBox" Classes="field" HorizontalAlignment="Stretch" ItemsSource="{Binding Gdts}" SelectedItem="{Binding Gdt}"
+                          IsEnabled="{Binding !IsRunning}" AutomationProperties.Name="GDT to add the copy to">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:CloneGdtChoice">
+                      <TextBlock FontSize="{StaticResource FontSizeSm}" TextTrimming="CharacterEllipsis">
+                        <Run Text="{Binding Label, Mode=OneWay}" FontFamily="{StaticResource MonoFont}"/><Run Text="  "/><Run Text="{Binding Detail, Mode=OneWay}" Foreground="{DynamicResource TextFaintBrush}"/>
+                      </TextBlock>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+
+              <StackPanel Grid.Row="1" Spacing="6">
+                <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Name"/>
+                <RadioButton Name="CloneKeepName" GroupName="CloneName" IsChecked="{Binding KeepName}" IsEnabled="{Binding KeepAllowed}">
+                  <TextBlock TextTrimming="CharacterEllipsis">
+                    <Run Text="Keep "/><Run Text="{Binding AssetName, Mode=OneWay}" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FontSizeSm}"/><Run Text="  "/><Run Text="{Binding KeepSuffix, Mode=OneWay}" Foreground="{DynamicResource TextFaintBrush}"/>
+                  </TextBlock>
+                </RadioButton>
+                <RadioButton Name="CloneNewName" GroupName="CloneName" IsChecked="{Binding NewName}">
+                  <TextBlock Text="New name, applied to every copied asset" Foreground="{DynamicResource TextSoftBrush}"/>
+                </RadioButton>
+                <TextBox Name="ClonePrefixBox" Classes="field small" Margin="26,0,0,0" FontFamily="{StaticResource MonoFont}" Text="{Binding Prefix}"
+                         IsVisible="{Binding NewName}" PlaceholderText="Prefix, e.g. zm_guns_" AutomationProperties.Name="Name prefix"/>
+                <TextBlock Name="CloneNameNote" Classes="faint" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" Margin="26,0,0,0"
+                           Text="{Binding NameNote}" IsVisible="{Binding !!NameNote.Length}"/>
+              </StackPanel>
+              <StackPanel Grid.Row="1" Grid.Column="2" Spacing="6">
+                <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Source files go to" IsVisible="{Binding HasSourceFolders}"/>
+                <ItemsControl Name="CloneFolders" ItemsSource="{Binding SourceFolders}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                      <Border Background="{DynamicResource BgFieldBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
+                              CornerRadius="{StaticResource RadiusMd}" Padding="10,6" Margin="0,0,0,4">
+                        <TextBlock Classes="mono dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding}" TextTrimming="CharacterEllipsis"/>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <CheckBox Name="CloneClearCamo" IsChecked="{Binding ClearCamo}" IsVisible="{Binding HasCamo}">
+                  <TextBlock Text="Leave the camo out (a camo the map doesn't define can't be used)" Foreground="{DynamicResource TextSoftBrush}" TextWrapping="Wrap"/>
+                </CheckBox>
+              </StackPanel>
+            </Grid>
+
+            <!-- What comes with it -->
+            <DockPanel DockPanel.Dock="Top" Margin="24,2,24,6">
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Ellipse Classes="actdot copy" Width="8" Height="8"/>
+                  <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Copy, editable"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Ellipse Classes="actdot ship" Width="8" Height="8"/>
+                  <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Use shipped"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Ellipse Classes="actdot rebuilt" Width="8" Height="8"/>
+                  <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Rebuilt by linker"/>
+                </StackPanel>
+              </StackPanel>
+              <TextBlock VerticalAlignment="Center">
+                <Run Text="What comes with it" FontWeight="SemiBold"/><Run Text="   "/><Run Text="{Binding CountText, Mode=OneWay}" Foreground="{DynamicResource TextFaintBrush}"/>
+              </TextBlock>
+            </DockPanel>
+
+            <StackPanel DockPanel.Dock="Bottom" Spacing="6" Margin="24,8,24,8" IsVisible="{Binding HasNotes}">
+              <Border Background="{DynamicResource BgFieldBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
+                      CornerRadius="{StaticResource RadiusMd}" Padding="12,9">
+                <TextBlock Name="CloneNotes" Classes="dim" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" Text="{Binding Notes}"/>
+              </Border>
+              <CheckBox IsEnabled="False" IsChecked="False">
+                <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="Keep the shipped compiled data for anything you don't edit (coming with the Rust linker)"/>
+              </CheckBox>
+            </StackPanel>
+
+            <Grid Margin="24,0">
+              <DockPanel>
+                <Grid DockPanel.Dock="Top" ColumnDefinitions="*,150,210" Margin="10,4" >
+                  <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Asset"/>
+                  <TextBlock Grid.Column="1" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Ships in"/>
+                  <TextBlock Grid.Column="2" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Action"/>
+                </Grid>
+                <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource LineBrush}"/>
+                <ListBox Name="CloneRows" Classes="clonerows" ItemsSource="{Binding Rows}" SelectionMode="Single" Focusable="False">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:CloneDepRow">
+                      <Grid ColumnDefinitions="*,150,210" Height="32" Background="Transparent" ToolTip.Tip="{Binding Tip}">
+                        <DockPanel Margin="{Binding Indent}">
+                          <Button DockPanel.Dock="Left" Classes="chev" Content="{Binding Chevron}" Command="{Binding ToggleCommand}" IsVisible="{Binding IsGroup}"
+                                  AutomationProperties.Name="Expand or collapse"/>
+                          <Panel DockPanel.Dock="Left" Width="24" IsVisible="{Binding !IsGroup}"/>
+                          <Rectangle DockPanel.Dock="Left" Width="8" Height="8" RadiusX="2" RadiusY="2" Fill="{Binding DotBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                          <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="{StaticResource FontSizeBase}">
+                            <Run Text="{Binding Name, Mode=OneWay}" FontStyle="Italic" Foreground="{DynamicResource TextSoftBrush}"/><Run Text="   "/><Run Text="{Binding Meta, Mode=OneWay}" Foreground="{DynamicResource TextFaintBrush}" FontSize="{StaticResource FontSizeSm}"/>
+                          </TextBlock>
+                        </DockPanel>
+                        <TextBlock Grid.Column="1" Classes="mono dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding Zone}" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                          <Ellipse Classes="actdot" Classes.copy="{Binding IsCopy}" Classes.ship="{Binding IsShip}" Classes.rebuilt="{Binding IsRebuilt}" Classes.odd="{Binding IsOdd}"
+                                   Width="8" Height="8"/>
+                          <Border Classes="actpill" Classes.rebuilt="{Binding IsRebuilt}">
+                            <TextBlock Text="{Binding ActionLabel}" FontSize="{StaticResource FontSizeSm}"/>
+                          </Border>
+                        </StackPanel>
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </DockPanel>
+              <StackPanel IsVisible="{Binding IsPlanning}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" MinWidth="240">
+                <ProgressBar IsIndeterminate="True" Height="4"/>
+                <TextBlock Classes="dim" FontSize="{StaticResource FontSizeBase}" HorizontalAlignment="Center" Text="Reading dependencies from the game's files…"/>
+              </StackPanel>
+            </Grid>
+          </DockPanel>
+
+          <!-- Nothing to plan: no map to copy into, or the helper failed -->
+          <StackPanel IsVisible="{Binding IsFailed}" Margin="24,28" Spacing="8">
+            <TextBlock FontWeight="SemiBold" FontSize="{StaticResource FontSizeMd}" Text="Can't make a copy yet"/>
+            <TextBlock Name="CloneFailText" Foreground="{DynamicResource DangerTextBrush}" TextWrapping="Wrap" Text="{Binding Error}"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+    </Border>
+
+    <!-- ── The stock helper: where its stocklib.exe is ──
+         TODO(release feed): the helper has no release feed yet, so Install points Apex at a stocklib.exe on this machine. -->
+    <Border Grid.Row="0" Grid.RowSpan="3" Classes="dialogbackdrop" IsVisible="{Binding IsStockHelperOpen}" PointerPressed="StockHelperBackdrop_PointerPressed">
+      <Border Name="StockHelperCard" Classes="dialogcard" Width="540" PointerPressed="PaletteCard_PointerPressed" KeyboardNavigation.TabNavigation="Cycle">
+        <StackPanel Spacing="12">
+          <TextBlock FontWeight="SemiBold" FontSize="{StaticResource FontSizeMd}" Text="Stock helper"/>
+          <TextBlock Classes="dim" FontSize="{StaticResource FontSizeBase}" TextWrapping="Wrap"
+                     Text="The BO3 Mod Tools stock helper (stocklib.exe) reads the game's own fastfiles so Apex can search them and copy any of them into a map. There is no download for it yet: point Apex at the stocklib.exe you have."/>
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Name="StockHelperBrowse" Classes="outline" Margin="8,0,0,0" Click="StockHelperBrowse_Click" AutomationProperties.Name="Browse for stocklib.exe">
+              <TextBlock Text="Browse…"/>
+            </Button>
+            <TextBox Name="StockHelperBox" Classes="field" FontFamily="{StaticResource MonoFont}" Text="{Binding StockHelperPath}"
+                     PlaceholderText="Path to stocklib.exe" AutomationProperties.Name="Path to stocklib.exe">
+              <TextBox.KeyBindings>
+                <KeyBinding Gesture="Enter" Command="{Binding AcceptStockHelperCommand}"/>
+              </TextBox.KeyBindings>
+            </TextBox>
+          </DockPanel>
+          <TextBlock FontSize="{StaticResource FontSizeSm}" Foreground="{DynamicResource DangerTextBrush}" TextWrapping="Wrap"
+                     Text="{Binding StockHelperError}" IsVisible="{Binding !!StockHelperError.Length}"/>
+          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button Classes="outline" Command="{Binding CancelStockHelperCommand}"><TextBlock Text="Cancel"/></Button>
+            <Button Name="StockHelperAccept" Classes="accent" Command="{Binding AcceptStockHelperCommand}"><TextBlock Text="Use this helper"/></Button>
+          </StackPanel>
+        </StackPanel>
       </Border>
     </Border>
 
