@@ -824,13 +824,16 @@
               </TextBlock>
             </DockPanel>
 
-            <StackPanel DockPanel.Dock="Bottom" Spacing="6" Margin="24,8,24,8" IsVisible="{Binding HasNotes}">
+            <StackPanel DockPanel.Dock="Bottom" Spacing="6" Margin="24,8,24,8">
               <Border Background="{DynamicResource BgFieldBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
-                      CornerRadius="{StaticResource RadiusMd}" Padding="12,9">
+                      CornerRadius="{StaticResource RadiusMd}" Padding="12,9" IsVisible="{Binding HasNotes}">
                 <TextBlock Name="CloneNotes" Classes="dim" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" Text="{Binding Notes}"/>
               </Border>
-              <CheckBox IsEnabled="False" IsChecked="False">
-                <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="Keep the shipped compiled data for anything you don't edit (coming with the Rust linker)"/>
+              <!-- Not available yet: greyed and inert (not focusable, not clickable), and says when it comes. -->
+              <CheckBox Name="CloneKeepShipped" IsEnabled="False" IsChecked="False" Focusable="False" IsHitTestVisible="False" Opacity="0.4"
+                        ToolTip.Tip="Not available yet: it needs the Rust linker, which keeps the compiled data a copy doesn't change.">
+                <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap"
+                           Text="Keep the shipped compiled data for anything you don't edit (coming with the Rust linker)"/>
               </CheckBox>
             </StackPanel>
 
