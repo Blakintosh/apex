@@ -164,6 +164,9 @@ public sealed partial class MainViewModel
         }
         OnPropertyChanged(nameof(SearchPlaceholder));
         OnPropertyChanged(nameof(ReserveFacetRow));
+        OnPropertyChanged(nameof(ShowSourceFilter));
+        OnPropertyChanged(nameof(ShowStockOffer));
+        OnPropertyChanged(nameof(HasStockNote));
         // A chip added or removed is a click, not typing: it applies at once.
         if (chipsChanged)
             ApplyFilterNow();
@@ -178,6 +181,9 @@ public sealed partial class MainViewModel
         _explorerChipKey = string.Join(' ', ExplorerQuery.Chips.Select(c => c.Raw));
         OnPropertyChanged(nameof(SearchPlaceholder));
         OnPropertyChanged(nameof(ReserveFacetRow));
+        OnPropertyChanged(nameof(ShowSourceFilter));
+        OnPropertyChanged(nameof(ShowStockOffer));
+        OnPropertyChanged(nameof(HasStockNote));
     }
 
     // ── The menu ─────────────────────────────────────────────────────────────

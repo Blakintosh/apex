@@ -232,7 +232,7 @@ public sealed partial class MainViewModel
 
     /// <summary>A free-text query is active: the Explorer shows flat, ranked results.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsTreeMode), nameof(ReserveFacetRow))]
+    [NotifyPropertyChangedFor(nameof(IsTreeMode), nameof(ReserveFacetRow), nameof(ShowSourceFilter), nameof(ShowStockOffer), nameof(HasStockNote))]
     private bool _isSearchResults;
 
     /// <summary>
@@ -265,6 +265,8 @@ public sealed partial class MainViewModel
     /// </summary>
     public void RevealInTree(AssetRecord asset)
     {
+        if (asset.IsStock)
+            return;
         ShowExplorerPane();
         if (_debounce.IsEnabled)
             ApplyFilterNow();
@@ -317,6 +319,8 @@ public sealed partial class MainViewModel
     /// <summary>Pins or unpins an asset in the Explorer's Pinned section (and the start page).</summary>
     public void TogglePinned(AssetRecord asset)
     {
+        if (asset.IsStock)
+            return;
         var i = _pinned.FindIndex(n => n.Equals(asset.Name, StringComparison.OrdinalIgnoreCase));
         if (i >= 0)
             _pinned.RemoveAt(i);
@@ -545,6 +549,9 @@ public sealed partial class MainViewModel
 
     private void AddRecent(AssetRecord record)
     {
+        // A stock asset is in no GDT: a recent entry for it could not be opened by name again.
+        if (record.IsStock)
+            return;
         _settings.Recent.RemoveAll(r => r.Name.Equals(record.Name, StringComparison.OrdinalIgnoreCase));
         _settings.Recent.Insert(0, new UiSettings.RecentEntry { Name = record.Name, OpenedUtc = DateTime.UtcNow });
         if (_settings.Recent.Count > 30)
@@ -714,11 +721,13 @@ public sealed partial class MainViewModel
     /// </summary>
     public string PreviewSubjectLabel => _lockedSubject?.Record.Name
         ?? PreviewSubject?.Label
-        ?? (ActiveTab is null ? "" : _env.IsAvailable ? "Nothing to preview" : "Needs the BO3 install");
+        ?? (ActiveTab is null ? "" : ActiveTab.IsStock ? "No preview yet" : _env.IsAvailable ? "Nothing to preview" : "Needs the BO3 install");
 
     /// <summary>Why the Preview is empty, in one line.</summary>
     public string PreviewEmptyText => ActiveTab is null
         ? "Open an asset to preview it."
+        : ActiveTab.IsStock
+            ? "Stock assets can't be previewed yet. Create a local copy to preview it."
         : _env.IsAvailable
             ? "Nothing to preview: this asset doesn't reference a model, material, image or anim."
             : "Model and anim previews need the BO3 install.";
@@ -1076,6 +1085,9 @@ public sealed partial class MainViewModel
 
         // Each list is built aside and swapped in with one notification.
         var uses = new List<InspectorLinkViewModel>();
+        if (tab.Record.IsStock)
+            uses = StockUses(tab.Record);
+        else
         foreach (var r in tab.AllSentinel.All.OfType<RefPropertyViewModel>())
         {
             if (r.Value.Length == 0 || r.IsRuleHidden)
@@ -1214,7 +1226,7 @@ public sealed partial class MainViewModel
     /// <summary>Compare mode over an Explorer multi-selection (one type): the first is the base.</summary>
     public void CompareAssets(IReadOnlyList<AssetRecord> assets)
     {
-        if (assets.Count < 2)
+        if (assets.Count < 2 || assets.Any(a => a.IsStock))
             return;
         var type = assets[0].Type;
         var candidates = _db.Assets
@@ -1231,7 +1243,7 @@ public sealed partial class MainViewModel
     /// <summary>Table mode over an Explorer multi-selection (the most common type among it).</summary>
     public void OpenTableFor(IReadOnlyList<AssetRecord> assets)
     {
-        if (assets.Count == 0)
+        if (assets.Count == 0 || assets.Any(a => a.IsStock))
             return;
         var dominant = assets.GroupBy(a => a.Type).OrderByDescending(g => g.Count()).First();
         var rows = dominant.Take(TableViewModel.RowCap).ToList();

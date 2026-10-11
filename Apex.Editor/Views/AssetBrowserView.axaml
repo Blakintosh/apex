@@ -236,6 +236,19 @@
       </Button>
     </StackPanel>
 
+    <!-- ── Where results come from: All · Local · Stock, with counts. Shown over search results while there is a stock
+         index to merge in (the GDT tree never lists stock assets). ── -->
+    <Border DockPanel.Dock="Top" Classes="segmented source" Name="SourceFilter" IsVisible="{Binding ShowSourceFilter}" Margin="0,0,0,8" Height="30">
+      <UniformGrid Rows="1">
+        <Button Name="SourceAllButton" Classes="seg" Classes.checked="{Binding IsSourceAll}" Command="{Binding SetSourceCommand}" CommandParameter="All"
+                Content="{Binding SourceAllText}" AutomationProperties.Name="{Binding SourceAllText, StringFormat='Show all results, {0}'}"/>
+        <Button Name="SourceLocalButton" Classes="seg" Classes.checked="{Binding IsSourceLocal}" Command="{Binding SetSourceCommand}" CommandParameter="Local"
+                Content="{Binding SourceLocalText}" AutomationProperties.Name="{Binding SourceLocalText, StringFormat='Show local assets only, {0}'}"/>
+        <Button Name="SourceStockButton" Classes="seg stock" Classes.checked="{Binding IsSourceStock}" Command="{Binding SetSourceCommand}" CommandParameter="Stock"
+                Content="{Binding SourceStockText}" AutomationProperties.Name="{Binding SourceStockText, StringFormat='Show stock assets only, {0}'}"/>
+      </UniformGrid>
+    </Border>
+
     <!-- ── Section line: what the rows are, or while anything filters how much is showing · Filter · Group ▾ · ⋯ ── -->
     <DockPanel DockPanel.Dock="Top" Height="24" Margin="8,0,0,0">
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
@@ -348,6 +361,28 @@
 
     <TextBlock DockPanel.Dock="Bottom" Classes="faint" FontSize="{StaticResource FontSizeXs}" TextWrapping="Wrap"
                Margin="14,4,14,8" Text="{Binding ResultsNote}" IsVisible="{Binding HasResultsNote}"/>
+    <Button DockPanel.Dock="Bottom" Name="ShowMoreStock" Classes="link teal" HorizontalAlignment="Left" Margin="14,0,14,4"
+            Command="{Binding ShowMoreStockCommand}" IsVisible="{Binding HasMoreStock}" AutomationProperties.Name="Show more stock assets">
+      <TextBlock Text="Show more stock assets" FontSize="{StaticResource FontSizeSm}"/>
+    </Button>
+    <TextBlock DockPanel.Dock="Bottom" Name="StockNoteText" Classes="faint" FontSize="{StaticResource FontSizeXs}" TextWrapping="Wrap"
+               Margin="14,4,14,4" Text="{Binding StockNote}" IsVisible="{Binding HasStockNote}"/>
+    <!-- The helper that reads the game's own assets isn't installed: said once, calmly, with the way to get it. -->
+    <Border DockPanel.Dock="Bottom" Name="StockOffer" Classes="stockcard" Margin="4,6,4,8" IsVisible="{Binding ShowStockOffer}">
+      <StackPanel Spacing="8">
+        <TextBlock FontWeight="SemiBold" FontSize="{StaticResource FontSizeBase}" TextWrapping="Wrap"
+                   Text="Stock library needs the BO3 Mod Tools stock helper"/>
+        <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" Text="{Binding StockOfferText}"/>
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Name="StockInstallButton" Classes="accent small" Command="{Binding InstallStockHelperCommand}" AutomationProperties.Name="Install the stock helper">
+            <TextBlock Text="Install"/>
+          </Button>
+          <Button Classes="link dim" Command="{Binding DismissStockOfferCommand}" VerticalAlignment="Center">
+            <TextBlock Text="Not now" FontSize="{StaticResource FontSizeSm}"/>
+          </Button>
+        </StackPanel>
+      </StackPanel>
+    </Border>
 
     <!-- ── Rows (flattened + virtualized) ─────────────────────────── -->
     <Panel>
@@ -382,6 +417,7 @@
         <ListBox.ContextMenu>
           <ContextMenu Name="TreeMenu" Opening="TreeMenu_Opening">
             <controls:InvokableMenuItem Name="MenuOpen" Header="Open" InputGesture="Enter" Click="MenuOpen_Click"/>
+            <controls:InvokableMenuItem Name="MenuCloneStock" Header="Create local copy…" Click="MenuCloneStock_Click"/>
             <controls:InvokableMenuItem Name="MenuToggle" Header="Expand" InputGesture="Enter" Click="MenuToggle_Click"/>
             <controls:InvokableMenuItem Name="MenuNewIn" Header="New asset in this GDT…" Click="MenuNewIn_Click"/>
             <controls:InvokableMenuItem Name="MenuCollapseAll" Click="MenuCollapseAll_Click"/>
@@ -413,7 +449,8 @@
               <TextBlock IsVisible="{Binding IsHeader}" Text="{Binding Title}" Classes="faint" FontSize="{StaticResource FontSizeXs}"
                          VerticalAlignment="Bottom" Margin="8,0,0,4"/>
               <!-- Row: chevron · glyph · name (match underlined) · folder · suffix · count · ● ⚠ -->
-              <DockPanel IsVisible="{Binding !IsHeader}" Margin="{Binding Indent}" Background="Transparent" VerticalAlignment="Stretch">
+              <!-- A stock row is taller by the zone line under its name. -->
+              <DockPanel IsVisible="{Binding !IsHeader}" Margin="{Binding Indent}" Background="Transparent" VerticalAlignment="Stretch" MinHeight="{Binding RowHeight}">
                 <Button DockPanel.Dock="Left" Classes="chev"
                         AutomationProperties.Name="Expand or collapse"
                         Content="{Binding Chevron}" Command="{Binding ToggleCommand}"
@@ -431,13 +468,18 @@
                 </Panel>
                 <TextBlock DockPanel.Dock="Right" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding Badge}"
                            IsVisible="{Binding HasBadge}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                <Border DockPanel.Dock="Right" Classes="stocktag" IsVisible="{Binding OverridesStock}" VerticalAlignment="Center" Margin="6,0,0,0"
+                        ToolTip.Tip="A stock asset with this name exists; yours wins">
+                  <TextBlock Text="overrides stock" FontSize="10.5" Foreground="{DynamicResource MarkTextBrush}"/>
+                </Border>
                 <controls:GlyphIcon DockPanel.Dock="Right" Glyph="pin" Size="11" Margin="8,0,0,0" VerticalAlignment="Center"
                                     Foreground="{DynamicResource TextFaintBrush}" IsVisible="{Binding IsPinned}" ToolTip.Tip="Pinned"/>
                 <!-- The name measures first; a GDT's folder takes what is left, trimmed from its front so the part nearest
                      the file stays, then the suffix (an asset's GDT, or a single-type GDT's type) if there is room. -->
+                <StackPanel VerticalAlignment="Center" Spacing="1">
                 <controls:NameFirstPanel Spacing="8" ToolTip.Tip="{Binding Tip}" Background="Transparent">
-                  <!-- The match is bold and underlined in the text colour. -->
-                  <TextBlock Classes="rowname" Classes.group="{Binding IsGroup}" VerticalAlignment="Center"
+                  <!-- The match is bold and underlined in the text colour. Stock names are italic. -->
+                  <TextBlock Classes="rowname" Classes.group="{Binding IsGroup}" Classes.stock="{Binding IsStock}" VerticalAlignment="Center"
                              FontSize="{StaticResource FontSizeBase}" TextTrimming="CharacterEllipsis" FontFeatures="+tnum">
                     <Run Text="{Binding Prefix, Mode=OneWay}"/><Run Text="{Binding Hit, Mode=OneWay}" FontWeight="SemiBold" TextDecorations="{StaticResource HitUnderline}"/><Run Text="{Binding Postfix, Mode=OneWay}"/>
                   </TextBlock>
@@ -448,6 +490,10 @@
                              FontSize="{StaticResource FontSizeXs}" Foreground="{DynamicResource TextFaintBrush}"
                              VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                 </controls:NameFirstPanel>
+                <!-- A stock row names the zone that defines it, in mono, under the name. -->
+                <TextBlock Classes="faint mono" FontSize="10.5" Text="{Binding SourceLine}" IsVisible="{Binding HasSourceLine}"
+                           TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding SourceLine}"/>
+                </StackPanel>
               </DockPanel>
             </Panel>
           </DataTemplate>

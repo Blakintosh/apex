@@ -120,6 +120,22 @@ public sealed partial class BrowserNode : ObservableObject
 
     partial void OnLevelChanged(int value) => Indent = IndentFor(value);
 
+    // ── Stock rows ───────────────────────────────────────────────────────────
+    /// <summary>A shipped Black Ops III asset (read from the game's fastfiles): italic, with the zone that defines it under the name.</summary>
+    public bool IsStock => Asset?.Stock is not null;
+
+    /// <summary>Under a stock row's name, in mono: "zm_levelcommon.ff · attachment unique" ("core_common.ff +14" when several zones define it).</summary>
+    public string SourceLine { get; init; } = "";
+
+    public bool HasSourceLine => SourceLine.Length > 0;
+
+    /// <summary>The row is taller by the line under its name.</summary>
+    public double RowHeight => HasSourceLine ? 40 : 28;
+
+    /// <summary>A local asset that hides a stock asset of the same type and name ("overrides stock").</summary>
+    [ObservableProperty]
+    private bool _overridesStock;
+
     public bool IsGroup => Asset is null && !IsHeader;
     public bool IsAssetRow => Asset is not null;
     public bool HasBadge => Badge.Length > 0;
@@ -204,6 +220,10 @@ public sealed partial class BrowserNode : ObservableObject
                 if (HasBadge)
                     parts.Add(Badge == "1" ? "1 asset" : $"{Badge} assets");
             }
+            if (IsStock)
+                parts.Add("stock, read-only");
+            if (OverridesStock)
+                parts.Add("overrides stock");
             if (HasChanges)
                 parts.Add("changed");
             if (HasProblem)
@@ -213,6 +233,7 @@ public sealed partial class BrowserNode : ObservableObject
     }
 
     partial void OnSuffixChanged(string value) => OnPropertyChanged(nameof(AutomationName));
+    partial void OnOverridesStockChanged(bool value) => OnPropertyChanged(nameof(AutomationName));
     partial void OnHasChangesChanged(bool value) => OnPropertyChanged(nameof(AutomationName));
     partial void OnHasProblemChanged(bool value) => OnPropertyChanged(nameof(AutomationName));
 

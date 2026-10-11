@@ -680,8 +680,10 @@ public sealed partial class MainViewModel
 
     private JournalEntry TabsEntry()
     {
-        var tabs = OpenTabs.Select(t => new JournalTab { Gdt = t.Record.GdtName, Name = t.Record.Name, Preview = t.IsPreview }).ToList();
-        return new JournalEntry { Op = "tabs", Tabs = tabs, Active = ActiveTab is { } a ? OpenTabs.IndexOf(a) : -1 };
+        // Stock tabs are not part of a session: they are in no GDT to come back to.
+        var kept = OpenTabs.Where(t => !t.Record.IsStock).ToList();
+        var tabs = kept.Select(t => new JournalTab { Gdt = t.Record.GdtName, Name = t.Record.Name, Preview = t.IsPreview }).ToList();
+        return new JournalEntry { Op = "tabs", Tabs = tabs, Active = ActiveTab is { } a ? kept.IndexOf(a) : -1 };
     }
 
     /// <summary>The session as it stands, as the shortest journal that replays to it.</summary>

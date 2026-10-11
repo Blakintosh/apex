@@ -12,6 +12,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Apex.Editor.Models;
 using Apex.Editor.Services;
+using Apex.Editor.Services.Stock;
 using Apex.Editor.Services.Gdf;
 using Apex.Editor.Services.Gdt;
 
@@ -299,6 +300,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         FieldFiles.Root = _env.IsAvailable ? _env.Bo3Root : null;
         // What the game ships is no missing reference (global_invisible has no GDT); read while the GDTs index.
         ShippedAssets.Use(_env.IsAvailable ? _env.Bo3Root : null);
+        UseStock();
         // A deffile button's ReadTextFile reads only under the install GameEnvironment found. Only a live window sets it: a
         // mock-mode one (tests, no install) leaves the process's install alone.
         if (_env.IsAvailable && _env.Bo3Root is { } installRoot)
@@ -479,6 +481,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 ApplyFilter();
                 RefreshStartPage();
                 StartWatcher();
+                StartStockRefresh();
                 ReportExtensions();
                 RestoreSession();
                 // Debug hook: APEX_STARTUP_OPEN=name[,name…] opens assets once ingestion lands.
@@ -672,6 +675,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _journal = null;
         _watcher?.Dispose();
         _watcher = null;
+        Stock.Dispose();
     }
 
     // ── Read-only live watcher (§3.4) ─────────────────────────────────────────
@@ -1650,12 +1654,16 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         MatchCount = matches;
         // Drives the browser's empty state: a blank pane with no explanation and no way out is the
         // worst possible result of a mistyped query.
-        SetBrowserEmpty(matches, hasFilter);
+        // A search that merges the stock library in is empty only when neither side has a row (or an answer coming).
+        SetBrowserEmpty(search is not null ? _searchListCount : matches, hasFilter);
         BrowserSummary = _tokens.Count == 0
             ? $"{TotalCount:N0} assets · {GdtCount:N0} GDTs"
             : $"{matches:N0} of {TotalCount:N0} assets";
-        // What the list shows, a type facet included, out of everything loaded: the count and the rows agree.
-        ResultCountText = $"{shown:N0} of {TotalCount:N0} assets";
+        // What the list shows, a type facet included, out of everything loaded: the count and the rows agree. With the
+        // stock library in the search, "everything" is the GDTs' assets and the game's.
+        ResultCountText = search is not null && _searchWithStock
+            ? $"{shown:N0} of {TotalCount + _stockAssetCount:N0} assets"
+            : $"{shown:N0} of {TotalCount:N0} assets";
         OpenTableIfAwaited();
         if (_openTopWhenReady)
             OpenTopResultNow();
@@ -1821,35 +1829,94 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 System.Runtime.InteropServices.CollectionsMarshal.GetValueRefOrAddDefault(typeCounts, a.Type, out _)++;
         }
 
+        // The stock library's side of the same search (null: it does not apply, or its answer is still on its way).
+        var stockQuery = StockQueryFor(_tokens, _facetType);
+        var stock = CachedStock(stockQuery);
+        var useLocal = Source != SearchSource.Stock;
+        var useStock = stockQuery is not null && Source != SearchSource.Local;
+        var stockSum = stock?.Result.KindCounts.Values.Sum() ?? 0;
+        if (stockQuery is not null)
+        {
+            SourceAllText = $"All {total + stockSum:N0}";
+            SourceLocalText = $"Local {total:N0}";
+            SourceStockText = stock is null ? "Stock" : $"Stock {stockSum:N0}";
+        }
+        if (!useLocal)
+            typeCounts.Clear();
+        if (useStock && stock is not null)
+            foreach (var (kind, count) in stock.Result.KindCounts)
+                typeCounts[kind] = typeCounts.GetValueOrDefault(kind) + count;
+        var localTotal = useLocal ? total : 0;
+        var mergedTotal = typeCounts.Values.Sum();
+
         // Facets count the whole result set; a selected facet narrows the list, not the query.
         // Nothing to narrow when nothing matched: the empty state speaks instead of an "All 0".
         // Labels use the GDT type names (xmodel, xanim, fx) modders know from APE.
         var byType = typeCounts.OrderByDescending(t => t.Value).ThenBy(t => t.Key, StringComparer.Ordinal).ToList();
-        if (_facetType is { } ft && byType.All(t => !t.Key.Equals(ft, StringComparison.OrdinalIgnoreCase)))
+        if (_facetType is { } ft && byType.All(t => !t.Key.Equals(ft, StringComparison.OrdinalIgnoreCase)) && !(useStock && stock is null))
             _facetType = null;
         // One type: "All 3 · weapon 3" says nothing the list doesn't. Every type is offered; the row draws what fits,
         // the picked one always, and puts the rest behind "+N".
         var facets = new List<SearchFacet>(byType.Count + 1);
         if (byType.Count > 1)
         {
-            facets.Add(new SearchFacet($"All {total:N0}", null, _facetType is null, SelectFacet));
+            facets.Add(new SearchFacet($"All {mergedTotal:N0}", null, _facetType is null, SelectFacet));
             foreach (var (type, count) in byType)
                 facets.Add(new SearchFacet($"{type} {count:N0}", type, type.Equals(_facetType, StringComparison.OrdinalIgnoreCase), SelectFacet));
         }
         SearchFacets.ReplaceAll(facets);
 
         var facet = _facetType;
-        var shown = facet is null ? total : byType.Where(t => t.Key.Equals(facet, StringComparison.OrdinalIgnoreCase)).Sum(t => t.Value);
-        foreach (var a in TopRanked(perGdt, facet, query, FlatResultLimit))
+        var shown = facet is null ? mergedTotal : byType.Where(t => t.Key.Equals(facet, StringComparison.OrdinalIgnoreCase)).Sum(t => t.Value);
+        var localRows = useLocal ? TopRanked(perGdt, facet, query, FlatResultLimit) : new List<AssetRecord>();
+        foreach (var a in localRows)
         {
             var leaf = PrepareLeaf(a, 0, derived: false, showGdt: true);
             leaf.SetHighlight(query);
+            leaf.OverridesStock = stock is not null && stock.LocalOverrides.Contains(StockTypes.KindOfApex(a.Type) + "\0" + a.Name);
             rows.Add(leaf);
         }
-        ResultsNote = shown > FlatResultLimit
-            ? $"Showing the first {FlatResultLimit:N0} of {shown:N0}. Refine the search to see the rest."
+
+        _stockMore = false;
+        var stockListed = 0;
+        if (useStock && stock is not null)
+        {
+            foreach (var hit in stock.Result.Items)
+                if (!HasLocal(hit))
+                {
+                    rows.Add(StockRow(hit, query));
+                    stockListed++;
+                }
+            _stockMore = stock.Result.Items.Count < stock.Result.Total;
+        }
+        var localNote = localRows.Count > 0 && (facet is null ? localTotal : byType.Where(t => t.Key.Equals(facet, StringComparison.OrdinalIgnoreCase)).Sum(t => useLocal ? LocalCountOf(typeCounts, perGdt, t.Key) : 0)) > FlatResultLimit
+            ? $"Showing the first {FlatResultLimit:N0} of {(facet is null ? localTotal : shown):N0}. Refine the search to see the rest."
             : "";
+        ResultsNote = _stockMore
+            ? $"Showing the first {stock!.Result.Items.Count:N0} of {stock.Result.Total:N0} stock assets."
+            : localNote;
+        OnPropertyChanged(nameof(HasMoreStock));
+        // What the list holds (the browser's empty state asks): a stock answer still on its way counts as something.
+        _searchListCount = localRows.Count + stockListed + (useStock && stock is null ? 1 : 0);
+        _searchWithStock = stockQuery is not null && stock is not null;
+        _stockAssetCount = stock?.AssetCount ?? 0;
+        if (stockQuery is not null && stock is null)
+            RequestStock(stockQuery, localRows);
         return shown;
+    }
+
+    private int _searchListCount;
+    private bool _searchWithStock;
+    private int _stockAssetCount;
+
+    private static int LocalCountOf(Dictionary<string, int> merged, List<(GdtFile Gdt, List<AssetRecord> Hits)> perGdt, string type)
+    {
+        var n = 0;
+        foreach (var (_, hits) in perGdt)
+            foreach (var a in hits)
+                if (a.Type.Equals(type, StringComparison.OrdinalIgnoreCase))
+                    n++;
+        return n;
     }
 
     /// <summary>
@@ -2719,7 +2786,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         // Lazy problem counting (§4.3): live mode never validates all 95k assets up front — an asset's
         // problems are computed the first time it is opened (materializing just that one record). WI-9:
         // only once schemas are populated, otherwise validation would run against an empty schema set.
-        if (_liveMode && _schemasReady && !_problemsByAsset.ContainsKey(asset))
+        if (_liveMode && _schemasReady && !asset.IsStock && !_problemsByAsset.ContainsKey(asset))
         {
             UpdateProblemEntry(asset);
             // Its row and the groups above it learn of the problems (collapsed groups roll them up).
@@ -2731,11 +2798,16 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             Owner = this,
             IsPreview = preview,
-            PreviewPane = PreviewPaneViewModel.Create(asset, _env, FindAsset, NavigateToRef),
+            // Previews of stock assets need caches the helper writes (a later phase of the stock library).
+            PreviewPane = asset.IsStock ? null : PreviewPaneViewModel.Create(asset, _env, FindAsset, NavigateToRef),
         };
         // Opening the editor materializes the record's properties — register it so reference scans
         // (WI-4) can find any property-value references it holds without walking the whole corpus.
-        MarkMaterialized(asset);
+        // A stock record is in no GDT: nothing references it and nothing scans it.
+        if (asset.IsStock)
+            tab.RefreshStockInfo(Stock.Db);
+        else
+            MarkMaterialized(asset);
 
         if (preview && OpenTabs.FirstOrDefault(t => t.IsPreview) is { } slot)
         {
@@ -2747,11 +2819,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             OpenTabs.Remove(slot);
             ForgetTab(slot);
             DisposeTabPreview(slot);
+            if (asset.IsStock)
+                BeginStockRead(asset);
             return;
         }
 
         OpenTabs.Add(tab);
         ActiveTab = tab;
+        if (asset.IsStock)
+            BeginStockRead(asset);
     }
 
     private void CloseTab(AssetEditorViewModel tab)
@@ -2962,7 +3038,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     /// <summary>Escape unwinds one layer of UI at a time: dialog → palette → overlay mode.</summary>
     public bool IsAnyLayerOpen =>
-        IsConfirmOpen || IsConflictOpen || IsRenameOpen || IsNewOpen || IsClassOpen || IsPaletteOpen || IsCompareOpen || IsTableOpen || IsAlertOpen;
+        IsConfirmOpen || IsConflictOpen || IsRenameOpen || IsNewOpen || IsClassOpen || IsCloneOpen || IsStockHelperOpen || IsPaletteOpen || IsCompareOpen || IsTableOpen || IsAlertOpen;
 
     public bool DismissTopLayer()
     {
@@ -2971,6 +3047,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (IsRenameOpen) { CancelRename(); return true; }
         if (IsNewOpen) { CancelNew(); return true; }
         if (ClassDialog is { } classDialog) { classDialog.Cancel(); return true; }
+        if (IsStockHelperOpen) { IsStockHelperOpen = false; return true; }
+        if (CloneDialog is { } clone) { clone.CloseCommand.Execute(null); return true; }
         if (IsPaletteOpen) { IsPaletteOpen = false; return true; }
         if (IsCompareOpen) { Compare = null; return true; }
         if (IsTableOpen) { Table = null; return true; }

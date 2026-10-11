@@ -202,12 +202,16 @@ public abstract partial class PropertyItemViewModel : ObservableObject, Controls
     [NotifyPropertyChangedFor(nameof(DisabledTip))]
     private string? _enabledBy;
 
+    /// <summary>Set on every row of a stock asset: the row is off for this reason, not for a deffile rule.</summary>
+    public string? ReadOnlyReason { get; set; }
+
     public string? DisabledTip => !IsRuleDisabled ? null
+        : ReadOnlyReason is not null ? ReadOnlyReason
         : EnabledBy is { } how ? "Disabled by this type's deffile: " + how
         : "Disabled by a rule in this type's deffile for the asset's current values.";
 
     /// <summary>The ⊘ shows in the mark slot while the row is disabled and has no problem to show there instead.</summary>
-    public bool ShowDisabledMark => IsRuleDisabled && !HasProblem;
+    public bool ShowDisabledMark => IsRuleDisabled && !HasProblem && ReadOnlyReason is null;
 
     // ── Validation ───────────────────────────────────────────────────────────
     [ObservableProperty]
