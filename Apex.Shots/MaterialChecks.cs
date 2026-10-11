@@ -284,6 +284,39 @@ public partial class Program
             tab.UndoCommand.Execute(null);
         Settle(window);
         Check("material ui (live): undo puts the type back", typeRow.Value == "lit");
+
+        // The category by click: its pick rebuilds the type's options and the whole form under the open dropdown, which
+        // must not happen inside the list's own selection commit (it threw IndexOutOfRange there). Every category in turn.
+        var categoryRow = tab.AllSentinel.All.OfType<ChoicePropertyViewModel>().First(p => p.Key == "materialCategory");
+        var categoryBox = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(FieldView(window, tab, categoryRow)).OfType<Apex.Editor.Controls.ChoiceBox>().First();
+        var failures = new List<string>();
+        foreach (var other in categoryRow.Choices.ToArray())
+        {
+            if (other == categoryRow.Value)
+                continue;
+            try
+            {
+                Click(window, categoryBox);
+                Settle(window);
+                var otherIndex = Array.IndexOf(categoryRow.Choices, other);
+                categoryBox.ScrollIntoView(otherIndex);
+                Settle(window);
+                ClickInPopup(categoryBox.ContainerFromIndex(otherIndex)!);
+                Settle(window);
+                if (categoryRow.Value != other || categoryBox.SelectedItem as string != other)
+                    failures.Add($"{other}: row '{categoryRow.Value}', box '{categoryBox.SelectedItem}'");
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{other}: {ex.GetType().Name}");
+                categoryBox.IsDropDownOpen = false;
+            }
+        }
+        Check($"material ui (live): every category picked by click throws nothing and is written ({failures.Count} failed: {string.Join("; ", failures.Take(3))})", failures.Count == 0);
+        while (lit.History.CanUndo)
+            tab.UndoCommand.Execute(null);
+        Settle(window);
+        Check("material ui (live): undo puts the category and type back", categoryRow.Value == "Geometry" && typeRow.Value == "lit");
     }
 
     /// <summary>

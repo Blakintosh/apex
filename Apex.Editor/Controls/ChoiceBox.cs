@@ -23,6 +23,8 @@ public sealed class ChoiceBox : ComboBox
     private bool _attached;
     private bool _syncing;
     private int _userInput;
+    private ChoicePropertyViewModel? _pickRow;
+    private bool _syncDeferred;
 
     protected override Type StyleKeyOverride => typeof(ComboBox);
 
@@ -78,6 +80,14 @@ public sealed class ChoiceBox : ComboBox
 
     private void Sync()
     {
+        // A pick writes the row, which re-runs the deffile: that can swap this list's options (a material's category
+        // changes its types) or move the row, while the list is still committing the selection. Changing its items or
+        // selection then threw IndexOutOfRange from the list's own selection model, so it waits for the pick to finish.
+        if (_userInput > 0)
+        {
+            _syncDeferred = true;
+            return;
+        }
         _syncing = true;
         try
         {
@@ -102,7 +112,7 @@ public sealed class ChoiceBox : ComboBox
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == SelectedItemProperty && _userInput > 0 && !_syncing && _row is not null
+        if (change.Property == SelectedItemProperty && _userInput > 0 && !_syncing && _row is not null && ReferenceEquals(_row, _pickRow)
             && (SelectedItem as string ?? (SelectedItem as ChoiceItem)?.Value) is { } pick && pick != _row.Value)
             _row.Value = pick;
     }
@@ -111,14 +121,23 @@ public sealed class ChoiceBox : ComboBox
 
     private void AsUser(Action action)
     {
-        _userInput++;
+        if (_userInput++ == 0)
+            _pickRow = _row;
         try
         {
             action();
         }
         finally
         {
-            _userInput--;
+            if (--_userInput == 0)
+            {
+                _pickRow = null;
+                if (_syncDeferred)
+                {
+                    _syncDeferred = false;
+                    Sync();
+                }
+            }
         }
     }
 

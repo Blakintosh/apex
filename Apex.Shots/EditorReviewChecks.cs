@@ -294,6 +294,34 @@ public partial class Program
             Pump(50);
             Check("review U9: Ctrl+Z (the diffuse map again) takes the problem away", !compression.HasProblem && vm.ProblemsOf(record) == tab.ProblemCount);
 
+            // A click on a dropdown item whose pick rebuilds another row's options (a material's category does, to its type;
+            // here the image's semantic does, to the compression). The rebuild must not run inside the list's own selection
+            // commit (that threw IndexOutOfRange), and the pick must still be written.
+            if (tab.AllSentinel.All.First(p => p.Key == "semantic") is ChoicePropertyViewModel semanticRow)
+            {
+                var pick = semanticRow.Choices.First(c => c != semanticRow.Value && c == "normalMap");
+                tab.RevealProperty("semantic");
+                Pump(50);
+                window.UpdateLayout();
+                var semanticBox = window.GetVisualDescendants().OfType<ChoiceBox>().First(c => c.DataContext == semanticRow && c.IsEffectivelyVisible);
+                semanticBox.IsDropDownOpen = true;
+                Pump(100);
+                string? thrown = null;
+                try
+                {
+                    ClickInPopup(semanticBox.ContainerFromIndex(Array.IndexOf(semanticRow.Choices, pick))!);
+                }
+                catch (Exception ex)
+                {
+                    thrown = ex.GetType().Name;
+                }
+                Pump(100);
+                Check($"review click: picking '{pick}' by click throws nothing ({thrown ?? "no exception"}), is written ('{semanticRow.Value}') and the dropdown shows it ('{semanticBox.SelectedItem}')",
+                    thrown is null && semanticRow.Value == pick && (semanticBox.SelectedItem as string ?? (semanticBox.SelectedItem as ChoiceItem)?.Value) == pick);
+                tab.UndoCommand.Execute(null);
+                Pump(50);
+            }
+
             // ── The AK: hidden rows, the rail, vectors, a disabled row ──
             var ak = DatabaseOf(vm).Assets.First(a => a.Type == "bulletweapon" && a.Parent is null && a.Name.Contains("ak47", StringComparison.OrdinalIgnoreCase));
             vm.OpenAsset(ak);
