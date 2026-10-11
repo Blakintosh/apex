@@ -214,6 +214,16 @@ public partial class Program
         var scratch = NewScratch("stock-previews");
         var db = Path.Combine(scratch, "stock.db");
         File.Copy(vm.Stock.DbPath!, db);
+        // APEX_STOCK_LIVE_WARM=1: the helper's summaries and preview packs come along, as they are for a user whose store has been
+        // warmed (the caches next to the copied stock.db stay empty: the first view is still the first view).
+        if (Environment.GetEnvironmentVariable("APEX_STOCK_LIVE_WARM") == "1")
+            foreach (var folder in new[] { "packs", "summaries" })
+                if (Path.Combine(Path.GetDirectoryName(vm.Stock.DbPath!)!, folder) is { } src && Directory.Exists(src))
+                {
+                    Directory.CreateDirectory(Path.Combine(scratch, folder));
+                    foreach (var f in Directory.EnumerateFiles(src).Where(p => !Path.GetFileName(p).StartsWith('.')))
+                        File.Copy(f, Path.Combine(scratch, folder, Path.GetFileName(f)));
+                }
         var library = new StockLibrary(root, vm.Stock.ExePath, db);
         vm.UseStockLibrary(library);
         var cacheRoot = library.CacheRoot!;
@@ -273,10 +283,12 @@ public partial class Program
             return;
         Watch(model.Gfx);
         Console.WriteLine($"stock live: the model pane appeared after {clock.ElapsedMilliseconds} ms (the fields were read)");
+        // read at once: with the helper's packs warm the caches are written in about half a second, so the line is gone soon
         Until(() => model.IsLoading, 5);
+        var preparing = (model.IsLoading, model.LoadingText);
         Pump(250);
         window.UpdateLayout();
-        Check($"stock preview: the first view says it is preparing ({model.LoadingText})", model.IsLoading && model.LoadingText.Contains("first view"));
+        Check($"stock preview: the first view says it is preparing ({preparing.LoadingText})", preparing.IsLoading && preparing.LoadingText.Contains("first view"));
         Capture(window, Path.Combine(outDir, "live-stock-preview-loading.png"));
         Until(() => seenModel is not null || model.Error is { Length: > 0 }, 240);
         var cold = clock.Elapsed;
