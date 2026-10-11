@@ -417,6 +417,7 @@
         <ListBox.ContextMenu>
           <ContextMenu Name="TreeMenu" Opening="TreeMenu_Opening">
             <controls:InvokableMenuItem Name="MenuOpen" Header="Open" InputGesture="Enter" Click="MenuOpen_Click"/>
+            <controls:InvokableMenuItem Name="MenuUseStock" Header="Use in map…" Click="MenuUseStock_Click"/>
             <controls:InvokableMenuItem Name="MenuCloneStock" Header="Create local copy…" Click="MenuCloneStock_Click"/>
             <controls:InvokableMenuItem Name="MenuToggle" Header="Expand" InputGesture="Enter" Click="MenuToggle_Click"/>
             <controls:InvokableMenuItem Name="MenuNewIn" Header="New asset in this GDT…" Click="MenuNewIn_Click"/>

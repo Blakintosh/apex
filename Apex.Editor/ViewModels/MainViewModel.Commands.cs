@@ -114,6 +114,7 @@ public sealed partial class MainViewModel
         r.Bind(K.CheckForUpdates, CheckForUpdates);
         r.Bind(K.About, () => Shell?.ShowAbout());
         r.Bind(K.WhatsNew, ShowWhatsNew);
+        r.Bind(K.Components, ShowComponents);
         r.Bind(K.SyncWithRadiant, () => SyncWithRadiant = !SyncWithRadiant, available: () => _env.IsAvailable, isChecked: () => SyncWithRadiant);
 
         // Explorer

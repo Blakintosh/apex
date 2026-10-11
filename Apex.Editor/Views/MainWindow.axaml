@@ -80,6 +80,7 @@
                             IsVisible="{Binding Updates.ShowsCheckNow}"/>
                 </MenuItem>
                 <MenuItem c:Cmd.Id="app.whatsNew"/>
+                <MenuItem c:Cmd.Id="app.components"/>
                 <Separator/>
                 <MenuItem c:Cmd.Id="app.about"/>
               </MenuFlyout>
@@ -667,6 +668,147 @@
       </Border>
     </Border>
 
+    <!-- ── Use in map (a stock asset): name it, Dragon carries it ─────────────────────────────────────────────────
+         Nothing is copied. The helper says what a build carries; a weapon's zone line is added to the map's zone file
+         only after a second, explicit step. ── -->
+    <Border Grid.Row="0" Grid.RowSpan="3" Classes="dialogbackdrop" IsVisible="{Binding IsUseOpen}" PointerPressed="UseBackdrop_PointerPressed">
+      <Border Name="UseCard" Classes="dialogcard" Width="640" PointerPressed="PaletteCard_PointerPressed"
+              KeyboardNavigation.TabNavigation="Cycle" DataContext="{Binding UseDialog}" x:DataType="vm:StockUseViewModel">
+        <StackPanel Spacing="12">
+          <StackPanel Spacing="4">
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Name="UseCloseButton" Classes="icon" Content="✕" Command="{Binding CloseCommand}"
+                      AutomationProperties.Name="Close" ToolTip.Tip="Close"/>
+              <TextBlock FontWeight="SemiBold" FontSize="{StaticResource FontSizeMd}" Text="Use in map" VerticalAlignment="Center"/>
+            </DockPanel>
+            <TextBlock Name="UseSubtitle" Classes="dim" FontSize="{StaticResource FontSizeBase}" TextTrimming="CharacterEllipsis">
+              <Run Text="{Binding AssetName, Mode=OneWay}" FontStyle="Italic" Foreground="{DynamicResource TextSoftBrush}"/><Run Text="  ·  "/><Run Text="{Binding Kind, Mode=OneWay}"/><Run Text="  ·  "/><Run Text="{Binding Subtitle, Mode=OneWay}"/>
+            </TextBlock>
+          </StackPanel>
+          <TextBlock Name="UseIntro" Classes="dim" FontSize="{StaticResource FontSizeBase}" TextWrapping="Wrap" Text="{Binding Intro}"/>
+          <StackPanel Spacing="6">
+            <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Map or mod"/>
+            <ComboBox Name="UseTargetBox" Classes="field" HorizontalAlignment="Stretch" ItemsSource="{Binding Targets}" SelectedItem="{Binding Target}"
+                      AutomationProperties.Name="Map or mod to use it in">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="stock:CloneTarget">
+                  <TextBlock Text="{Binding Label}" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FontSizeSm}"/>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+          <TextBlock Name="UseCarrySummary" Classes="faint" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" Text="{Binding CarrySummary}"/>
+          <ItemsControl Name="UseWarnings" ItemsSource="{Binding Warnings}" IsVisible="{Binding HasWarnings}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <TextBlock FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" Foreground="{DynamicResource MarkBrush}" Text="{Binding}" Margin="0,0,0,4"/>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <!-- A weapon is named in the zone file: the line, the file, and an explicit confirm before anything is written -->
+          <StackPanel Spacing="6" IsVisible="{Binding IsWeapon}">
+            <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Zone line"/>
+            <Border Background="{DynamicResource BgFieldBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
+                    CornerRadius="{StaticResource RadiusMd}" Padding="12,8">
+              <SelectableTextBlock Name="UseZoneLine" Classes="mono" FontSize="{StaticResource FontSizeBase}" Text="{Binding ZoneLine}"/>
+            </Border>
+            <TextBlock Name="UseZoneNote" Classes="faint" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" Text="{Binding ZoneNote}"
+                       IsVisible="{Binding !!ZoneNote.Length}"/>
+            <Border Name="UseConfirm" IsVisible="{Binding IsConfirming}" Background="{DynamicResource BgFieldBrush}" BorderBrush="{DynamicResource LineStrongBrush}"
+                    BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="12,10">
+              <StackPanel Spacing="8">
+                <TextBlock FontSize="{StaticResource FontSizeBase}" TextWrapping="Wrap">
+                  <Run Text="Add "/><Run Text="{Binding ZoneLine, Mode=OneWay}" FontFamily="{StaticResource MonoFont}"/><Run Text=" to the end of "/><Run Text="{Binding ZoneFile, Mode=OneWay}" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FontSizeSm}"/><Run Text="?"/>
+                </TextBlock>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Name="UseConfirmButton" Classes="accent" Command="{Binding ConfirmAddLineCommand}"><TextBlock Text="Add the line"/></Button>
+                  <Button Name="UseConfirmCancelButton" Classes="outline" Command="{Binding CancelAddLineCommand}"><TextBlock Text="Cancel"/></Button>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+          <TextBlock FontSize="{StaticResource FontSizeSm}" Foreground="{DynamicResource DangerTextBrush}" TextWrapping="Wrap" Text="{Binding Error}" IsVisible="{Binding !!Error.Length}"/>
+
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+              <Button Name="UseAddLineButton" Classes="accent" Command="{Binding AddLineCommand}" IsEnabled="{Binding CanAddLine}" IsVisible="{Binding ShowAddLine}">
+                <TextBlock Text="Add to zone file…"/>
+              </Button>
+              <Button Name="UseCopyNameButton" Classes="accent" Command="{Binding CopyNameCommand}" IsVisible="{Binding !IsWeapon}"><TextBlock Text="Copy name"/></Button>
+              <Button Name="UseCopyNameSecondary" Classes="outline" Command="{Binding CopyNameCommand}" IsVisible="{Binding IsWeapon}"><TextBlock Text="Copy name"/></Button>
+            </StackPanel>
+            <Button Name="UseCreateCopyButton" Classes="link teal" HorizontalAlignment="Left" VerticalAlignment="Center" Command="{Binding CreateCopyInsteadCommand}"
+                    AutomationProperties.Name="Create local copy instead">
+              <TextBlock Text="Create local copy instead…" FontSize="{StaticResource FontSizeSm}"/>
+            </Button>
+          </DockPanel>
+        </StackPanel>
+      </Border>
+    </Border>
+
+    <!-- ── Components: what this install has, from the component registry ───────────────────────────────────────── -->
+    <Border Grid.Row="0" Grid.RowSpan="3" Classes="dialogbackdrop" IsVisible="{Binding IsComponentsOpen}" PointerPressed="ComponentsBackdrop_PointerPressed">
+      <Border Name="ComponentsCard" Classes="dialogcard" Width="800" Padding="0" PointerPressed="PaletteCard_PointerPressed"
+              KeyboardNavigation.TabNavigation="Cycle" DataContext="{Binding Components}" x:DataType="vm:ComponentsViewModel">
+        <DockPanel>
+          <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="22,18,16,14">
+            <StackPanel Spacing="4">
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Name="ComponentsCloseButton" Classes="icon" Content="✕" Command="{Binding CloseCommand}"
+                        AutomationProperties.Name="Close" ToolTip.Tip="Close"/>
+                <Button DockPanel.Dock="Right" Name="ComponentsRefreshButton" Classes="link teal" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsChecking}"
+                        Margin="0,0,8,0" AutomationProperties.Name="Check again">
+                  <TextBlock Text="Check again" FontSize="{StaticResource FontSizeSm}"/>
+                </Button>
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                  <TextBlock FontWeight="SemiBold" FontSize="{StaticResource FontSizeMd}" Text="Components" VerticalAlignment="Center"/>
+                  <Border Name="ComponentsPill" BorderBrush="{DynamicResource AccentDimBrush}" BorderThickness="1" CornerRadius="999" Padding="8,1"
+                          VerticalAlignment="Center">
+                    <TextBlock Name="ComponentsPillText" FontSize="{StaticResource FontSizeSm}" Text="{Binding Pill}"
+                               Foreground="{DynamicResource AccentTextBrush}"/>
+                  </Border>
+                </StackPanel>
+              </DockPanel>
+              <TextBlock Classes="dim" FontSize="{StaticResource FontSizeBase}" TextTrimming="CharacterEllipsis">
+                <Run Text="For "/><Run Text="{Binding Install, Mode=OneWay}" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FontSizeSm}"/>
+              </TextBlock>
+            </StackPanel>
+          </Border>
+          <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="22,12">
+            <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap"
+                       Text="Every Mod Tools app shows this same list. Stock Library and Dragon are picked up automatically when they're installed."/>
+          </Border>
+          <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="22,6">
+            <ItemsControl Name="ComponentRows" ItemsSource="{Binding Rows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ComponentRow">
+                  <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="0,12">
+                    <Grid ColumnDefinitions="22,200,*,150" ColumnSpacing="12">
+                      <Panel VerticalAlignment="Top" Margin="0,1,0,0">
+                        <TextBlock Text="✓" Foreground="{DynamicResource AccentBrush}" IsVisible="{Binding IsOk}" FontWeight="Bold"/>
+                        <TextBlock Text="▲" Foreground="{DynamicResource MarkBrush}" IsVisible="{Binding IsWarn}"/>
+                        <TextBlock Text="○" Foreground="{DynamicResource TextFaintBrush}" IsVisible="{Binding IsOff}"/>
+                      </Panel>
+                      <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock FontWeight="Medium" Text="{Binding Name}"/>
+                        <TextBlock Classes="faint mono" FontSize="{StaticResource FontSizeSm}" Text="{Binding Status}" TextWrapping="Wrap"/>
+                      </StackPanel>
+                      <TextBlock Grid.Column="2" Foreground="{DynamicResource TextSoftBrush}" TextWrapping="Wrap" Text="{Binding Detail}"/>
+                      <StackPanel Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Top">
+                        <Button Classes="accent" Command="{Binding Command}" IsVisible="{Binding IsPrimary}"><TextBlock Text="{Binding Action}"/></Button>
+                        <Button Classes="link teal" Command="{Binding Command}" IsVisible="{Binding IsLink}"><TextBlock Text="{Binding Action}"/></Button>
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+    </Border>
+
     <!-- ── Create local copy (a stock asset): where it goes, what it is called, what comes with it ─────────────────
          The helper reads the game's own files; this only asks and shows. Copy, editable · Use shipped · Rebuilt by the
          linker are the helper's classes for each asset the copy touches. ── -->
@@ -685,6 +827,15 @@
               <TextBlock Name="CloneSubtitle" Classes="dim" FontSize="{StaticResource FontSizeBase}" TextTrimming="CharacterEllipsis">
                 <Run Text="{Binding AssetName, Mode=OneWay}" FontStyle="Italic" Foreground="{DynamicResource TextSoftBrush}"/><Run Text="  ·  "/><Run Text="{Binding Kind, Mode=OneWay}"/><Run Text="  ·  "/><Run Text="{Binding Subtitle, Mode=OneWay}"/>
               </TextBlock>
+              <!-- The way with no copy: on when Dragon carries stock assets here, off with the reason and the fix otherwise. -->
+              <DockPanel Margin="0,8,0,0" IsVisible="{Binding ShowPlan}">
+                <Button DockPanel.Dock="Right" Name="CloneUseDirectlyButton" Classes="outline" Margin="12,0,0,0" Command="{Binding UseDirectlyCommand}"
+                        IsEnabled="{Binding UseDirectlyOk}" ToolTip.Tip="{Binding UseDirectlyNote}" ToolTip.ShowOnDisabled="True" AutomationProperties.Name="Use directly">
+                  <TextBlock Text="Use directly"/>
+                </Button>
+                <TextBlock Name="CloneUseDirectlyNote" Classes="faint" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" VerticalAlignment="Center"
+                           Text="{Binding UseDirectlyNote}"/>
+              </DockPanel>
             </StackPanel>
           </Border>
 

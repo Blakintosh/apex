@@ -623,6 +623,18 @@ public partial class MainWindow : Window, IShellView
         e.Handled = true;
     }
 
+    private void UseBackdrop_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        Vm?.UseDialog?.CloseCommand.Execute(null);
+        e.Handled = true;
+    }
+
+    private void ComponentsBackdrop_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        Vm?.Components?.CloseCommand.Execute(null);
+        e.Handled = true;
+    }
+
     private void StockHelperBackdrop_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         Vm?.CancelStockHelperCommand.Execute(null);

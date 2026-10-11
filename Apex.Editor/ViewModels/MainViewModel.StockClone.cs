@@ -48,6 +48,11 @@ public sealed partial class MainViewModel
         var dialog = new StockCloneViewModel(record, Stock, _env.IsAvailable ? _env.Bo3Root : null, targets, CloneGdtChoices(record),
             () => CloneDialog = null, OnCloneFinished, text => Status = text, preselected);
         dialog.CopyText = text => Shell?.CopyTextAsync(text) ?? System.Threading.Tasks.Task.CompletedTask;
+        dialog.UseDirectlyAction = () =>
+        {
+            dialog.CloseCommand.Execute(null);
+            OpenUseDialog(record);
+        };
         CloneDialog = dialog;
         if (targets.Count > 0)
             dialog.Begin();

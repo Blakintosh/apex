@@ -840,7 +840,7 @@ public sealed partial class AssetEditorViewModel : ObservableObject, IFileProbeL
     /// <summary>Rebuilds <see cref="StockInfo"/> from what has been read since (the fields, then the dependencies).</summary>
     public void RefreshStockInfo(Services.Stock.StockDb? db)
     {
-        StockInfo = Record.Stock is { } origin ? Services.Stock.StockHeader.Build(origin, db) : null;
+        StockInfo = Record.Stock is { } origin ? Services.Stock.StockHeader.Build(origin, db, Owner?.StockUseOk == true) : null;
         OnPropertyChanged(nameof(StockInfo));
         if (IsStock && IsFormEmpty)
             EmptyText = StockEmptyText;

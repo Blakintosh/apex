@@ -22,7 +22,7 @@ public sealed partial class MainViewModel
     // ══ Modal state ══════════════════════════════════════════════════════════
 
     /// <summary>A confirm / rename / new / save-conflict dialog is up: the window suspends its shortcuts behind it.</summary>
-    public bool IsModalOpen => IsConfirmOpen || IsRenameOpen || IsNewOpen || IsConflictOpen || IsClassOpen || IsCloneOpen || IsStockHelperOpen;
+    public bool IsModalOpen => IsConfirmOpen || IsRenameOpen || IsNewOpen || IsConflictOpen || IsClassOpen || IsCloneOpen || IsStockHelperOpen || IsUseOpen || IsComponentsOpen;
 
     partial void OnIsConfirmOpenChanged(bool value) => OnPropertyChanged(nameof(IsModalOpen));
     partial void OnIsRenameOpenChanged(bool value) => OnPropertyChanged(nameof(IsModalOpen));

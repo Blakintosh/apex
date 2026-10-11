@@ -62,6 +62,8 @@ public sealed partial class MainViewModel
     {
         if (Stock.ExePath is not null)
             Stock.StartRefresh();
+        // what the install has (Dragon, Blackbird, the Radiant plugin) decides whether stock assets can be used directly
+        Stock.StartStatusRefresh();
         NotifyStockState();
     }
 
@@ -102,6 +104,7 @@ public sealed partial class MainViewModel
         OnPropertyChanged(nameof(ShowSourceFilter));
         OnPropertyChanged(nameof(StockNote));
         OnPropertyChanged(nameof(HasStockNote));
+        NotifyStockUse();
     }
 
     /// <summary>Stock rows can be searched (an index exists).</summary>

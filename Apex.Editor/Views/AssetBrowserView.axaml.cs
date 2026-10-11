@@ -810,6 +810,7 @@ public partial class AssetBrowserView : UserControl
         // A stock asset is read-only: it opens, its name copies, and Create local copy turns it into one that is not.
         var stock = selected.Count > 0 && selected.Any(a => a.IsStock);
         MenuCloneStock.IsVisible = stock && selected.Count == 1;
+        MenuUseStock.IsVisible = stock && selected.Count == 1 && Vm.StockUseOk;
         var one = selected.Count == 1;
         var assets = selected.Count > 0 && !stock;
         var oneLocal = one && !stock;
@@ -852,6 +853,12 @@ public partial class AssetBrowserView : UserControl
         MenuCompare.Header = $"Compare {selected.Count} assets";
         MenuTable.IsVisible = selected.Count >= 2 && assets;
         MenuTable.Header = $"Open {selected.Count} as table";
+    }
+
+    private void MenuUseStock_Click(object? sender, RoutedEventArgs e)
+    {
+        if (SelectedAssets() is [{ IsStock: true } asset] && Vm is { } vm)
+            vm.UseInMapOf(asset);
     }
 
     private void MenuCloneStock_Click(object? sender, RoutedEventArgs e)

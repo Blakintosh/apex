@@ -671,6 +671,24 @@ public sealed partial class StockCloneViewModel : ObservableObject
         }
     }
 
+    // ── Use directly: the way that needs no copy ─────────────────────────────
+
+    /// <summary>Dragon carries stock assets for this install, so the asset can be named in a map as it is.</summary>
+    public bool UseDirectlyOk => _library.Status.UseDirectly.Ok;
+
+    /// <summary>The line beside the Use directly button: what it does, or why it is off and what fixes it.</summary>
+    public string UseDirectlyNote => UseDirectlyOk
+        ? "Or skip the copy: name it in your map and Dragon takes it from the game's files when you build."
+        : _library.Status.Known
+            ? "Use directly isn't available: " + _library.Status.UseDirectly.Note
+            : "Use directly isn't available: " + (_library.Status.UseDirectly.Reason.Length > 0 ? _library.Status.UseDirectly.Note : "Apex hasn't heard from the Stock Library helper about this install yet.");
+
+    /// <summary>Set by the shell: closes this dialog and opens Use in map for the asset.</summary>
+    public Action? UseDirectlyAction { get; set; }
+
+    [RelayCommand(CanExecute = nameof(UseDirectlyOk))]
+    private void UseDirectly() => UseDirectlyAction?.Invoke();
+
     [RelayCommand]
     private void Close()
     {

@@ -291,8 +291,14 @@
     <DockPanel DockPanel.Dock="Top" Margin="24,18,16,14">
       <!-- A stock asset: one way forward. Compare and the asset menu act on GDT assets. -->
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top" Margin="0,18,0,0" IsVisible="{Binding IsStock}">
-        <Button Name="CreateLocalCopyButton" Classes="accent" Command="{Binding Owner.CreateLocalCopyCommand, FallbackValue={x:Null}}"
-                AutomationProperties.Name="Create local copy">
+        <!-- Dragon carries stock assets here: naming the asset is the way forward, and a copy is for changing it. When it
+             doesn't, Create local copy stays the one action and the note under the banner says why. -->
+        <Button Name="UseInMapButton" Classes="accent" Command="{Binding Owner.UseInMapCommand, FallbackValue={x:Null}}"
+                IsVisible="{Binding Owner.StockUseOk, FallbackValue=False}" AutomationProperties.Name="Use in map">
+          <TextBlock Text="Use in map…"/>
+        </Button>
+        <Button Name="CreateLocalCopyButton" Classes.accent="{Binding !Owner.StockUseOk, FallbackValue=True}" Classes.outline="{Binding Owner.StockUseOk, FallbackValue=False}"
+                Command="{Binding Owner.CreateLocalCopyCommand, FallbackValue={x:Null}}" AutomationProperties.Name="Create local copy">
           <TextBlock Text="Create local copy…"/>
         </Button>
       </StackPanel>
@@ -392,6 +398,10 @@
                    Text="{Binding StockInfo.Banner, FallbackValue=''}"/>
       </DockPanel>
     </Border>
+    <!-- Why this asset can't just be named in a map yet, and what fixes it (the helper's use_directly verdict). One line. -->
+    <TextBlock DockPanel.Dock="Top" Name="StockUseNote" Classes="faint" FontSize="{StaticResource FontSizeSm}" Margin="24,-4,16,10" TextTrimming="CharacterEllipsis"
+               IsVisible="{Binding Owner.HasStockUseNote, FallbackValue=False}" Text="{Binding Owner.StockUseNote, FallbackValue=''}"
+               ToolTip.Tip="{Binding Owner.StockUseNote, FallbackValue=''}"/>
 
     <Panel>
     <!-- ── An xanim: its preview, the notetracks dock under it (the splitter resizes it, a double-click folds it to the
