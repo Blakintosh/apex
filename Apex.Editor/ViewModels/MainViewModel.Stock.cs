@@ -401,6 +401,10 @@ public sealed partial class MainViewModel
         {
             try
             {
+                // Stepping through results opens one preview tab after another: a read starts only for a tab that stays.
+                await Task.Delay(250).ConfigureAwait(false);
+                if (!await Dispatcher.UIThread.InvokeAsync(() => OpenTabs.Any(t => t.Record == record)))
+                    return;
                 var description = await library.DescribeAsync(origin.EngineType, origin.Name, null).ConfigureAwait(false);
                 Dispatcher.UIThread.Post(() => ApplyStockDescription(record, description));
             }
@@ -416,7 +420,7 @@ public sealed partial class MainViewModel
                 return;
             }
 
-            if (DefaultCloneTarget() is not { } map)
+            if (!await Dispatcher.UIThread.InvokeAsync(() => OpenTabs.Any(t => t.Record == record)) || DefaultCloneTarget() is not { } map)
                 return;
             try
             {
