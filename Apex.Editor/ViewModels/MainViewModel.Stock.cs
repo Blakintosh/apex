@@ -437,7 +437,11 @@ public sealed partial class MainViewModel
                 }
             }
             if (DefaultCloneTarget() is not { } map)
+            {
+                Dispatcher.UIThread.Post(() => SetDepsState(record, false, "What this uses is read against a map or mod: there is none to read it against."));
                 return;
+            }
+            Dispatcher.UIThread.Post(() => SetDepsState(record, true, ""));
             try
             {
                 var deps = await library.DepsAsync(origin.EngineType, origin.Name, map.Argument, null, null, false).ConfigureAwait(false);
@@ -446,6 +450,8 @@ public sealed partial class MainViewModel
             catch (Exception ex) when (ex is StockHelperException or TimeoutException or OperationCanceledException)
             {
                 // The Uses list stays empty; the fields above are what matters.
+                var why = ex.Message;
+                Dispatcher.UIThread.Post(() => SetDepsState(record, false, "Couldn't read what this uses: " + why));
             }
         });
     }
@@ -470,6 +476,7 @@ public sealed partial class MainViewModel
         if (record.Stock is not { } origin)
             return;
         origin.Deps = deps;
+        origin.DepsLoading = false;
         foreach (var tab in OpenTabs.Where(t => t.Record == record))
             tab.RefreshStockInfo(Stock.Db);
         if (ActiveTab?.Record == record)
@@ -514,13 +521,27 @@ public sealed partial class MainViewModel
         return PreviewPaneViewModel.CreateStock(record, _env, new StockPreviewSource(Stock, origin), FindAsset, NavigateToRef);
     }
 
-    /// <summary>The Inspector's Uses list of a stock asset: what the helper found it depends on, nearest the top.</summary>
+    private void SetDepsState(AssetRecord record, bool loading, string note)
+    {
+        if (record.Stock is not { } origin)
+            return;
+        origin.DepsLoading = loading;
+        origin.DepsNote = note;
+        if (ActiveTab?.Record == record)
+        {
+            RefreshLinks();
+            OnPropertyChanged(nameof(ActiveLinksEmptyText));
+        }
+    }
+
+    /// <summary>The Inspector's Uses list of a stock asset: what it references directly (the helper's walk, the root's edges), nearest the top.</summary>
     private List<InspectorLinkViewModel> StockUses(AssetRecord record)
     {
         var uses = new List<InspectorLinkViewModel>();
         if (record.Stock?.Deps is not { } deps)
             return uses;
-        foreach (var node in deps.Nodes.Where(n => n.Id != deps.Root && n.Class != StockClass.Embedded).OrderBy(n => UsesOrder(n.Kind)).ThenBy(n => n.Name, StringComparer.OrdinalIgnoreCase))
+        var direct = deps.RootNode.Refs.Select(r => r.Id).ToHashSet();
+        foreach (var node in deps.Nodes.Where(n => n.Id != deps.Root && direct.Contains(n.Id) && n.Class != StockClass.Embedded).OrderBy(n => UsesOrder(n.Kind)).ThenBy(n => n.Name, StringComparer.OrdinalIgnoreCase))
         {
             if (uses.Count >= 200)
                 break;

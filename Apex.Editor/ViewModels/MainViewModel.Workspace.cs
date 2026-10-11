@@ -1080,6 +1080,8 @@ public sealed partial class MainViewModel
         // opened or loaded this session (the Used by tab's tooltip says so too).
         InspectorLinks.UsedBy => "No opened or loaded asset references this one.",
         InspectorLinks.Family => "No parent template and no derived assets.",
+        _ when ActiveTab?.Record.Stock is { DepsLoading: true } => "Reading what this asset uses…",
+        _ when ActiveTab?.Record.Stock is { DepsNote.Length: > 0 } s => s.DepsNote,
         _ => "This asset references no other assets.",
     };
 

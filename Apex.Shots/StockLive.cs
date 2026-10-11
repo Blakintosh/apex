@@ -289,6 +289,16 @@ public partial class Program
             && Directory.GetDirectories(Path.Combine(cacheRoot, "xmeshes", "v39")).Length == 8 && modelBytes > 1_000_000);
         window.UpdateLayout();
         Capture(window, Path.Combine(outDir, "live-stock-preview-model.png"));
+        // The Inspector's Uses list: a loading line while the walk runs, then the model's direct references (its materials).
+        var modelOrigin = vm.ActiveTab!.Record.Stock!;
+        vm.LinksTab = Apex.Editor.ViewModels.InspectorLinks.Uses;
+        Console.WriteLine($"stock live: Uses while the walk runs: '{vm.ActiveLinksEmptyText}' (loading {modelOrigin.DepsLoading}, {vm.UsesCount} rows)");
+        Until(() => modelOrigin.Deps is not null || modelOrigin.DepsNote.Length > 0, 240);
+        Pump(300);
+        Check($"stock preview: the Uses list shows the model's direct references ({vm.UsesCount} rows; note '{modelOrigin.DepsNote}')",
+            vm.UsesCount >= 14 && vm.Uses.Count(u => u.TypeName == "material") >= 14);
+        window.UpdateLayout();
+        Capture(window, Path.Combine(outDir, "live-stock-preview-model-uses.png"));
         var env = seenEnv;
         if (drawn is not null && env is not null)
         {

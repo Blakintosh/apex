@@ -33,6 +33,11 @@ public sealed class StockOrigin
     /// <summary>The dependency closure behind the "Uses" list and the info line. Null until read.</summary>
     public StockDeps? Deps { get; set; }
 
+    /// <summary>The dependency walk is running (the Uses list says so); a note when it won't run or failed.</summary>
+    public bool DepsLoading { get; set; }
+
+    public string DepsNote { get; set; } = "";
+
     /// <summary>Why reading it failed (shown in place of its fields); empty when it did not.</summary>
     public string Problem { get; set; } = "";
 
