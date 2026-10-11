@@ -82,6 +82,13 @@ public partial class Program
             var shotsDir = args.FirstOrDefault(a => !a.StartsWith("--", StringComparison.Ordinal)) ?? "shots";
             return await RunLiveOnly(() => RunMaterialShots(shotsDir));
         }
+        // --stock-shot <stockRoot> <outDir> [xmodel] [material]: a stock model from stock caches alone (read-only).
+        if (args.Contains("--stock-shot"))
+        {
+            var rest = args.Where(a => !a.StartsWith("--", StringComparison.Ordinal)).ToArray();
+            return await RunLiveOnly(() => RunStockShot(rest[0], rest[1], rest.ElementAtOrDefault(2) ?? "p7_zm_zod_master_switch",
+                rest.ElementAtOrDefault(3) ?? "mtl_p7_zm_zod_master_switch_metal_01"));
+        }
         // --viewhands-live: first person's inferred viewhands on the real install (read-only).
         if (args.Contains("--viewhands-live"))
             return await RunLiveOnly(RunLiveViewhands);

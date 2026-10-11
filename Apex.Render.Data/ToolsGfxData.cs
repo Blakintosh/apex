@@ -26,17 +26,24 @@ public sealed class ToolsGfxData
     /// Either way <see cref="GdtIndex.ForInstallExtras"/> answers the names it does not know.</param>
     /// <param name="apexCache">Apex's own cache for converted assets; null = <see cref="ApexToolsGfxCache.Default"/>.</param>
     /// <param name="policy">Which caches to use; null = <see cref="CachePolicy.Default"/>.</param>
-    public ToolsGfxData(ToolsGfxInstall install, IGdtLookup? gdt = null, ApexToolsGfxCache? apexCache = null, CachePolicy? policy = null)
+    /// <param name="stock">Stock-asset caches (<see cref="StockCache"/>); null = <see cref="StockCache.Locate"/>.</param>
+    public ToolsGfxData(ToolsGfxInstall install, IGdtLookup? gdt = null, ApexToolsGfxCache? apexCache = null, CachePolicy? policy = null,
+        StockCache? stock = null)
     {
         Install = install;
         ApexCache = apexCache ?? ApexToolsGfxCache.Default;
         Policy = policy ?? CachePolicy.Default;
+        Stock = stock ?? StockCache.Locate();
         Shaders = new ShaderCache(install, ApexCache, Policy);
-        Images = new ImageCache(install);
-        Models = new ModelCacheLocator(install, ApexCache, Policy);
+        Images = new ImageCache(install, Stock is null ? null : [Stock.ImageCacheDir]);
+        Models = new ModelCacheLocator(install, ApexCache, Policy, Stock);
         // APE resolves assets through gdtdb, which also covers texture_assets / art_assets / xanim_export GDTs; those
         // are consulted when the primary lookup misses (skin_pore_detail lives in texture_assets\images.gdt).
-        Gdt = new LayeredGdtLookup(gdt ?? GdtIndex.ForInstall(install), GdtIndex.ForInstallExtras(install));
+        // Stock entries come last, so an asset with real sources (or edited in Apex) always wins.
+        IGdtLookup extras = GdtIndex.ForInstallExtras(install);
+        if (Stock is not null)
+            extras = new LayeredGdtLookup(extras, Stock.Manifests);
+        Gdt = new LayeredGdtLookup(gdt ?? GdtIndex.ForInstall(install), extras);
         _techsets = new Lazy<TechsetdefLibrary>(() => new TechsetdefLibrary(install));
         _materialDefaults = new Lazy<IReadOnlyDictionary<string, string>>(() => DeffileDefaults.ForType(install, "material"));
     }
@@ -49,6 +56,9 @@ public sealed class ToolsGfxData
     }
 
     public ToolsGfxInstall Install { get; }
+
+    /// <summary>Stock-asset caches searched after the install's, or null.</summary>
+    public StockCache? Stock { get; }
 
     /// <summary>Apex's cache of assets it converted itself (conversion.md §4).</summary>
     public ApexToolsGfxCache ApexCache { get; }
