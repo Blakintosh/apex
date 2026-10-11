@@ -2798,8 +2798,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             Owner = this,
             IsPreview = preview,
-            // Previews of stock assets need caches the helper writes (a later phase of the stock library).
-            PreviewPane = asset.IsStock ? null : PreviewPaneViewModel.Create(asset, _env, FindAsset, NavigateToRef),
+            // A stock asset's preview draws from the caches the helper writes: at once when they are there, else once its fields are read (RefreshStockTab).
+            PreviewPane = asset.IsStock ? (asset.Stock!.Loading && !Stock.IsCached(asset.Stock.EngineType, asset.Stock.Name) ? null : StockPane(asset)) : PreviewPaneViewModel.Create(asset, _env, FindAsset, NavigateToRef),
         };
         // Opening the editor materializes the record's properties — register it so reference scans
         // (WI-4) can find any property-value references it holds without walking the whole corpus.

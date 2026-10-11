@@ -47,6 +47,7 @@ public sealed partial class MainViewModel
             Stock.Dispose();
         }
         Stock = library;
+        Services.Preview.ToolsGfx.ToolsGfxPreviewService.UseStockRoot(library.CacheRoot);
         _stockRecords.Clear();
         _stockResult = null;
         if (!ReferenceEquals(library, StockLibrary.None))
@@ -420,7 +421,22 @@ public sealed partial class MainViewModel
                 return;
             }
 
-            if (!await Dispatcher.UIThread.InvokeAsync(() => OpenTabs.Any(t => t.Record == record)) || DefaultCloneTarget() is not { } map)
+            if (!await Dispatcher.UIThread.InvokeAsync(() => OpenTabs.Any(t => t.Record == record)))
+                return;
+            if (StockLibrary.HasPreviewCache(origin.Kind))
+            {
+                // The preview pane asks for the same caches; the helper answers once and the other waits for it. They come before
+                // the dependencies: what the tab shows first should not wait behind a closure walk.
+                try
+                {
+                    await library.CacheAsync(origin.EngineType, origin.Name).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is StockHelperException or TimeoutException or OperationCanceledException)
+                {
+                    // The pane says why it has nothing to draw.
+                }
+            }
+            if (DefaultCloneTarget() is not { } map)
                 return;
             try
             {
@@ -470,7 +486,10 @@ public sealed partial class MainViewModel
         {
             Owner = this,
             IsPreview = old.IsPreview,
+            // The pane starts once the fields are read (a material's slots come from them) and moves to each rebuilt tab.
+            PreviewPane = old.PreviewPane ?? StockPane(record),
         };
+        old.PreviewPane = null;
         tab.RefreshStockInfo(Stock.Db);
         var index = OpenTabs.IndexOf(old);
         var wasActive = ActiveTab == old;
@@ -480,6 +499,19 @@ public sealed partial class MainViewModel
         OpenTabs.Remove(old);
         ForgetTab(old);
         DisposeTabPreview(old);
+    }
+
+    /// <summary>
+    /// The preview of a stock model, material or image: drawn from the caches the helper writes on the first view, so it needs
+    /// the helper only then. Null for the other kinds, and when there is nothing to draw it from.
+    /// </summary>
+    private PreviewPaneViewModel? StockPane(AssetRecord record)
+    {
+        if (record.Stock is not { } origin || origin.Problem.Length > 0 || !StockLibrary.HasPreviewCache(origin.Kind))
+            return null;
+        if (!Stock.CanAsk && !Stock.IsCached(origin.EngineType, origin.Name))
+            return null;
+        return PreviewPaneViewModel.CreateStock(record, _env, new StockPreviewSource(Stock, origin), FindAsset, NavigateToRef);
     }
 
     /// <summary>The Inspector's Uses list of a stock asset: what the helper found it depends on, nearest the top.</summary>

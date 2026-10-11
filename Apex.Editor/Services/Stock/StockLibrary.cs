@@ -320,6 +320,62 @@ public sealed class StockLibrary : IStockBackend, IDisposable
     /// <summary>True when the dependencies, a clone or the fields can be asked for: a backend is set, or the helper is installed.</summary>
     public bool CanAsk => Backend is not null || ExePath is not null;
 
+    // ── Preview caches ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// The <c>toolsgfx</c> folder the helper writes preview caches into (next to <c>stock.db</c>; the layout is the helper's
+    /// <c>docs/cache-contract.md</c>). Previews read it as the last layer, behind everything the install and the GDTs have.
+    /// </summary>
+    public string? CacheRoot => DbPath is null ? null : Path.Combine(Path.GetDirectoryName(DbPath) ?? "", "toolsgfx");
+
+    /// <summary>The kinds that have a preview cache.</summary>
+    public static bool HasPreviewCache(string kind) => kind is "xmodel" or "material" or "image";
+
+    /// <summary>The manifest of an asset's cache (it exists once the asset and everything its preview needs is cached).</summary>
+    public string? ManifestPath(string engineType, string name) =>
+        CacheRoot is { } root ? Path.Combine(root, "manifest", StockTypes.KindOfEngine(engineType),
+            Apex.Render.Data.Assets.StockManifestLookup.FileName(StockTypes.BareName(engineType, name)) + ".json") : null;
+
+    /// <summary>True when the asset's preview caches are there: no helper is needed to show it.</summary>
+    public bool IsCached(string engineType, string name) => ManifestPath(engineType, name) is { } path && File.Exists(path);
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Task<StockCacheResult>> _caching = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Makes sure the asset's preview caches exist: nothing to do when its manifest is there, else one <c>cache</c> request
+    /// to the helper (the first view of an asset reads the game's files; later ones, in any session, read the caches). Asking
+    /// again while a request runs waits for that one. Cancelling stops the wait, not the helper's work.
+    /// </summary>
+    public async Task<StockCacheResult> CacheAsync(string engineType, string name, CancellationToken cancel = default)
+    {
+        var kind = StockTypes.KindOfEngine(engineType);
+        if (!HasPreviewCache(kind))
+            throw new StockHelperException($"There is no preview for {StockHeader.Noun(kind)} assets.");
+        if (IsCached(engineType, name))
+            return StockCacheResult.AlreadyThere;
+        if (Backend is not null)
+            throw new StockHelperException("The check backend writes no preview caches.");
+        var task = _caching.GetOrAdd(kind + " " + name, _ => RunCacheAsync(kind, name));
+        try
+        {
+            return await task.WaitAsync(cancel).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (task.IsCompleted)
+                _caching.TryRemove(new KeyValuePair<string, Task<StockCacheResult>>(kind + " " + name, task));
+        }
+    }
+
+    private async Task<StockCacheResult> RunCacheAsync(string kind, string name)
+    {
+        var args = new Dictionary<string, object?> { ["type"] = kind, ["name"] = name };
+        var result = StockCacheResult.Parse(await CallAsync("cache", args, null, CancellationToken.None).ConfigureAwait(false));
+        // Images written since the by-name index was built are not in it.
+        Preview.ToolsGfx.ToolsGfxPreviewService.StockCachesChanged();
+        return result;
+    }
+
     public void Dispose()
     {
         lock (_gate)

@@ -9,6 +9,7 @@ using Apex.Editor.Models;
 using Apex.Editor.Services.Gdt;
 using Apex.Render.Assets;
 using Apex.Render.Data;
+using Apex.Render.Data.Assets;
 using Apex.Render.Data.Conversion;
 using Apex.Render.Data.Gdt;
 using Apex.Render.Data.Lighting;
@@ -97,6 +98,33 @@ public static class ToolsGfxPreviewService
         }
     }
 
+    private static string? _stockRoot;
+
+    /// <summary>The stock library's <c>toolsgfx</c> folder (preview caches of shipped assets, the last layer behind the
+    /// install and the GDTs), or null while there is no stock library. Set before the first preview; a different folder
+    /// afterwards rebuilds the shared data on the next one.</summary>
+    public static void UseStockRoot(string? root)
+    {
+        lock (Gate)
+        {
+            if (string.Equals(_stockRoot, root, StringComparison.OrdinalIgnoreCase))
+                return;
+            _stockRoot = root;
+            if (_data is not null)
+            {
+                _data = null;
+                _environment = null;
+            }
+        }
+    }
+
+    /// <summary>The helper wrote new stock caches: images are found by name through an index built once, so it is dropped.</summary>
+    public static void StockCachesChanged()
+    {
+        lock (Gate)
+            _data?.Images.InvalidateIndex();
+    }
+
     /// <summary>The lookup over Apex's asset index every preview resolves GDT assets through (created with the first
     /// resolver, like <see cref="GetData"/>).</summary>
     public static ApexGdtLookup Lookup(Func<string, string, AssetRecord?> resolve)
@@ -132,7 +160,7 @@ public static class ToolsGfxPreviewService
                 _unavailableReason = "ToolsGfx shader cache / techsetdefs not found under share\\";
                 return null;
             }
-            return _data = new ToolsGfxData(install, Lookup(resolve));
+            return _data = new ToolsGfxData(install, Lookup(resolve), stock: _stockRoot is { } stock ? new StockCache(stock) : null);
         }
     }
 

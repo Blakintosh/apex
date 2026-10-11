@@ -216,3 +216,25 @@ public sealed class StockDescription
     private static string ValueText(JsonElement field) =>
         field.TryGetProperty("value", out var v) ? (v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : v.ToString()) : "";
 }
+
+/// <summary>What a <c>cache</c> request wrote (the helper's answer, trimmed to what the UI and the checks report).</summary>
+public sealed record StockCacheResult(bool Warm, double Seconds, long Bytes, int NewFiles, IReadOnlyList<string> Skipped)
+{
+    /// <summary>The manifest was there already: nothing was asked of the helper.</summary>
+    public static StockCacheResult AlreadyThere { get; } = new(true, 0, 0, 0, []);
+
+    public static StockCacheResult Parse(System.Text.Json.JsonElement e)
+    {
+        var skipped = new List<string>();
+        if (e.TryGetProperty("skipped", out var s) && s.ValueKind == System.Text.Json.JsonValueKind.Array)
+            foreach (var item in s.EnumerateArray())
+                skipped.Add(StockDepNode.Str(item, "type") + " " + StockDepNode.Str(item, "name") + ": " + StockDepNode.Str(item, "why"));
+        var files = 0;
+        if (e.TryGetProperty("files", out var f) && f.ValueKind == System.Text.Json.JsonValueKind.Array)
+            foreach (var item in f.EnumerateArray())
+                if (item.TryGetProperty("new", out var n) && n.ValueKind == System.Text.Json.JsonValueKind.True)
+                    files++;
+        return new StockCacheResult(e.TryGetProperty("warm", out var w) && w.ValueKind == System.Text.Json.JsonValueKind.True,
+            e.TryGetProperty("seconds", out var sec) && sec.TryGetDouble(out var d) ? d : 0, StockDepNode.Long(e, "bytes"), files, skipped);
+    }
+}

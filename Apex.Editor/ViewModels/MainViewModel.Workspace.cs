@@ -10,6 +10,7 @@ using CommunityToolkit.Mvvm.Input;
 using Apex.Editor.Commands;
 using Apex.Editor.Models;
 using Apex.Editor.Services;
+using Apex.Editor.Services.Stock;
 
 namespace Apex.Editor.ViewModels;
 
@@ -721,13 +722,23 @@ public sealed partial class MainViewModel
     /// </summary>
     public string PreviewSubjectLabel => _lockedSubject?.Record.Name
         ?? PreviewSubject?.Label
-        ?? (ActiveTab is null ? "" : ActiveTab.IsStock ? "No preview yet" : _env.IsAvailable ? "Nothing to preview" : "Needs the BO3 install");
+        ?? (ActiveTab is null ? "" : ActiveTab.IsStock ? StockPreviewLabel(ActiveTab) : _env.IsAvailable ? "Nothing to preview" : "Needs the BO3 install");
+
+    private static string StockPreviewLabel(AssetEditorViewModel tab) =>
+        tab.Record.Stock is { Loading: true } ? "Reading…" : "No preview";
+
+    private static string StockPreviewEmpty(AssetEditorViewModel tab) =>
+        tab.Record.Stock is not { } origin ? ""
+        : origin.Loading ? "Reading the asset from the game's files…"
+        : origin.Problem.Length > 0 ? "Nothing to preview: the asset couldn't be read."
+        : StockLibrary.HasPreviewCache(origin.Kind) ? "This asset can't be previewed: the stock helper isn't installed."
+        : $"Stock {StockHeader.Noun(origin.Kind)}s can't be previewed yet. Create a local copy to preview it.";
 
     /// <summary>Why the Preview is empty, in one line.</summary>
     public string PreviewEmptyText => ActiveTab is null
         ? "Open an asset to preview it."
         : ActiveTab.IsStock
-            ? "Stock assets can't be previewed yet. Create a local copy to preview it."
+            ? StockPreviewEmpty(ActiveTab)
         : _env.IsAvailable
             ? "Nothing to preview: this asset doesn't reference a model, material, image or anim."
             : "Model and anim previews need the BO3 install.";

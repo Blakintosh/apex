@@ -57,6 +57,13 @@ public partial class Program
         Pump();
         var root = vm.Stock.Install!;
         Check($"stock live: the helper is found ({vm.Stock.ExePath})", vm.Stock.ExePath is not null);
+        // APEX_STOCK_LIVE_PREVIEWS_ONLY=1: just the previews (the search, the weapon read and the clone take minutes).
+        if (Environment.GetEnvironmentVariable("APEX_STOCK_LIVE_PREVIEWS_ONLY") == "1")
+        {
+            LiveStockPreviews(vm, window, root, outDir);
+            window.Close();
+            return;
+        }
 
         // The index: built already, or built now; either way the refresh ends and the library is ready.
         var until = DateTime.UtcNow.AddMinutes(5);
@@ -115,6 +122,8 @@ public partial class Program
         window.UpdateLayout();
         Capture(window, Path.Combine(outDir, "live-stock-record.png"));
         vm.Registry[Apex.Editor.Commands.CommandCatalog.CloseTab].Execute();
+
+        LiveStockPreviews(vm, window, root, outDir);
 
         // One real clone into a throwaway target, then undo. It writes into the install (and undoes it), so it only runs
         // when asked: APEX_STOCK_LIVE_CLONE=1.
@@ -192,6 +201,172 @@ public partial class Program
         Check($"stock live: undo left no file behind ({added.Count} added, {lost.Count} lost{(added.Count > 0 ? ": " + string.Join(", ", added.Take(5)) : "")})", added.Count == 0 && lost.Count == 0);
         dlg.CloseCommand.Execute(null);
         window.Close();
+    }
+
+    /// <summary>
+    /// Previews of stock assets (p7_zm_zod_master_switch, one of its materials, one of its images) through the real helper:
+    /// the first view writes the caches (cold), later views read them. The stock folder is a copy of stock.db in a temp folder,
+    /// so the first view really is the first and the caches in the user's own stock folder stay as they are. The window can't
+    /// draw the D3D viewport headless, so the model and the sphere are also drawn off-screen from what the pane loaded.
+    /// </summary>
+    private static void LiveStockPreviews(MainViewModel vm, MainWindow window, string root, string outDir)
+    {
+        var scratch = NewScratch("stock-previews");
+        var db = Path.Combine(scratch, "stock.db");
+        File.Copy(vm.Stock.DbPath!, db);
+        var library = new StockLibrary(root, vm.Stock.ExePath, db);
+        vm.UseStockLibrary(library);
+        var cacheRoot = library.CacheRoot!;
+        long Bytes() => Directory.Exists(cacheRoot) ? Directory.EnumerateFiles(cacheRoot, "*", SearchOption.AllDirectories).Sum(f => new FileInfo(f).Length) : 0;
+        Check($"stock preview: the caches go next to the stock.db in use ({cacheRoot})", !Directory.Exists(cacheRoot) && library.CanAsk);
+
+        BrowserNode Row(string query, string name)
+        {
+            vm.FilterText = query;
+            vm.ApplyFilterNow();
+            for (var i = 0; i < 200 && !vm.FlatRows.Any(r => r.IsStock && r.Title.EndsWith(name, StringComparison.OrdinalIgnoreCase)); i++)
+                Pump(50);
+            return vm.FlatRows.First(r => r.IsStock && r.Title.EndsWith(name, StringComparison.OrdinalIgnoreCase));
+        }
+        T? Content<T>() where T : class => vm.ActiveTab?.PreviewPane?.Content as T;
+        // The window can't create the D3D viewport headless: it reports that and the pane falls back, which drops the model. The
+        // model the pane prepared is what is checked, so it is remembered as it arrives, and the report is forgotten before each open.
+        Apex.Editor.ViewModels.ToolsGfxPreviewState? watched = null;
+        Apex.Render.Assets.PreparedPreviewModel? seenModel = null;
+        Apex.Render.Presentation.PreviewEnvironment? seenEnv = null;
+        void Watch(Apex.Editor.ViewModels.ToolsGfxPreviewState gfx)
+        {
+            watched = gfx;
+            seenModel = gfx.Model;
+            seenEnv = gfx.Environment;
+            gfx.PropertyChanged += (_, _) =>
+            {
+                if (gfx.Model is { } m)
+                    seenModel = m;
+                if (gfx.Environment is { } e)
+                    seenEnv = e;
+            };
+        }
+        void Open(Apex.Editor.Models.AssetRecord record)
+        {
+            Apex.Editor.Services.Preview.ToolsGfx.ToolsGfxPreviewService.InteropUnavailableReason = null;
+            seenModel = null;
+            vm.OpenAsset(record);
+        }
+        bool Until(Func<bool> done, int seconds)
+        {
+            var limit = DateTime.UtcNow.AddSeconds(seconds);
+            while (!done() && DateTime.UtcNow < limit)
+                Pump(25);
+            return done();
+        }
+
+        // ── The model ──
+        var modelRow = Row("type:xmodel p7_zm_zod_master_switch", "p7_zm_zod_master_switch");
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        Open(modelRow.Asset!);
+        Check("stock preview: the tab has no preview until its fields are read", vm.ActiveTab!.PreviewPane is null);
+        Until(() => Content<ModelPreviewViewModel>() is not null, 120);
+        var model = Content<ModelPreviewViewModel>();
+        Check("stock preview: a stock model gets the model preview", model is not null);
+        if (model is null)
+            return;
+        Watch(model.Gfx);
+        Console.WriteLine($"stock live: the model pane appeared after {clock.ElapsedMilliseconds} ms (the fields were read)");
+        Until(() => model.IsLoading, 5);
+        Pump(250);
+        window.UpdateLayout();
+        Check($"stock preview: the first view says it is preparing ({model.LoadingText})", model.IsLoading && model.LoadingText.Contains("first view"));
+        Capture(window, Path.Combine(outDir, "live-stock-preview-loading.png"));
+        Until(() => seenModel is not null || model.Error is { Length: > 0 }, 240);
+        var cold = clock.Elapsed;
+        var drawn = seenModel;
+        Console.WriteLine($"stock live: model preview cold {cold.TotalSeconds:0.0} s ({model.Stats}; error '{model.Error}'); caches now {Bytes() / 1024.0 / 1024.0:0.0} MB");
+        Check($"stock preview: the model loads from the caches the helper wrote ({model.Stats})", drawn is not null && drawn.TriangleCount(0) > 10_000 && drawn.Lods.Count == 8 && drawn.BrokenMaterialCount == 0);
+        var modelBytes = Bytes();
+        Check("stock preview: the caches are a manifest per asset and the cache files under toolsgfx",
+            File.Exists(Path.Combine(cacheRoot, "manifest", "xmodel", "p7_zm_zod_master_switch.json"))
+            && Directory.GetDirectories(Path.Combine(cacheRoot, "xmeshes", "v39")).Length == 8 && modelBytes > 1_000_000);
+        window.UpdateLayout();
+        Capture(window, Path.Combine(outDir, "live-stock-preview-model.png"));
+        var env = seenEnv;
+        if (drawn is not null && env is not null)
+        {
+            using var shooter = new OffscreenShooter(env);
+            var frame = shooter.Shoot(drawn, OffscreenShooter.ThreeQuarter(drawn));
+            Check($"stock preview: the model is drawn from the stock caches ({shooter.Triangles} tris)", frame is not null);
+            if (frame is not null)
+                Save(outDir, "live-stock-model.png", frame);
+        }
+
+        // Warm: the same asset again, in this session and as a later session would read it (nothing prepared yet).
+        vm.Registry[Apex.Editor.Commands.CommandCatalog.CloseTab].Execute();
+        clock.Restart();
+        Open(modelRow.Asset!);
+        Until(() => Content<ModelPreviewViewModel>() is not null, 120);
+        if (Content<ModelPreviewViewModel>() is { } reopened)
+            Watch(reopened.Gfx);
+        Until(() => seenModel is not null, 120);
+        Console.WriteLine($"stock live: model preview warm, reopened in the session: {clock.ElapsedMilliseconds} ms (includes the field read)");
+        var install = Apex.Render.Data.ToolsGfxInstall.FromRoot(root);
+        clock.Restart();
+        var fresh = new Apex.Render.Data.ToolsGfxData(install, new Apex.Render.Data.Gdt.GdtIndex(), stock: new Apex.Render.Data.Assets.StockCache(cacheRoot));
+        var again = Apex.Render.Assets.PreviewModelLoader.Prepare(fresh, "p7_zm_zod_master_switch", new Apex.Render.Assets.PreviewModelOptions { SkipBrokenMaterials = true });
+        Console.WriteLine($"stock live: model preview warm, as a later session reads the caches: {clock.ElapsedMilliseconds} ms ({again.TriangleCount(0):N0} tris)");
+        Check("stock preview: a later session shows the model from the caches alone", again.TriangleCount(0) == drawn?.TriangleCount(0));
+        vm.Registry[Apex.Editor.Commands.CommandCatalog.CloseTab].Execute();
+
+        // ── A material (its caches were written with the model: the manifest is there, so the helper is not asked) ──
+        var before = Bytes();
+        var materialRow = Row("type:material mtl_p7_zm_zod_master_switch_metal_01", "mtl_p7_zm_zod_master_switch_metal_01");
+        clock.Restart();
+        Open(materialRow.Asset!);
+        Until(() => Content<MaterialPreviewViewModel>() is not null, 120);
+        var material = Content<MaterialPreviewViewModel>();
+        Check("stock preview: a stock material gets the material preview", material is not null);
+        if (material is null)
+            return;
+        Watch(material.Gfx);
+        Until(() => seenModel is not null || material.Error is { Length: > 0 }, 120);
+        Until(() => material.Slots.Count > 0 && material.Slots.All(sl => sl.Thumbnail is not null || sl.Status is { Length: > 0 } and not "stock image"), 60);
+        Console.WriteLine($"stock live: material preview {clock.ElapsedMilliseconds} ms ({material.Slots.Count} slots, {material.Slots.Count(sl => sl.Thumbnail is not null)} thumbnails; error '{material.Error}'); {(Bytes() - before) / 1024.0:0} KB written");
+        Check($"stock preview: the material is lit on the sphere ({material.Summary})", seenModel is { BrokenMaterialCount: 0 });
+        Check($"stock preview: its texture slots show thumbnails read from the stock image caches ({material.Slots.Count(sl => sl.Thumbnail is not null)} of {material.Slots.Count})",
+            material.Slots.Count >= 3 && material.Slots.Count(sl => sl.Thumbnail is not null) >= 3);
+        window.UpdateLayout();
+        Capture(window, Path.Combine(outDir, "live-stock-preview-material.png"));
+        if (seenModel is { } sphere && seenEnv is { } sphereEnv)
+        {
+            using var shooter = new OffscreenShooter(sphereEnv);
+            var frame = shooter.Shoot(sphere, OffscreenShooter.SphereCamera);
+            Check($"stock preview: the sphere is drawn from the stock caches ({shooter.Triangles} tris)", frame is not null);
+            if (frame is not null)
+                Save(outDir, "live-stock-material.png", frame);
+        }
+        vm.Registry[Apex.Editor.Commands.CommandCatalog.CloseTab].Execute();
+
+        // ── Images: a colour map and a normal map (shipped normals keep gloss variance in blue: the normal-Z view is the default) ──
+        foreach (var (name, shot, normal) in new[] { ("i_mtl_p7_zm_zod_master_switch_set_decal_c", "live-stock-preview-image.png", false), ("i_mtl_p7_zm_zod_master_switch_set_01_n", "live-stock-preview-image-normal.png", true) })
+        {
+            var imageRow = Row("type:image " + name, name);
+            clock.Restart();
+            Open(imageRow.Asset!);
+            Until(() => Content<ImagePreviewViewModel>() is not null, 120);
+            var image = Content<ImagePreviewViewModel>();
+            Check($"stock preview: a stock image gets the image preview ({name})", image is not null);
+            if (image is null)
+                return;
+            Until(() => image.Bitmap is not null || image.Error is { Length: > 0 }, 60);
+            Console.WriteLine($"stock live: image preview {clock.ElapsedMilliseconds} ms ({image.Info}; error '{image.Error}')");
+            Check($"stock preview: the image is decoded from its cache ({image.Info})", image.Bitmap is not null && image.Info!.Contains("stock cache"));
+            Check($"stock preview: a normal map opens in the normal-Z view, a colour map in RGB (normal {normal}; N chip {image.Modes.First(m => m.IsActive).Label})",
+                image.Modes.First(m => m.IsActive).Label == (normal ? "N" : "RGB"));
+            window.UpdateLayout();
+            Capture(window, Path.Combine(outDir, shot));
+            vm.Registry[Apex.Editor.Commands.CommandCatalog.CloseTab].Execute();
+        }
+
+        Console.WriteLine($"stock live: stock caches in all: {Bytes() / 1024.0 / 1024.0:0.0} MB, {Directory.EnumerateFiles(cacheRoot, "*.lz4", SearchOption.AllDirectories).Count()} files");
     }
 
     /// <summary>The files a clone writes into, by relative path: its model, texture and raw folders and the GDT folder's files.</summary>
