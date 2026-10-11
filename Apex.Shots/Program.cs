@@ -61,6 +61,13 @@ public partial class Program
         // --search-live: the search menu's keystrokes on the real install (read-only).
         if (args.Contains("--search-live"))
             return await RunLiveOnly(LiveSearchMenuTiming);
+        // --stock-live: the stock library with the real helper on the real install; one clone into a throwaway target, undone.
+        if (args.Contains("--stock-live"))
+        {
+            var shotsDir = args.FirstOrDefault(a => !a.StartsWith("--", StringComparison.Ordinal)) ?? "shots";
+            Directory.CreateDirectory(shotsDir);
+            return await RunLiveOnly(() => RunLiveStockChecks(shotsDir));
+        }
         if (args.Contains("--fields-live"))
             return await RunLiveOnly(RunLiveFieldChecks);
         // --notetracks-live: the install's xanim notetrack actions and their sound aliases (read-only).

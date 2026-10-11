@@ -41,6 +41,7 @@ Every check belongs to exactly one tier, decided by what it needs:
 |---|---|---|---|
 | main | fast | | mock data, screenshots of every surface |
 | shell, ref, command, scroll, tabs, layout, search | fast | | mock data, real input |
+| stock | fast | | a fixture stock.db and a fake helper (`--stock-live`: the real helper on the real install, one clone into a throwaway target, undone) |
 | links | fast | | mock data, a named pipe of its own |
 | journal | fast | yes | mock data, session journal in temp |
 | save | fast | | GDT save path on temp copies of 35 install GDTs |
