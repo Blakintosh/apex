@@ -1,0 +1,2061 @@
+{
+ "blockers": [
+  {
+   "class": "copy",
+   "id": 0,
+   "name": "ar_standard_upgraded_zm",
+   "type": "WEAPON"
+  }
+ ],
+ "counts": {
+  "copy": 34,
+  "local": 73,
+  "use_shipped": 337
+ },
+ "nodes": [
+  {
+   "class": "copy",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\wpn_t7_zm_stock.gdt",
+    "gdf": "bulletweapon"
+   },
+   "id": 0,
+   "name": "ar_standard_upgraded_zm",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "zm_guns_ar_standard_upgraded_zm",
+    "why": "gdt.db already defines ar_standard_upgraded_zm (bulletweapon in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\wpn_t7_zm_stock.gdt)"
+   },
+   "reason": "the asset being cloned",
+   "type": "WEAPON",
+   "warnings": [
+    "named 'ar_standard_upgraded': the game appends the mode suffix, so this is ar_standard_upgraded_zm"
+   ],
+   "zone": "zm_levelcommon",
+   "zones": [
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 3,
+   "name": "au_ar_standard_none",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_none",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 4,
+   "name": "au_ar_standard_acog",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_acog",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 5,
+   "name": "au_ar_standard_damage",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_damage",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 6,
+   "name": "au_ar_standard_dualoptic_upgraded",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": true,
+    "overrides_stock": true,
+    "proposed": "au_zm_guns_ar_standard_dualoptic_upgraded",
+    "why": "renamed with WEAPON ar_standard_upgraded_zm: the linker finds a weapon's attachment uniques by name (keeps its name and overrides the stock one (zm_levelcommon is ignore_missing_shipped))"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "zm_levelcommon",
+   "zones": [
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 7,
+   "name": "au_ar_standard_extbarrel_upgraded",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": true,
+    "overrides_stock": true,
+    "proposed": "au_zm_guns_ar_standard_extbarrel_upgraded",
+    "why": "renamed with WEAPON ar_standard_upgraded_zm: the linker finds a weapon's attachment uniques by name (keeps its name and overrides the stock one (zm_levelcommon is ignore_missing_shipped))"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "zm_levelcommon",
+   "zones": [
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 8,
+   "name": "au_ar_standard_extclip",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_extclip",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 9,
+   "name": "au_ar_standard_fastreload",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_fastreload",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 10,
+   "name": "au_ar_standard_fmj",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_fmj",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 11,
+   "name": "au_ar_standard_grip",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_grip",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 12,
+   "name": "au_ar_standard_holo",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_holo",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 13,
+   "name": "au_ar_standard_ir",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_ir",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 14,
+   "name": "au_ar_standard_quickdraw",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_quickdraw",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 15,
+   "name": "au_ar_standard_reddot",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_reddot",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 16,
+   "name": "au_ar_standard_reflex",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_reflex",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 17,
+   "name": "au_ar_standard_rf_upgraded",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": true,
+    "overrides_stock": true,
+    "proposed": "au_zm_guns_ar_standard_rf_upgraded",
+    "why": "renamed with WEAPON ar_standard_upgraded_zm: the linker finds a weapon's attachment uniques by name (keeps its name and overrides the stock one (zm_levelcommon is ignore_missing_shipped))"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "zm_levelcommon",
+   "zones": [
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 18,
+   "name": "au_ar_standard_stalker",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_stalker",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 19,
+   "name": "au_ar_standard_steadyaim",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_steadyaim",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 20,
+   "name": "au_ar_standard_suppressed",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_suppressed",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 21,
+   "name": "au_ar_standard_acog+grip",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_acog+grip",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 22,
+   "name": "au_ar_standard_extbarrel+suppressed",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_extbarrel+suppressed",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 23,
+   "name": "au_ar_standard_extclip+fastreload",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_extclip+fastreload",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 24,
+   "name": "au_ar_standard_extclip+grip",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_extclip+grip",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 25,
+   "name": "au_ar_standard_fastreload+grip",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_fastreload+grip",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 26,
+   "name": "au_ar_standard_fmj+steadyaim",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_fmj+steadyaim",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 27,
+   "name": "au_ar_standard_grip+ir",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_grip+ir",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 28,
+   "name": "au_ar_standard_grip+reddot",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_grip+reddot",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 29,
+   "name": "au_ar_standard_grip+reflex",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "au_zm_guns_ar_standard_grip+reflex",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "attachment uniques are left out silently unless they have a GDT entry",
+   "type": "ATTACHMENT_UNIQUE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 64,
+   "name": "camo_t7_ar_arak",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "zm_guns_camo_t7_ar_arak",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "options": [
+    "copy",
+    "clear"
+   ],
+   "reason": "a camo by name is \"not a valid weaponcamo asset\": copy it or clear the field",
+   "type": "WEAPON_CAMO",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 172,
+   "name": "camo_t7_attach_damage_ar_arak",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "zm_guns_camo_t7_attach_damage_ar_arak",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "options": [
+    "copy",
+    "clear"
+   ],
+   "reason": "a camo by name is \"not a valid weaponcamo asset\": copy it or clear the field",
+   "type": "WEAPON_CAMO",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 180,
+   "name": "dualoptic_ar_standard_upgraded_zm",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": true,
+    "proposed": "dualoptic_ar_standard_upgraded_zm",
+    "why": "keeps its name and overrides the stock one (zm_levelcommon is ignore_missing_shipped)"
+   },
+   "reason": "a weapon named by the weapon: always copied",
+   "type": "WEAPON",
+   "warnings": [
+    "named 'dualoptic_ar_standard_upgraded': the game appends the mode suffix, so this is dualoptic_ar_standard_upgraded_zm"
+   ],
+   "zone": "zm_levelcommon",
+   "zones": [
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 192,
+   "name": "camo_t7_attach_ext_mag_ar_arak",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "zm_guns_camo_t7_attach_ext_mag_ar_arak",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "options": [
+    "copy",
+    "clear"
+   ],
+   "reason": "a camo by name is \"not a valid weaponcamo asset\": copy it or clear the field",
+   "type": "WEAPON_CAMO",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 207,
+   "name": "camo_t7_attach_fmj_ar_arak",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "zm_guns_camo_t7_attach_fmj_ar_arak",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "options": [
+    "copy",
+    "clear"
+   ],
+   "reason": "a camo by name is \"not a valid weaponcamo asset\": copy it or clear the field",
+   "type": "WEAPON_CAMO",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 275,
+   "name": "camo_t7_attach_stalker_ar_arak",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "zm_guns_camo_t7_attach_stalker_ar_arak",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "options": [
+    "copy",
+    "clear"
+   ],
+   "reason": "a camo by name is \"not a valid weaponcamo asset\": copy it or clear the field",
+   "type": "WEAPON_CAMO",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 1,
+   "name": "wpn_t7_arak_mag_world",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "XMODEL",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 2,
+   "name": "wpn_t7_arak_mag_view",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "XMODEL",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 48,
+   "name": "wpn_t7_arak_view",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "XMODEL",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 169,
+   "name": "attach_t7_ar_arak_upper_01_view",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "XMODEL",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 170,
+   "name": "attach_t7_ar_arak_upper_01_world",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "XMODEL",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 182,
+   "name": "attach_t7_ar_barrel_04_view",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "XMODEL",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\weaponattachments.gdt",
+    "gdf": "attachment"
+   },
+   "id": 30,
+   "name": "defaultattachment",
+   "reason": "gdt.db defines it (attachment in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\weaponattachments.gdt)",
+   "type": "ATTACHMENT",
+   "zone": "core_pre_gfx",
+   "zones": [
+    "core_pre_gfx"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\weaponattachments.gdt",
+    "gdf": "attachment"
+   },
+   "id": 31,
+   "name": "acog",
+   "reason": "gdt.db defines it (attachment in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\weaponattachments.gdt)",
+   "type": "ATTACHMENT",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\tbd_weaponcommon.gdt",
+    "gdf": "attachment"
+   },
+   "id": 32,
+   "name": "damage",
+   "reason": "gdt.db defines it (attachment in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\tbd_weaponcommon.gdt)",
+   "type": "ATTACHMENT",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\tbd_weaponcommon.gdt",
+    "gdf": "attachment"
+   },
+   "id": 33,
+   "name": "dualoptic_upgraded",
+   "reason": "gdt.db defines it (attachment in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\tbd_weaponcommon.gdt)",
+   "type": "ATTACHMENT",
+   "zone": "zm_levelcommon",
+   "zones": [
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\tbd_weaponcommon.gdt",
+    "gdf": "attachment"
+   },
+   "id": 35,
+   "name": "extclip_zm",
+   "reason": "gdt.db defines it (attachment in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\tbd_weaponcommon.gdt)",
+   "type": "ATTACHMENT",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\tbd_weaponcommon.gdt",
+    "gdf": "attachment"
+   },
+   "id": 36,
+   "name": "fastreload_dualmag",
+   "reason": "gdt.db defines it (attachment in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\tbd_weaponcommon.gdt)",
+   "type": "ATTACHMENT",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 34,
+   "name": "extbarrel_upgraded",
+   "reason": "listed by zm_levelcommon (ignore_missing_shipped)",
+   "type": "ATTACHMENT",
+   "zones": [
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 44,
+   "name": "rf_upgraded",
+   "reason": "listed by zm_levelcommon (ignore_missing_shipped)",
+   "type": "ATTACHMENT",
+   "zones": [
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 49,
+   "name": "ui_cam_cac_ar_standard",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "XCAM",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 50,
+   "name": "ui_cam_icon_ar_standard",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "XCAM",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "id": 51,
+   "name": "zombie/fx_muz_md_rifle_1p_ugw_zmb",
+   "reason": "its source ships in share\\raw\\fx\\zombie\\fx_muz_md_rifle_1p_ugw_zmb.efx",
+   "type": "FX",
+   "zone": "zm_levelcommon",
+   "zones": [
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "id": 52,
+   "name": "zombie/fx_muz_md_rifle_3p_ugw_zmb",
+   "reason": "its source ships in share\\raw\\fx\\zombie\\fx_muz_md_rifle_3p_ugw_zmb.efx",
+   "type": "FX",
+   "zone": "zm_levelcommon",
+   "zones": [
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "id": 54,
+   "name": "weapon/fx_shellejects_rifle",
+   "reason": "its source ships in share\\raw\\fx\\weapon\\fx_shellejects_rifle.efx",
+   "type": "FX",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "id": 186,
+   "name": "zombie/fx_muz_md_rifle_1p_ug_zmb",
+   "reason": "its source ships in share\\raw\\fx\\zombie\\fx_muz_md_rifle_1p_ug_zmb.efx",
+   "type": "FX",
+   "zone": "zm_levelcommon",
+   "zones": [
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "id": 187,
+   "name": "zombie/fx_muz_md_rifle_3p_ug_zmb",
+   "reason": "its source ships in share\\raw\\fx\\zombie\\fx_muz_md_rifle_3p_ug_zmb.efx",
+   "type": "FX",
+   "zone": "zm_levelcommon",
+   "zones": [
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "id": 284,
+   "name": "weapon/fx_muz_smk_silenced_1p",
+   "reason": "its source ships in share\\raw\\fx\\weapon\\fx_muz_smk_silenced_1p.efx",
+   "type": "FX",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 53,
+   "name": "rifle",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "SHAREDWEAPONSOUNDS",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\hud.gdt",
+    "gdf": "image"
+   },
+   "id": 55,
+   "name": "reticle_side_small",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\hud.gdt)",
+   "type": "IMAGE",
+   "zone": "core_pre_gfx",
+   "zones": [
+    "core_pre_gfx"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\images.gdt",
+    "gdf": "image"
+   },
+   "id": 57,
+   "name": "hud_mp_firerate_auto",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\images.gdt)",
+   "type": "IMAGE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\images.gdt",
+    "gdf": "image"
+   },
+   "id": 381,
+   "name": "detail_noise_tight",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\images.gdt)",
+   "type": "IMAGE",
+   "zone": "core_common",
+   "zones": [
+    "core_common",
+    "cp_doa_bo3_patch"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\t7_characters_mp_reaper.gdt",
+    "gdf": "image"
+   },
+   "id": 410,
+   "name": "i_c_t7_reaper_body2_detail_map_n",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\t7_characters_mp_reaper.gdt)",
+   "type": "IMAGE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 425,
+   "name": "$white",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_pre_gfx",
+   "zones": [
+    "core_pre_gfx"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_arak.gdt",
+    "gdf": "image"
+   },
+   "id": 431,
+   "name": "i_wpn_t7_arak_metal_r",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_arak.gdt)",
+   "type": "IMAGE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_arak.gdt",
+    "gdf": "xmodel"
+   },
+   "id": 56,
+   "name": "wpn_t7_arak_world",
+   "reason": "gdt.db defines it (xmodel in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_arak.gdt)",
+   "type": "XMODEL",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_attachments.gdt",
+    "gdf": "xmodel"
+   },
+   "id": 162,
+   "name": "attach_t7_optic_acog_view",
+   "reason": "gdt.db defines it (xmodel in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_attachments.gdt)",
+   "type": "XMODEL",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_attachments.gdt",
+    "gdf": "xmodel"
+   },
+   "id": 163,
+   "name": "attach_t7_optic_acog_view_ads",
+   "reason": "gdt.db defines it (xmodel in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_attachments.gdt)",
+   "type": "XMODEL",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_attachments.gdt",
+    "gdf": "xmodel"
+   },
+   "id": 164,
+   "name": "attach_t7_optic_acog_world",
+   "reason": "gdt.db defines it (xmodel in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_attachments.gdt)",
+   "type": "XMODEL",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_attachments.gdt",
+    "gdf": "xmodel"
+   },
+   "id": 173,
+   "name": "attach_t7_optic_hybrid_view",
+   "reason": "gdt.db defines it (xmodel in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_attachments.gdt)",
+   "type": "XMODEL",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_attachments.gdt",
+    "gdf": "xmodel"
+   },
+   "id": 174,
+   "name": "attach_t7_optic_hybrid_view_ads",
+   "reason": "gdt.db defines it (xmodel in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_attachments.gdt)",
+   "type": "XMODEL",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 58,
+   "name": "t7_icon_weapon_ar_standard_pu",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "IMAGE",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 59,
+   "name": "t7_icon_weapon_ar_standard_kf",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "IMAGE",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 168,
+   "name": "t7_icon_attach_ar_standard_highcaliber_01",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "IMAGE",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 171,
+   "name": "cac_mods_ar_standard_high_caliber_01_sm",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "IMAGE",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 181,
+   "name": "t7_icon_attach_ar_standard_extbarrel_01",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "IMAGE",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 188,
+   "name": "t7_icon_attach_ar_standard_extmag_01",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "IMAGE",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\t7_rumble_assets.gdt",
+    "gdf": "rumble"
+   },
+   "id": 60,
+   "name": "assault_fire",
+   "reason": "gdt.db defines it (rumble in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\t7_rumble_assets.gdt)",
+   "type": "RUMBLE",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 61,
+   "name": "assaultrifle",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "TRACER",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 62,
+   "name": "assaultrifle_enemy",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "TRACER",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 63,
+   "name": "assaultrifle_uw",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "TRACER",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 65,
+   "name": "bullet_large_enter",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "IMPACT_FX",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 66,
+   "name": "bullet_large_exit",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "IMPACT_FX",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\impactsoundstables.gdt",
+    "gdf": "impactsoundstable"
+   },
+   "id": 67,
+   "name": "bullet_impact",
+   "reason": "gdt.db defines it (impactsoundstable in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\impactsoundstables.gdt)",
+   "type": "IMPACT_SOUND",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\impactsoundstables.gdt",
+    "gdf": "impactsoundstable"
+   },
+   "id": 68,
+   "name": "bullet_exit",
+   "reason": "gdt.db defines it (impactsoundstable in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\impactsoundstables.gdt)",
+   "type": "IMPACT_SOUND",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\attachmentcosmeticvariant.gdt",
+    "gdf": "attachmentcosmeticvariant"
+   },
+   "id": 69,
+   "name": "defaultattachmentcosmeticvariant",
+   "reason": "gdt.db defines it (attachmentcosmeticvariant in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\attachmentcosmeticvariant.gdt)",
+   "type": "ATTACHMENT_COSMETIC_VARIANT",
+   "zone": "core_pre_gfx",
+   "zones": [
+    "core_pre_gfx"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 70,
+   "name": "acv_damage_ar_standard",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "ATTACHMENT_COSMETIC_VARIANT",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 71,
+   "name": "acv_extbarrel_ar_standard",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "ATTACHMENT_COSMETIC_VARIANT",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 72,
+   "name": "acv_extclip_ar_standard",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "ATTACHMENT_COSMETIC_VARIANT",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 73,
+   "name": "acv_fastreload_ar_standard",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "ATTACHMENT_COSMETIC_VARIANT",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 74,
+   "name": "acv_fmj_ar_standard",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "ATTACHMENT_COSMETIC_VARIANT",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 75,
+   "name": "acv_grip_ar_standard",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "ATTACHMENT_COSMETIC_VARIANT",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 82,
+   "name": "vm_arak_idle",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "XANIMPARTS",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 83,
+   "name": "vm_arak_fire",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "XANIMPARTS",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 84,
+   "name": "vm_arak_gunbutt_swipe",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "XANIMPARTS",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 85,
+   "name": "vm_arak_reload",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "XANIMPARTS",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 86,
+   "name": "vm_arak_reload_empty",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "XANIMPARTS",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 87,
+   "name": "vm_arak_grip_reload_dm",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "XANIMPARTS",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\xanim_export\\t7_xanim_viewmodel.gdt",
+    "gdf": "xanim"
+   },
+   "id": 99,
+   "name": "vm_barehands_passive_ability_use",
+   "reason": "gdt.db defines it (xanim in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\xanim_export\\t7_xanim_viewmodel.gdt)",
+   "type": "XANIMPARTS",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\xanim_export\\t7_xanim_viewmodel.gdt",
+    "gdf": "xanim"
+   },
+   "id": 113,
+   "name": "vm_bare_hands_mantle_wall_out",
+   "reason": "gdt.db defines it (xanim in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\xanim_export\\t7_xanim_viewmodel.gdt)",
+   "type": "XANIMPARTS",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\xanim_export\\t7_xanim_viewmodel.gdt",
+    "gdf": "xanim"
+   },
+   "id": 115,
+   "name": "vm_bare_hands_mantle_wall_out_low",
+   "reason": "gdt.db defines it (xanim in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\xanim_export\\t7_xanim_viewmodel.gdt)",
+   "type": "XANIMPARTS",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\xanim_export\\t7_xanim_viewmodel.gdt",
+    "gdf": "xanim"
+   },
+   "id": 137,
+   "name": "vm_bare_hands_swim_uw_sprint_loop",
+   "reason": "gdt.db defines it (xanim in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\xanim_export\\t7_xanim_viewmodel.gdt)",
+   "type": "XANIMPARTS",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\xanim_export\\t7_xanim_viewmodel.gdt",
+    "gdf": "xanim"
+   },
+   "id": 138,
+   "name": "vm_bare_hands_swim_tw_sprint_loop",
+   "reason": "gdt.db defines it (xanim in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\xanim_export\\t7_xanim_viewmodel.gdt)",
+   "type": "XANIMPARTS",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "hash": "299fa85b",
+   "id": 152,
+   "name": "wpn_ar_standard_fire_pap_npc",
+   "reason": "defined by the sound bank of zm_common, which the map loads",
+   "type": "SOUND_ALIAS",
+   "zones": [
+    "zm_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "hash": "2a97c670",
+   "id": 153,
+   "name": "wpn_ar_standard_fire_pap_plr",
+   "reason": "defined by the sound bank of zm_common, which the map loads",
+   "type": "SOUND_ALIAS",
+   "zones": [
+    "zm_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "hash": "e9c21dcb",
+   "id": 154,
+   "name": "wpn_assault_npc_pap_decay",
+   "reason": "defined by the sound bank of zm_common, which the map loads",
+   "type": "SOUND_ALIAS",
+   "zones": [
+    "zm_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "hash": "51581760",
+   "id": 155,
+   "name": "wpn_assault_plr_pap_decay",
+   "reason": "defined by the sound bank of zm_common, which the map loads",
+   "type": "SOUND_ALIAS",
+   "zones": [
+    "zm_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "hash": "508214cf",
+   "id": 156,
+   "name": "wpn_ar_standard_rapid_sup_fire_npc",
+   "reason": "defined by the sound bank of zm_common, which the map loads",
+   "type": "SOUND_ALIAS",
+   "zones": [
+    "zm_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "hash": "517a32e4",
+   "id": 157,
+   "name": "wpn_ar_standard_rapid_sup_fire_plr",
+   "reason": "defined by the sound bank of zm_common, which the map loads",
+   "type": "SOUND_ALIAS",
+   "zones": [
+    "zm_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\lasersettings.gdt",
+    "gdf": "laser"
+   },
+   "id": 279,
+   "name": "steadyaim_viewmodel_laser",
+   "reason": "gdt.db defines it (laser in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\lasersettings.gdt)",
+   "type": "LASER",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\lasersettings.gdt",
+    "gdf": "laser"
+   },
+   "id": 280,
+   "name": "steadyaim_world_laser",
+   "reason": "gdt.db defines it (laser in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\lasersettings.gdt)",
+   "type": "LASER",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\blak_karelia\\iw8_karelia_camo.gdt",
+    "gdf": "material"
+   },
+   "id": 303,
+   "name": "mc/mtl_t7_camo_summertime_wpn",
+   "reason": "gdt.db defines it (material in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\blak_karelia\\iw8_karelia_camo.gdt)",
+   "type": "MATERIAL",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_arak.gdt",
+    "gdf": "material"
+   },
+   "id": 304,
+   "name": "mc/mtl_wpn_t7_arak_metal",
+   "reason": "gdt.db defines it (material in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_arak.gdt)",
+   "type": "MATERIAL",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_arak.gdt",
+    "gdf": "material"
+   },
+   "id": 305,
+   "name": "mc/mtl_wpn_t7_arak_plastic",
+   "reason": "gdt.db defines it (material in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_arak.gdt)",
+   "type": "MATERIAL",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_arak.gdt",
+    "gdf": "material"
+   },
+   "id": 312,
+   "name": "mc/mtl_wpn_t7_arak_mag",
+   "reason": "gdt.db defines it (material in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\model_export\\wpn_t7_arak.gdt)",
+   "type": "MATERIAL",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\zm_vodka_pap_camo.gdt",
+    "gdf": "material"
+   },
+   "id": 344,
+   "name": "mc/mtl_wpn_t7_camo_dlc3_pap_04",
+   "reason": "gdt.db defines it (material in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\zm_vodka_pap_camo.gdt)",
+   "type": "MATERIAL",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\zm_vodka_pap_camo.gdt",
+    "gdf": "material"
+   },
+   "id": 345,
+   "name": "mc/mtl_wpn_t7_camo_dlc3_pap_03",
+   "reason": "gdt.db defines it (material in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\source_data\\zm_vodka_pap_camo.gdt)",
+   "type": "MATERIAL",
+   "zone": "core_common",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 306,
+   "name": "mc/mtl_t7_camo_honeycomb_amber_wpn",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "MATERIAL",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 307,
+   "name": "mc/mtl_t7_camo_soviet_winter_blue_emissive",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "MATERIAL",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 308,
+   "name": "mc/mtl_t7_camo_vip_bubbles",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "MATERIAL",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 309,
+   "name": "mc/mtl_t7_camo_summertime_cherry_fizz",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "MATERIAL",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 310,
+   "name": "mc/mtl_t7_camo_ce_zmbhd_115",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "MATERIAL",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "use_shipped",
+   "id": 311,
+   "name": "mc/mtl_t7_camo_ce_zmbhd_115_alt",
+   "reason": "listed by core_common (ignore), core_common (ignore_missing_shipped)",
+   "type": "MATERIAL",
+   "zones": [
+    "core_common"
+   ]
+  }
+ ],
+ "prefix": "zm_guns_",
+ "renames": [
+  {
+   "from": "ar_standard_upgraded_zm",
+   "to": "zm_guns_ar_standard_upgraded_zm",
+   "type": "WEAPON"
+  },
+  {
+   "from": "au_ar_standard_none",
+   "to": "au_zm_guns_ar_standard_none",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_acog",
+   "to": "au_zm_guns_ar_standard_acog",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_damage",
+   "to": "au_zm_guns_ar_standard_damage",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_dualoptic_upgraded",
+   "to": "au_zm_guns_ar_standard_dualoptic_upgraded",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_extbarrel_upgraded",
+   "to": "au_zm_guns_ar_standard_extbarrel_upgraded",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_extclip",
+   "to": "au_zm_guns_ar_standard_extclip",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_fastreload",
+   "to": "au_zm_guns_ar_standard_fastreload",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_fmj",
+   "to": "au_zm_guns_ar_standard_fmj",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_grip",
+   "to": "au_zm_guns_ar_standard_grip",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_holo",
+   "to": "au_zm_guns_ar_standard_holo",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_ir",
+   "to": "au_zm_guns_ar_standard_ir",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_quickdraw",
+   "to": "au_zm_guns_ar_standard_quickdraw",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_reddot",
+   "to": "au_zm_guns_ar_standard_reddot",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_reflex",
+   "to": "au_zm_guns_ar_standard_reflex",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_rf_upgraded",
+   "to": "au_zm_guns_ar_standard_rf_upgraded",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_stalker",
+   "to": "au_zm_guns_ar_standard_stalker",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_steadyaim",
+   "to": "au_zm_guns_ar_standard_steadyaim",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_suppressed",
+   "to": "au_zm_guns_ar_standard_suppressed",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_acog+grip",
+   "to": "au_zm_guns_ar_standard_acog+grip",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_extbarrel+suppressed",
+   "to": "au_zm_guns_ar_standard_extbarrel+suppressed",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_extclip+fastreload",
+   "to": "au_zm_guns_ar_standard_extclip+fastreload",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_extclip+grip",
+   "to": "au_zm_guns_ar_standard_extclip+grip",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_fastreload+grip",
+   "to": "au_zm_guns_ar_standard_fastreload+grip",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_fmj+steadyaim",
+   "to": "au_zm_guns_ar_standard_fmj+steadyaim",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_grip+ir",
+   "to": "au_zm_guns_ar_standard_grip+ir",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_grip+reddot",
+   "to": "au_zm_guns_ar_standard_grip+reddot",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "au_ar_standard_grip+reflex",
+   "to": "au_zm_guns_ar_standard_grip+reflex",
+   "type": "ATTACHMENT_UNIQUE"
+  },
+  {
+   "from": "camo_t7_ar_arak",
+   "to": "zm_guns_camo_t7_ar_arak",
+   "type": "WEAPON_CAMO"
+  },
+  {
+   "from": "camo_t7_attach_damage_ar_arak",
+   "to": "zm_guns_camo_t7_attach_damage_ar_arak",
+   "type": "WEAPON_CAMO"
+  },
+  {
+   "from": "camo_t7_attach_ext_mag_ar_arak",
+   "to": "zm_guns_camo_t7_attach_ext_mag_ar_arak",
+   "type": "WEAPON_CAMO"
+  },
+  {
+   "from": "camo_t7_attach_fmj_ar_arak",
+   "to": "zm_guns_camo_t7_attach_fmj_ar_arak",
+   "type": "WEAPON_CAMO"
+  },
+  {
+   "from": "camo_t7_attach_stalker_ar_arak",
+   "to": "zm_guns_camo_t7_attach_stalker_ar_arak",
+   "type": "WEAPON_CAMO"
+  }
+ ],
+ "resolves_by_name": false,
+ "root": 0,
+ "target": {
+  "language": "english",
+  "mode": "zm",
+  "name": "zm_guns"
+ },
+ "unsupported": []
+}
