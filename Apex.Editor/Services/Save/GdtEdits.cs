@@ -6,9 +6,10 @@ namespace Apex.Editor.Services.Save;
 /// <summary>
 /// Which asset in a GDT a record came from: its name and body offset in the bytes of the file's current stamp.
 /// The offset tells apart two assets with the same name in one file; the name finds the asset again after the file
-/// changed underneath (offsets moved).
+/// changed underneath (offsets moved). <see cref="Type"/> is a root asset's type there (null for a derived one), which
+/// tells a save that Change weapon class gave it another.
 /// </summary>
-public readonly record struct DiskRef(string Name, string? Parent, long BodyOffset);
+public readonly record struct DiskRef(string Name, string? Parent, long BodyOffset, string? Type = null);
 
 /// <summary>
 /// One asset's part in a save. An existing asset (<see cref="Disk"/> set) carries only what the session changed: its

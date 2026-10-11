@@ -31,6 +31,8 @@ public sealed class CellDisplay : Control
     // SuggestBox hides its ▾ below this width.
     private const double NarrowArrow = 110;
     private const double FieldHeight = 24;
+    /// <summary>The colour chip in the swatch button (PropertyEditorView's ColorPropertyViewModel template).</summary>
+    private const double SwatchWidth = 30;
 
     // Tokens by theme: they never change within a theme, and a table draws hundreds of these.
     private static readonly Dictionary<(ThemeVariant, string), object> s_tokens = new();
@@ -49,7 +51,7 @@ public sealed class CellDisplay : Control
         if (kind == typeof(ColorPropertyViewModel))
         {
             // The swatch draws itself (checker, colour, edge): the editor's own.
-            _swatch = new ColorSwatch { Width = 16, Height = 16 };
+            _swatch = new ColorSwatch { Width = SwatchWidth, Height = 16 };
             LogicalChildren.Add(_swatch);
             VisualChildren.Add(_swatch);
         }
@@ -169,15 +171,15 @@ public sealed class CellDisplay : Control
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        _swatch?.Measure(new Size(16, 16));
+        _swatch?.Measure(new Size(SwatchWidth, 16));
         var width = ValueWidth(availableSize.Width);
         return new Size(double.IsInfinity(width) ? 0 : width + ActionsWidth, FieldHeight);
     }
 
     protected override Size ArrangeOverride(Size finalSize)
     {
-        // The swatch button is 24 square with 4 padding, its glyph 16 square.
-        _swatch?.Arrange(new Rect(4, (finalSize.Height - 16) / 2, 16, 16));
+        // The swatch button is 36 wide with 3 padding, its chip 30 × 16.
+        _swatch?.Arrange(new Rect(3, (finalSize.Height - 16) / 2, SwatchWidth, 16));
         return finalSize;
     }
 
@@ -331,7 +333,8 @@ public sealed class CellDisplay : Control
     private void DrawField(DrawingContext context, double width, double height)
     {
         var color = _row is ColorPropertyViewModel;
-        var left = color ? 26 : 0;
+        // The swatch button (36) and the text box's 2 px gap.
+        var left = color ? 38 : 0;
         var field = new Rect(left, Math.Round((height - FieldHeight) / 2), Math.Max(0, width - left), FieldHeight);
         var box = new RoundedRect(field, 5);
 

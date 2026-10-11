@@ -110,6 +110,7 @@ public sealed partial class MainViewModel
 {
     private readonly UiSettings _settings = UiSettings.Load();
     private readonly List<string> _pinned = new();
+    private readonly List<string> _pinnedGdts = new();
     private bool _restoringSettings;
 
     /// <summary>Applies saved preferences; called first thing from the constructor.</summary>
@@ -122,6 +123,7 @@ public sealed partial class MainViewModel
         IsPreviewFloating = _settings.PreviewFloating;
         Theme = AppTheme.Parse(_settings.Theme);
         _pinned.AddRange(_settings.Pinned);
+        _pinnedGdts.AddRange(_settings.PinnedGdts);
         // The preview lighting state is app-wide and remembered like APE's Preview/LightState.
         if (!Services.Preview.ToolsGfx.ToolsGfxPreviewService.LightStateFromEnvironment
             && Enum.TryParse<Apex.Render.Data.Lighting.PreviewLightState>(_settings.PreviewLightState, true, out var light))
@@ -169,6 +171,7 @@ public sealed partial class MainViewModel
         _settings.Theme = Theme.ToString();
         _settings.PreviewLightState = PreviewLighting.Shared.LightState.ToString();
         _settings.Pinned = new List<string>(_pinned);
+        _settings.PinnedGdts = new List<string>(_pinnedGdts);
         // Every tab switch lands here (recent list), so writes are coalesced and leave the UI thread:
         // one file write a second after the last change, from a snapshot taken here.
         _settingsSave ??= CreateSettingsTimer();
@@ -326,6 +329,21 @@ public sealed partial class MainViewModel
         Status = i >= 0 ? $"Unpinned {asset.Name} from Explorer" : $"Pinned {asset.Name} to Explorer";
     }
 
+    public bool IsGdtPinned(GdtFile gdt) => _pinnedGdts.Contains(gdt.Name, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Pins or unpins a GDT: pinned GDTs lead the Explorer's GDT tree.</summary>
+    public void TogglePinnedGdt(GdtFile gdt)
+    {
+        var i = _pinnedGdts.FindIndex(n => n.Equals(gdt.Name, StringComparison.OrdinalIgnoreCase));
+        if (i >= 0)
+            _pinnedGdts.RemoveAt(i);
+        else
+            _pinnedGdts.Add(gdt.Name);
+        SaveSettings();
+        ApplyFilterNow();
+        Status = i >= 0 ? $"Unpinned {ShortGdt(gdt.Name)}" : $"Pinned {ShortGdt(gdt.Name)} to the top of the Explorer";
+    }
+
     public bool IsActivePinned => ActiveTab is { } t && IsPinned(t.Record);
 
     [RelayCommand]
@@ -375,7 +393,7 @@ public sealed partial class MainViewModel
     }
 
     /// <summary>The popped-out preview window's title: what it is showing.</summary>
-    public string PreviewWindowTitle => PreviewSubject is { } s ? $"{s.Record.Name} — APEX Preview" : "APEX — Preview";
+    public string PreviewWindowTitle => (_lockedSubject ?? PreviewSubject) is { } s ? $"{s.Record.Name} — APEX Preview" : "APEX — Preview";
 
     partial void OnIsExplorerVisibleChanged(bool value) => SaveSettings();
     partial void OnIsInspectorVisibleChanged(bool value) => SaveSettings();
@@ -590,7 +608,7 @@ public sealed partial class MainViewModel
 
     /// <summary>What the Preview pane renders: the active asset if it has a visual, otherwise one of its references.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasPreview), nameof(PreviewSubjectLabel), nameof(DockedPreview), nameof(HasRecoilPreview))]
+    [NotifyPropertyChangedFor(nameof(HasPreview), nameof(PreviewSubjectLabel), nameof(DockedPreview), nameof(HasRecoilPreview), nameof(CanLockPreview))]
     private PreviewPaneViewModel? _currentPreview;
 
     /// <summary>The Preview shows a weapon's recoil preview: docked, it takes the right column's full height.</summary>
@@ -609,7 +627,68 @@ public sealed partial class MainViewModel
     /// What the Preview pane (the right column, or its own window) shows: the current preview, except while an xanim's
     /// editor shows it in place. One view per preview at a time, so a viewport is never built twice.
     /// </summary>
-    public PreviewPaneViewModel? DockedPreview => IsAnimLayout && !IsPreviewFloating ? null : CurrentPreview;
+    public PreviewPaneViewModel? DockedPreview =>
+        IsAnimLayout && !IsPreviewFloating && (!IsPreviewLocked || ReferenceEquals(_lockedPane, ActiveTab?.PreviewPane)) ? null : CurrentPreview;
+
+    // ── Preview lock ─────────────────────────────────────────────────────────
+    // A locked preview stays on the subject it was showing while the active asset changes. It is a pane of its own
+    // (not the tab's or the subject cache's, which come and go with tabs), so closing tabs never disposes it.
+    private PreviewPaneViewModel? _lockedPane;
+    private PreviewSubject? _lockedSubject;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPreviewChoices), nameof(PreviewSubjectLabel), nameof(PreviewLockTip), nameof(DockedPreview))]
+    private bool _isPreviewLocked;
+
+    /// <summary>The lock is offered while there is something to hold (a weapon's recoil preview belongs to its tab).</summary>
+    public bool CanLockPreview => IsPreviewLocked || CurrentPreview is { Content: not WeaponPreviewViewModel };
+
+    public string PreviewLockTip => IsPreviewLocked
+        ? $"Locked to {_lockedSubject?.Record.Name}. Click to follow the active asset again"
+        : "Lock the preview to what it shows now, even when you change assets";
+
+    // Locking adopts the pane on show (no reload: the view keeps its camera and state). A subject pane leaves the cache
+    // for the lock; a tab's own pane stays the tab's until the tab goes (DisposeTabPreview hands it over then).
+    private bool _lockedOwned;
+
+    [RelayCommand]
+    private void TogglePreviewLock()
+    {
+        if (IsPreviewLocked)
+        {
+            var pane = _lockedPane;
+            var owned = _lockedOwned;
+            _lockedPane = null;
+            _lockedSubject = null;
+            _lockedOwned = false;
+            IsPreviewLocked = false;
+            if (owned)
+                pane?.Dispose();
+            RefreshPreviewSubjects();
+            return;
+        }
+        if (PreviewSubject is not { } subject || CurrentPreview is not { Content: not WeaponPreviewViewModel } shown)
+            return;
+        _lockedOwned = !ReferenceEquals(shown, ActiveTab?.PreviewPane);
+        if (_lockedOwned && _subjectPreviews.Remove(subject.Record))
+            _subjectPreviewOrder.Remove(subject.Record);
+        _lockedPane = shown;
+        _lockedSubject = subject;
+        IsPreviewLocked = true;
+        OnPropertyChanged(nameof(PreviewWindowTitle));
+        OnPropertyChanged(nameof(DockedPreview));
+    }
+
+    /// <summary>A tab's own preview goes with the tab, unless the lock holds it: then the lock keeps it and owns it.</summary>
+    private void DisposeTabPreview(AssetEditorViewModel tab)
+    {
+        if (tab.PreviewPane is not { } pane)
+            return;
+        if (ReferenceEquals(pane, _lockedPane))
+            _lockedOwned = true;
+        else
+            pane.Dispose();
+    }
 
     /// <summary>The preview moved between the window and its own (or the active tab changed kind).</summary>
     private void NotifyPreviewPlacement()
@@ -627,13 +706,14 @@ public sealed partial class MainViewModel
 
     public bool HasPreview => CurrentPreview is not null;
 
-    public bool HasPreviewChoices => PreviewSubjects.Count > 1;
+    public bool HasPreviewChoices => !IsPreviewLocked && PreviewSubjects.Count > 1;
 
     /// <summary>
     /// The subject picker's label. With nothing to render the pane shrinks to its header, so the label is then the
     /// pane's one line: why it is empty, short enough for the header.
     /// </summary>
-    public string PreviewSubjectLabel => PreviewSubject?.Label
+    public string PreviewSubjectLabel => _lockedSubject?.Record.Name
+        ?? PreviewSubject?.Label
         ?? (ActiveTab is null ? "" : _env.IsAvailable ? "Nothing to preview" : "Needs the BO3 install");
 
     /// <summary>Why the Preview is empty, in one line.</summary>
@@ -677,7 +757,7 @@ public sealed partial class MainViewModel
         {
             PreviewSubjects.ReplaceAll(Array.Empty<PreviewSubject>());
             PreviewSubject = null;
-            CurrentPreview = null;
+            CurrentPreview = _lockedPane;
             OnPropertyChanged(nameof(HasPreviewChoices));
             return;
         }
@@ -715,6 +795,8 @@ public sealed partial class MainViewModel
     [RelayCommand]
     private void ChoosePreviewSubject(PreviewSubject subject)
     {
+        if (IsPreviewLocked)
+            return;
         if (ActiveTab is { } tab)
             _chosenSubject[tab] = subject.Record;
         SelectPreviewSubject(subject);
@@ -723,6 +805,11 @@ public sealed partial class MainViewModel
     private void SelectPreviewSubject(PreviewSubject? subject)
     {
         PreviewSubject = subject;
+        if (_lockedPane is not null)
+        {
+            CurrentPreview = _lockedPane;
+            return;
+        }
         if (subject is null || ActiveTab is not { } tab)
         {
             CurrentPreview = null;
@@ -802,6 +889,10 @@ public sealed partial class MainViewModel
     {
         if (_subjectPreviews.TryGetValue(tab.Record, out var shown))
             shown?.NotifyEdited(item.Key);
+        if (_lockedSubject?.Record == tab.Record)
+            _lockedPane?.NotifyEdited(item.Key);
+        else if (_lockedPane is not null && RenderableTypes.Contains(tab.Record.Type))
+            _lockedPane.NotifyExternalChange(); // a material or image the locked model (or material) is built from: reload it, the prepared-model cache rebuilds only what changed
         if (tab == ActiveTab && tab.HasSimulatorExtension && _env.IsAvailable)
             ScheduleWeaponPreviewSync();
         if (tab != ActiveTab || item is not RefPropertyViewModel)
@@ -822,6 +913,8 @@ public sealed partial class MainViewModel
         foreach (var (record, pane) in _subjectPreviews)
             if (changed(record))
                 pane?.NotifyExternalChange();
+        if (_lockedPane is not null)
+            _lockedPane.NotifyExternalChange(); // whatever changed may be something the locked preview is built from; unchanged dependencies reload from cache
     }
 
     /// <summary>Reloads every open preview (a tab's own or a cached referenced-asset one) of a record that matches.</summary>
@@ -833,6 +926,8 @@ public sealed partial class MainViewModel
         foreach (var (record, pane) in _subjectPreviews)
             if (changed(record))
                 pane?.NotifyExternalChange();
+        if (_lockedPane is not null)
+            _lockedPane.NotifyExternalChange(); // whatever changed may be something the locked preview is built from; unchanged dependencies reload from cache
     }
 
     // ══ Inspector: focused property, changes, links ══════════════════════════

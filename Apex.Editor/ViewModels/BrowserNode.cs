@@ -71,6 +71,9 @@ public sealed partial class BrowserNode : ObservableObject
     /// <summary>Row inside the Pinned section (a second node for an asset that is also in the tree).</summary>
     public bool IsPinnedEntry { get; init; }
 
+    /// <summary>A pinned GDT's row: shows a pin mark.</summary>
+    public bool IsPinned { get; init; }
+
     /// <summary>GDT group row (context menu offers GDT-scoped actions).</summary>
     public GdtFile? Gdt { get; init; }
 

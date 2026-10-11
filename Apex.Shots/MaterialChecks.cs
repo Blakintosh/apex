@@ -201,6 +201,24 @@ public partial class Program
             Console.WriteLine($"info  material (live): before a material's type is known (the schema), {moved:N0} of {fields:N0} tweaked fields over every type sit in another section than their type's techsetdef gives — an open material is arranged by its own type ({typesMoved} types){string.Concat(examples.Select(e => "; " + e))}");
         }
 
+        // A techset constant is a float1 over one component of a cgNN vector: each gets its own row, title, section and range.
+        if (MaterialOfType(db, "blak_frosted_glass") is { } frost && techsets?.IsMaterialType("blak_frosted_glass") == true)
+        {
+            var tab = new AssetEditorViewModel(frost, (_, _) => { }, _ => { }, _ => { }, (_, name) => byName.GetValueOrDefault(name));
+            var form = FormLayout(tab);
+            var rows = form.ToDictionary(f => f.Section, f => f.Rows, StringComparer.Ordinal);
+            Console.WriteLine($"info  material (live): {frost.Name}: {Describe(form)}");
+            Check("material (live): a techset constant over one vector component is a row of its own, titled by its tweak (Frost: Blur Radius…)",
+                rows.TryGetValue("Frost", out var frostRows) && frostRows.Any(r => r.StartsWith("Blur Radius")) && !frostRows.Any(r => r.StartsWith("Scale")));
+            Check("material (live): the techset's own sections hold their constants (Debug exists; gloss min/max sit under Surface, not Transmission)",
+                rows.TryGetValue("Debug", out var debugRows) && debugRows.Any(r => r.StartsWith("Debug View"))
+                && rows.TryGetValue("Surface", out var surfaceRows) && surfaceRows.Any(r => r.StartsWith("Gloss Min"))
+                && !(rows.GetValueOrDefault("Transmission")?.Any(r => r.StartsWith("Gloss")) ?? false));
+            var blur = tab.AllSentinel.All.FirstOrDefault(p => p.Key == "cg01_x");
+            Check($"material (live): the tweak's range reaches the row (cg01_x {blur?.Def.Min}–{blur?.Def.Max})",
+                blur?.Def is { Max: 128 } && blur.Def.VectorKey is null);
+        }
+
         // Changing the type re-runs material.awi: lit's fields give way to lit_advanced_fullspec's.
         if (MaterialOfType(db, "lit") is { } lit)
         {

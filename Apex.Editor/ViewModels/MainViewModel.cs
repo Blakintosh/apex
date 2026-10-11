@@ -239,6 +239,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             // Nothing to show until the user points at the install: an empty catalog behind the not-found state.
             _db = new AssetDatabase { Gdts = new List<GdtFile>(), Assets = new List<AssetRecord>() };
             ApplyFilter();
+            LinksReady();
             return;
         }
 
@@ -270,6 +271,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             // No "ready" line: the status bar's "mock data" already says which database this is.
             ReportExtensions();
             RestoreSession();
+            LinksReady();
             return;
         }
 
@@ -282,6 +284,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         _liveMode = true;
         _schemasReady = false; // until this install's deffiles are read (RunLiveLoadAsync)
+        _linksReady = false;
         BeginExplorerLoading();
         ApplyFilter();
         ShowProgress("Loading GDTs…");
@@ -291,6 +294,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>Points the process-wide file lookups at the install this window uses.</summary>
     private void UseInstallRoots()
     {
+        UseRadiantSync();
         // File, file-list and bone fields resolve under the install (none with mock data).
         FieldFiles.Root = _env.IsAvailable ? _env.Bo3Root : null;
         // What the game ships is no missing reference (global_invisible has no GDT); read while the GDTs index.
@@ -483,11 +487,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                     foreach (var wanted in startupOpen.Split(','))
                         if (_db.Assets.FirstOrDefault(a => a.Name.Equals(wanted.Trim(), StringComparison.OrdinalIgnoreCase)) is { } rec)
                             OpenAsset(rec);
+                LinksReady();
             });
         }
         catch (Exception ex)
         {
             await Dispatcher.UIThread.InvokeAsync(() => EndExplorerLoading(finished: true));
+            // What did load can still be opened from a link.
+            await Dispatcher.UIThread.InvokeAsync(LinksReady);
             await Dispatcher.UIThread.InvokeAsync(() => Alert(
                 "Loading the GDTs stopped partway, so the asset list may be incomplete. Restart Apex to try again.",
                 detail: ex.Message));
@@ -609,6 +616,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             Gdt = gdt,
             Members = members,
             IsExpanded = expanded,
+            IsPinned = IsGdtPinned(gdt),
         };
         node.RefreshMarks(HasProblems, _markHints is not { } hints || hints.Gdts.Contains(gdt.Name));
         return node;
@@ -931,7 +939,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             if (movedAway?.GetValueOrDefault(e.Name) is { } ghost)
             {
                 if (stamp is not null)
-                    ghost.Disk = new Services.Save.DiskRef(e.Name, e.IsDerived ? e.TypeOrParent : null, e.BodyOffset);
+                    ghost.Disk = new Services.Save.DiskRef(e.Name, e.IsDerived ? e.TypeOrParent : null, e.BodyOffset, e.IsDerived ? null : e.TypeOrParent);
                 continue;
             }
             IPropertySource? source = e.BodyLength > 0
@@ -939,13 +947,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 : null;
             var parent = e.IsDerived ? e.TypeOrParent : null;
             var type = e.IsDerived ? GdtLoader.UnknownType : e.TypeOrParent;
-            var disk = stamp is null ? (Services.Save.DiskRef?)null : new Services.Save.DiskRef(e.Name, parent, e.BodyOffset);
+            var disk = stamp is null ? (Services.Save.DiskRef?)null : new Services.Save.DiskRef(e.Name, parent, e.BodyOffset, e.IsDerived ? null : e.TypeOrParent);
 
             if (existing.TryGetValue(e.Name, out var rec))
             {
-                // A rename or re-parent this session wins over the file's header until it is saved.
+                // A rename, re-parent or class change this session wins over the file's header until it is saved.
                 var headerEdited = rec.Disk is { } was
-                    && (!string.Equals(rec.Name, was.Name, StringComparison.Ordinal) || !string.Equals(rec.Parent, was.Parent, StringComparison.Ordinal));
+                    && (!string.Equals(rec.Name, was.Name, StringComparison.Ordinal) || !string.Equals(rec.Parent, was.Parent, StringComparison.Ordinal)
+                        || Services.Save.GdtSavePlanner.TypeChanged(rec));
                 rec.Disk = disk;
                 if (!headerEdited)
                 {
@@ -1655,7 +1664,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private void BuildGdtRoots(List<(GdtFile Gdt, List<AssetRecord> Hits)> perGdt, bool collapseGroups,
         bool expandTypes, HashSet<string>? wasExpanded, bool hasFilter)
     {
-        foreach (var (gdt, hits) in perGdt)
+        // Pinned GDTs lead (OrderBy is stable, so each half keeps its load order).
+        foreach (var (gdt, hits) in perGdt.OrderBy(g => IsGdtPinned(g.Gdt) ? 0 : 1))
             _roots.Add(MakeGdtRoot(gdt, hits, collapseGroups, expandTypes, wasExpanded?.Contains(gdt.Name) ?? false, hasFilter));
     }
 
@@ -2736,7 +2746,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             ActiveTab = tab;
             OpenTabs.Remove(slot);
             ForgetTab(slot);
-            slot.PreviewPane?.Dispose();
+            DisposeTabPreview(slot);
             return;
         }
 
@@ -2761,7 +2771,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             finally { _closingTab = false; }
         }
         OpenTabs.Remove(tab);
-        tab.PreviewPane?.Dispose();
+        DisposeTabPreview(tab);
     }
 
     private bool _closingTab;
@@ -2952,7 +2962,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     /// <summary>Escape unwinds one layer of UI at a time: dialog → palette → overlay mode.</summary>
     public bool IsAnyLayerOpen =>
-        IsConfirmOpen || IsConflictOpen || IsRenameOpen || IsNewOpen || IsPaletteOpen || IsCompareOpen || IsTableOpen || IsAlertOpen;
+        IsConfirmOpen || IsConflictOpen || IsRenameOpen || IsNewOpen || IsClassOpen || IsPaletteOpen || IsCompareOpen || IsTableOpen || IsAlertOpen;
 
     public bool DismissTopLayer()
     {
@@ -2960,6 +2970,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (IsConflictOpen) { CancelConflicts(); return true; }
         if (IsRenameOpen) { CancelRename(); return true; }
         if (IsNewOpen) { CancelNew(); return true; }
+        if (ClassDialog is { } classDialog) { classDialog.Cancel(); return true; }
         if (IsPaletteOpen) { IsPaletteOpen = false; return true; }
         if (IsCompareOpen) { Compare = null; return true; }
         if (IsTableOpen) { Table = null; return true; }

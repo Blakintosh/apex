@@ -61,7 +61,7 @@ public sealed class PreviewFrameRenderer : IDisposable
     private readonly Action<Shaders.ShaderBindings> _bindLit, _bindOit;
     // Per-frame inputs of the lit-forward bindings (read by _bindLit / _bindOit).
     private SceneLightingResources? _lighting;
-    private ID3D11ShaderResourceView? _lightCull, _probeCull, _decalCull;
+    private ID3D11ShaderResourceView? _lightCull, _probeCull, _decalCull, _sceneResolve;
 
     /// <summary>Raised after each pass with its marker name (diagnostics / per-pass readback). Passes that cannot change
     /// the displayed image — ExposureDownscale (never read by the preview) and, without transparent draws, PrepareOIT /
@@ -102,7 +102,7 @@ public sealed class PreviewFrameRenderer : IDisposable
         {
             _rc.EndFrame();
             _lighting = null;
-            _lightCull = _probeCull = _decalCull = null;
+            _lightCull = _probeCull = _decalCull = _sceneResolve = null;
         }
     }
 
@@ -179,6 +179,15 @@ public sealed class PreviewFrameRenderer : IDisposable
         var resolved = hdr;
         if (PassCompleted != null || SceneDrawer.Draws(f.Items, PreviewTechnique.Oit))
         {
+            // A custom transparent shader may sample the opaque lit scene (iResolveScene, a code slot APE leaves
+            // unbound): it gets a mipped copy of RT33, made only when such a draw is in the frame.
+            if (ReadsSceneResolve(f.Items))
+            {
+                var copy = t.SceneResolve;
+                ctx.CopySubresourceRegion(copy.Resource, 0, 0, 0, 0, hdr.Resource, 0);
+                ctx.GenerateMips(copy.Srv!);
+                _sceneResolve = copy.Srv;
+            }
             _oit.Prepare(_rc.SceneCb);
             var accum = t[RenderTargetId.OitAccum];
             _drawer.Draw(f.Items, PreviewTechnique.Oit, _rc.SceneCb, [accum.Rtv!], depth.Dsv, new Viewport(0, 0, w, h, 0f, 1f),
@@ -213,6 +222,19 @@ public sealed class PreviewFrameRenderer : IDisposable
         BindLit(b);
         b.TrySetUnorderedAccess("gOITFragmentCount", _rc.Targets[RenderTargetId.OitHead].Uav);
         b.TrySetUnorderedAccess("gOITFragmentData", _rc.Targets[RenderTargetId.OitFragments].Uav);
+        b.TrySetResource(SceneResolveName, _sceneResolve);
+    }
+
+    /// <summary>The SRV name under which a transparent (OIT) shader receives the opaque lit scene (RT33 before
+    /// Gfx::RenderOIT, mipped). Bound by name like every code resource; only custom shaders declare it.</summary>
+    public const string SceneResolveName = "iResolveScene";
+
+    private static bool ReadsSceneResolve(IReadOnlyList<IPreviewDrawItem> items)
+    {
+        for (int i = 0; i < items.Count; i++)
+            if (items[i].GetPass(PreviewTechnique.Oit) is { } p && p.Bindings.Uses(SceneResolveName))
+                return true;
+        return false;
     }
 
     public void Dispose()

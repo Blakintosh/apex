@@ -19,7 +19,8 @@ public enum CacheOrigin
 
 /// <summary>
 /// Which caches the data layer may use. Lookup order is always APE's cache (exact hash) -> Apex's cache -> convert
-/// the source on demand -> APE's newest file by name (stale). <c>APEX_TOOLSGFX_CACHE</c> overrides the defaults for
+/// the source on demand (for shaders: compile a custom source, <see cref="Shaders.ShaderCache"/>) -> APE's newest file by
+/// name (stale). <c>APEX_TOOLSGFX_CACHE</c> overrides the defaults for
 /// testing: <c>apex-only</c> (ignore APE's cache), <c>ape-only</c> (never convert), <c>no-apex-cache</c> (always
 /// re-convert, still writing the result).
 /// </summary>
@@ -39,7 +40,8 @@ public sealed record CachePolicy(bool UseApeCache = true, bool UseApexCache = tr
 
 /// <summary>
 /// Apex's own ToolsGfx cache (<c>%LOCALAPPDATA%\Apex\ToolsGfxCache</c>): the same directory layout, file names and
-/// LZ4 container as APE's (<c>xmeshes\v39</c>, <c>xbins\v1</c>, <c>images\v20</c>, <c>xanims\v11</c>), so the cache
+/// LZ4 container as APE's (<c>xmeshes\v39</c>, <c>xbins\v1</c>, <c>images\v20</c>, <c>xanims\v11</c>,
+/// <c>shaders_modtools\v14\f8</c>), so the cache
 /// readers load either unchanged. Names are content hashes of the source files, so one cache can serve any install.
 /// Nothing is ever written into the game install.
 /// </summary>
@@ -54,6 +56,7 @@ public sealed class ApexToolsGfxCache
         XBinCacheDir = Path.Combine(Root, "xbins", $"v{ToolsGfxInstall.XBinCacheVersion}");
         ImageCacheDir = Path.Combine(Root, "images", $"v{ToolsGfxInstall.ImageCacheVersion}");
         XAnimCacheDir = Path.Combine(Root, "xanims", $"v{ToolsGfxInstall.XAnimCacheVersion}");
+        ShaderCacheDir = Path.Combine(Root, "shaders_modtools", $"v{ToolsGfxInstall.ShaderCacheVersion}", $"f{ToolsGfxInstall.ShaderCacheFlags:x}");
     }
 
     /// <summary><c>%LOCALAPPDATA%\Apex\ToolsGfxCache</c>, or <c>APEX_TOOLSGFX_CACHE_DIR</c> when set.</summary>
@@ -69,6 +72,10 @@ public sealed class ApexToolsGfxCache
     public string XBinCacheDir { get; }
     public string ImageCacheDir { get; }
     public string XAnimCacheDir { get; }
+
+    /// <summary>Shader variants Apex compiled from <c>shaders_stable_toolsgfx</c> sources (<see cref="Shaders.ShaderCache"/>):
+    /// APE's <c>_deps</c> + blob layout, the blob named by a hash of the sources it was compiled from.</summary>
+    public string ShaderCacheDir { get; }
 
     /// <summary>
     /// Returns <paramref name="path"/> if it exists (unless <paramref name="reconvert"/>), else runs <paramref name="convert"/> (once per path even when

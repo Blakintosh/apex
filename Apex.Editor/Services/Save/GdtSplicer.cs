@@ -218,7 +218,17 @@ public static class GdtSplicer
                 patches.Add(new Patch(a.TypeStart, a.TypeEnd, Bytes(e.Parent!)));
         }
         else if (!a.IsDerived && e.Type.Length > 0 && !e.Type.Equals(a.TypeOrParent, StringComparison.OrdinalIgnoreCase))
-            problems.Add($"{a.Name}: Apex can't change an asset's type.");
+        {
+            // Change weapon class: the root's ( "type.gdf" ) names the new deffile, spelled as the file spells it.
+            if (a.TypeStart < 0)
+            {
+                problems.Add($"{a.Name}: its type isn't quoted in the GDT, so Apex can't change it.");
+                return;
+            }
+            var gdf = a.TypeEnd - a.TypeStart >= 4
+                      && System.Text.Encoding.ASCII.GetString(file, a.TypeEnd - 4, 4).Equals(".gdf", StringComparison.OrdinalIgnoreCase);
+            patches.Add(new Patch(a.TypeStart, a.TypeEnd, Bytes(gdf ? e.Type + ".gdf" : e.Type)));
+        }
     }
 
     // ── Body ────────────────────────────────────────────────────────────────
@@ -566,7 +576,7 @@ public static class GdtSplicer
                 }
                 var derived = e.Parent is not null;
                 var header = derived ? now.TypeOrParent == e.Parent
-                    : was.IsDerived ? now.TypeOrParent.Equals(e.Type, StringComparison.OrdinalIgnoreCase)
+                    : was.IsDerived || e.Type.Length > 0 ? now.TypeOrParent.Equals(e.Type.Length > 0 ? e.Type : was.TypeOrParent, StringComparison.OrdinalIgnoreCase)
                     : now.TypeOrParent == was.TypeOrParent;
                 Expect(now.Name == e.Name && now.IsDerived == derived && header && now.Closed, $"{e.Name}'s header didn't come out as expected.");
                 var want = GdtParser.ParseBody(original.AsSpan(was.BodyStart, was.BodyLength));

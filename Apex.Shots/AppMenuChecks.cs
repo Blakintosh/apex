@@ -64,7 +64,7 @@ public partial class Program
             Check($"app menu: at rest it is only the mark (fill {Fill()}, name {(title.Foreground as ISolidColorBrush)?.Color} = text {Token("TextBrush")})",
                 Fill() is not { A: > 0 } && (title.Foreground as ISolidColorBrush)?.Color == Token("TextBrush"));
             Check($"app menu: the mark says what it opens ('{ToolTip.GetTip(mark)}', name '{Avalonia.Automation.AutomationProperties.GetName(mark)}')",
-                ToolTip.GetTip(mark) as string == "Theme, updates and about Apex"
+                ToolTip.GetTip(mark) as string == "Theme, Radiant sync, updates and about Apex"
                 && Avalonia.Automation.AutomationProperties.GetName(mark) == "Apex");
             Check($"app menu: the mark is a hit target of at least 24 px ({mark.Bounds.Width:0}×{mark.Bounds.Height:0})",
                 mark.Bounds.Width >= 24 && mark.Bounds.Height >= 24);
@@ -82,15 +82,15 @@ public partial class Program
             window.MouseUp(markCentre, MouseButton.Left);
             Pump(60);
 
-            // The click opened the menu: the themes, Updates, About Apex.
+            // The click opened the menu: the themes, Sync changes with Radiant, Updates, About Apex.
             var items = menu.Items.Select(i => i is MenuItem m ? m.Header as string ?? "?" : "—").ToList();
             var expected = new[]
             {
                 CommandCatalog.Get(CommandCatalog.ThemeSystem).Name, CommandCatalog.Get(CommandCatalog.ThemeGraphite).Name,
                 CommandCatalog.Get(CommandCatalog.ThemeSlate).Name, CommandCatalog.Get(CommandCatalog.ThemeLight).Name,
-                "—", "Updates", "—", "About Apex",
+                "—", CommandCatalog.Get(CommandCatalog.SyncWithRadiant).Name, "—", "Updates", CommandCatalog.Get(CommandCatalog.WhatsNew).Name, "—", "About Apex",
             };
-            Check($"app menu: a click on the mark opens the theme, Updates and About Apex ({string.Join(", ", items)})",
+            Check($"app menu: a click on the mark opens the theme, Radiant sync, Updates and About Apex ({string.Join(", ", items)})",
                 menu.IsOpen && items.SequenceEqual(expected));
             var radios = menu.Items.OfType<MenuItem>().Where(i => i.ToggleType == MenuItemToggleType.Radio).ToList();
             Check($"app menu: the themes are radio items with the one in use checked ({string.Join(", ", radios.Where(r => r.IsChecked).Select(r => r.Header))})",
@@ -166,9 +166,27 @@ public partial class Program
             Check("app menu: the palette's About Apex opens the same flyout", about.IsOpen);
             about.Hide();
             Pump(60);
+            // What's new: the running version's release notes (served here), opened from the palette under the mark.
+            var realFeed = ReleaseNotesFeed.Fetch;
+            ReleaseNotesFeed.Fetch = (version, _) => System.Threading.Tasks.Task.FromResult<(ReleaseNotes?, string?)>((
+                new ReleaseNotes(version, $"# Apex {version}\n\nA fixes release.\n\n- **Bold** thing with `code`\n  wrapped on a second line\n- Another change\n",
+                    $"https://github.com/Blakintosh/apex/releases/tag/v{version}"), null));
+            vm.Settings.LastSeenVersion = null;
+            vm.Registry[CommandCatalog.WhatsNew].Execute();
+            Pump(200);
+            var notes = window.FindControl<Border>("WhatsNewPanel");
+            Check($"app menu: What's new opens the notes under the mark ({vm.WhatsNewBlocks.Count} blocks, title '{MainViewModel.WhatsNewTitle}')",
+                vm.IsWhatsNewOpen && notes is { IsEffectivelyVisible: true } && vm.WhatsNewBlocks.Count == 3 && !vm.HasWhatsNewMessage && vm.HasWhatsNewUrl);
+            Check("app menu: the notes' own title line is left out, the bullet's wrapped lines are joined",
+                vm.WhatsNewBlocks[0].Kind == MdKind.Paragraph && vm.WhatsNewBlocks[1].Text == "**Bold** thing with `code` wrapped on a second line");
+            Check($"app menu: showing them records the version as seen ('{vm.Settings.LastSeenVersion}')", vm.Settings.LastSeenVersion == AppUpdates.CurrentVersion);
+            ShootThemes(vm, window, outDir, "131-appmenu-whatsnew", crop: false);
+            vm.IsWhatsNewOpen = false;
+            Pump(60);
+            ReleaseNotesFeed.Fetch = realFeed;
             Check($"app menu: the palette still finds the themes, Check for updates and About Apex",
                 new[] { CommandCatalog.ThemeSystem, CommandCatalog.ThemeGraphite, CommandCatalog.ThemeSlate, CommandCatalog.ThemeLight,
-                        CommandCatalog.CheckForUpdates, CommandCatalog.About }.All(id => vm.Registry.Contains(id) && vm.Registry[id].CanRun));
+                        CommandCatalog.CheckForUpdates, CommandCatalog.WhatsNew, CommandCatalog.About }.All(id => vm.Registry.Contains(id) && vm.Registry[id].CanRun));
 
             // Shot at rest, the pointer away from it.
             window.MouseMove(new Point(800, 600));

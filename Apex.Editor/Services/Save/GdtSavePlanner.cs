@@ -141,6 +141,10 @@ public static class GdtSavePlanner
         return new GdtSaveRequest { Path = path, Expected = x.File.Stamp, Edits = edits, Tag = x, Sidecar = true };
     }
 
+    /// <summary>A root asset whose type isn't the one its GDT's header names (Change weapon class, not saved yet).</summary>
+    public static bool TypeChanged(AssetRecord r) =>
+        r.Parent is null && r.Disk is { Parent: null, Type: { } onDisk } && !onDisk.Equals(r.Type, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>What saving <paramref name="r"/> means, or null when the file already says it.</summary>
     public static AssetEdit? EditFor(AssetRecord r)
     {
@@ -165,7 +169,8 @@ public static class GdtSavePlanner
                     (set ??= new(StringComparer.OrdinalIgnoreCase))[key] = null;
         }
         var header = !string.Equals(r.Name, disk.Name, StringComparison.Ordinal)
-                     || !string.Equals(r.Parent, disk.Parent, StringComparison.Ordinal);
+                     || !string.Equals(r.Parent, disk.Parent, StringComparison.Ordinal)
+                     || TypeChanged(r);
         if (set is null && !header)
             return null;
         return new AssetEdit
@@ -280,7 +285,7 @@ public static class GdtSavePlanner
     /// <summary>Points <paramref name="r"/> at its body in the file as it is now.</summary>
     public static void Rebind(AssetRecord r, string path, GdtAssetSpan span)
     {
-        r.Disk = new DiskRef(span.Name, span.IsDerived ? span.TypeOrParent : null, span.BodyStart);
+        r.Disk = new DiskRef(span.Name, span.IsDerived ? span.TypeOrParent : null, span.BodyStart, span.IsDerived ? null : span.TypeOrParent);
         r.Source = span.BodyLength > 0 ? new GdtPropertySource(path, span.BodyStart, span.BodyLength) : null;
     }
 }

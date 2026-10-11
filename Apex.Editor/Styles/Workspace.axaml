@@ -913,7 +913,10 @@
   <Style Selector="Border.psection">
     <Setter Property="Height" Value="36"/>
     <Setter Property="Padding" Value="12,0,0,8"/>
-    <Setter Property="Margin" Value="0,8,0,0"/>
+    <Setter Property="Margin" Value="0,12,0,0"/>
+    <!-- A hairline above each section after the first, so the groups read as separate blocks. -->
+    <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+    <Setter Property="BorderThickness" Value="0,1,0,0"/>
   </Style>
   <Style Selector="Border.psection TextBlock.ptitle">
     <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
@@ -922,6 +925,7 @@
   </Style>
   <Style Selector="Border.psection.first">
     <Setter Property="Margin" Value="0"/>
+    <Setter Property="BorderThickness" Value="0"/>
   </Style>
   <!-- Sub-section title in the property list: under a section header, above its first row. -->
   <Style Selector="Border.psub">

@@ -163,6 +163,10 @@ public partial class MainWindow : Window, IShellView
             case nameof(MainViewModel.IsConflictOpen) when Vm?.IsConflictOpen == true:
                 Dispatcher.UIThread.Post(() => ConflictCancelButton.Focus());
                 break;
+            // The class picker first: it is the one choice every change of class makes.
+            case nameof(MainViewModel.IsClassOpen) when Vm?.IsClassOpen == true:
+                Dispatcher.UIThread.Post(() => ClassTargetBox.Focus());
+                break;
             case nameof(MainViewModel.IsRenameOpen) when Vm?.IsRenameOpen == true:
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -601,6 +605,12 @@ public partial class MainWindow : Window, IShellView
     {
         // Clicking away cancels — never confirms.
         Vm?.CancelConfirmCommand.Execute(null);
+        e.Handled = true;
+    }
+
+    private void ClassBackdrop_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        Vm?.ClassDialog?.Cancel();
         e.Handled = true;
     }
 

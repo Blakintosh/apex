@@ -175,7 +175,8 @@ public static class ToolsGfxPreviewService
     /// <summary>
     /// <paramref name="prepare"/>'s model, or the very instance it returned before for <paramref name="key"/> and
     /// <paramref name="options"/> while nothing it was built from changed: every GDT record it looked up (as of the load's
-    /// <see cref="BeginLoad"/>), the xmodel exports and image sources those name, and <paramref name="files"/>. Handing
+    /// <see cref="BeginLoad"/>), the xmodel exports and image sources those name, the custom shader sources its techniques
+    /// were compiled from (<see cref="Apex.Render.Data.Shaders.ShaderCache.RecordSources"/>), and <paramref name="files"/>. Handing
     /// back the same instance lets the device keep its GPU copy (<see cref="PreviewDeviceResources"/>), so reopening an
     /// asset costs neither the prepare nor the upload. Call on a worker thread; <paramref name="ct"/> (the load's) stops
     /// before the prepare starts.
@@ -202,8 +203,11 @@ public static class ToolsGfxPreviewService
         }
 
         using var recording = ApexGdtLookup.Record();
+        // Custom shader sources (and their includes) count too: an edit to one rebuilds the model on the next preview.
+        using var shaderSources = Apex.Render.Data.Shaders.ShaderCache.RecordSources();
         var model = prepare();
-        var entry = new PreparedEntry(key, options, model, recording.Dependencies, SourceFiles(data, recording.Dependencies, files));
+        var entry = new PreparedEntry(key, options, model, recording.Dependencies,
+            SourceFiles(data, recording.Dependencies, [.. files ?? [], .. shaderSources.Files]));
         lock (PreparedGate)
         {
             if (hit is not null)

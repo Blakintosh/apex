@@ -565,7 +565,7 @@ public sealed partial class MaterialPreviewViewModel : ObservableObject, IPrevie
             if (!_forceGl)
             {
                 var name = _record.Name;
-                var options = new PreviewModelOptions { SkipBrokenMaterials = true };
+                var options = new PreviewModelOptions { SkipBrokenMaterials = true, DecalUnderlay = true };
                 bool ok = await Gfx.TryLoadAsync(_env, _resolve,
                     data => ToolsGfxPreviewService.Reuse(data, "material|" + name, options,
                         () => PreviewModelLoader.PrepareMeshes(data, name, new[] { PreviewShapes.Sphere(name) }, options: options,

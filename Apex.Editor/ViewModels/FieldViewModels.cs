@@ -153,6 +153,57 @@ public sealed partial class ColorPropertyViewModel : PropertyItemViewModel
         }
     }
 
+    /// <summary>The colour as numbers, each clamped to 0–1 (a component that isn't a number reads 0; a missing alpha 1).</summary>
+    public (double R, double G, double B, double A) Rgba
+    {
+        get
+        {
+            var p = Parts(Value);
+            return (Number(p[0]), Number(p[1]), Number(p[2]), Number(p[3]));
+        }
+    }
+
+    /// <summary>
+    /// Sets R, G, B from the visual picker. Only the components that moved are rewritten (to six decimals at most), so the others keep their exact text. <paramref name="continuous"/> joins the edit to the
+    /// one before it (the rest of a drag), so a drag is one undo step.
+    /// </summary>
+    public void SetRgb(double r, double g, double b, bool continuous) =>
+        Write(continuous, (0, r), (1, g), (2, b));
+
+    /// <summary>Sets alpha from the visual picker (see <see cref="SetRgb"/>).</summary>
+    public void SetAlpha(double a, bool continuous) => Write(continuous, (3, a));
+
+    private void Write(bool continuous, params (int Index, double Component)[] components)
+    {
+        var value = Value;
+        var current = Parts(value);
+        foreach (var (index, component) in components)
+        {
+            var text = Component(component);
+            // The same colour at the picker's precision keeps what was written (1 stays "1", not "1.0").
+            if (Math.Abs(Number(current[index]) - Math.Clamp(component, 0, 1)) >= 0.5e-6)
+                value = WithComponent(value, index, text);
+        }
+        if (value == Value)
+            return;
+        IsContinuousEdit = continuous;
+        try
+        {
+            Value = value;
+        }
+        finally
+        {
+            IsContinuousEdit = false;
+        }
+    }
+
+    /// <summary>A picker component as the GDTs write one: clamped to 0–1, up to six decimals, never an exponent.</summary>
+    internal static string Component(double value) =>
+        Math.Round(Math.Clamp(value, 0, 1), 6).ToString("0.######", CultureInfo.InvariantCulture);
+
+    private static double Number(string component) =>
+        double.TryParse(component, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) && double.IsFinite(v) ? Math.Clamp(v, 0, 1) : 0;
+
     /// <summary>Sets R, G, B from "#RRGGBB" or "RRGGBB"; false (nothing written) when the text isn't one.</summary>
     public bool CommitHex(string text)
     {

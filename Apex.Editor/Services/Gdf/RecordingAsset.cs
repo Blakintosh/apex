@@ -51,6 +51,7 @@ internal sealed class RecordedEntry
     public int Order;       // place within its section: registration, or its techset tweak's sort order
     public bool Placed;     // ShowEntry or a techset tweak filed it (rather than where it was registered)
     public bool OptionsPerAsset; // combo options the host computes per asset (GetTechsetdefTypes): no static list
+    public Dictionary<int, ComponentPlace>? Parts; // vector components a techsetdef tweak titles and files on their own
     public List<RecordedButton>? Buttons; // a ButtonGroup's .AddButton(label, icon, callback, param) calls, in order
 
     public string PrimaryName => Names.Count > 0 ? Names[0] : "";
@@ -62,6 +63,10 @@ internal sealed class RecordedEntry
         return Value;
     }
 }
+
+/// <summary>A vector component's own tweak: where it is filed (<see cref="Category"/>, <see cref="Order"/> within it) and how it reads.</summary>
+internal sealed record ComponentPlace(string Category, string Subgroup, int Order, string? Title, string Part, string? VectorKey,
+    string? Default, Apex.Render.Data.Techsets.TweakRange? Range);
 
 /// <summary>One button of a deffile ButtonGroup: <c>.AddButton( "Add Item", "", "void AddItem( asset Asset, const string&amp; params )", "medal,4" )</c>.</summary>
 internal sealed record RecordedButton(string Label, string Callback, string Param);
@@ -83,6 +88,17 @@ internal sealed class RecordingAsset : IHostCallable
     /// <summary>Form position: the entry's section in order of first use, then its order within the section.</summary>
     public long SortKey(RecordedEntry e) =>
         ((long)(_sectionRank.TryGetValue(e.Category, out var rank) ? rank : int.MaxValue) << 32) | (uint)e.Order;
+
+    /// <summary>The layout of a component filed on its own: its tweak's section and order, title, default and range.</summary>
+    public EntryLayout PartLayout(ComponentPlace part)
+    {
+        var label = part.VectorKey is null ? part.Title : part.Title is null ? null : $"{part.Title} {part.Part}";
+        var rank = _sectionRank.TryGetValue(part.Category, out var r) ? r : int.MaxValue;
+        var range = part.Range;
+        return new EntryLayout(part.Category, label, ((long)rank << 32) | (uint)part.Order, true, part.Subgroup,
+            new ComponentLayout(part.VectorKey, part.VectorKey is null ? null : part.Title, part.Part, part.Default,
+                range?.Min, range?.Max, range is { Step: > 0 } ? range.Value.Step : null));
+    }
 
     private void File(RecordedEntry e, string path)
     {
@@ -296,9 +312,31 @@ internal sealed class RecordingAsset : IHostCallable
                 if (!SchemaRun)
                     e.Visible = true;
             }
+            if (only is not null && !SchemaRun && PartialComponents(only, tweak))
+                continue;
             if (single && only is not null && tweak.Title is { } title)
                 only.Title = title;
         }
+    }
+
+    /// <summary>
+    /// A tweak over some (not all) components of a vector entry (<c>float1( "blurRadius" ) { x = &lt;cg01_x&gt; }</c>): each
+    /// component it reads takes the tweak's title, section, default and range, instead of the whole entry taking one title.
+    /// False when the tweak reads the entry's every component (a glossRange over its min and max), which keeps the entry whole.
+    /// </summary>
+    private bool PartialComponents(RecordedEntry e, TechsetdefTweak tweak)
+    {
+        var indices = tweak.Fields.Select(f => e.Names.FindIndex(n => n.Equals(f, StringComparison.OrdinalIgnoreCase))).Where(i => i >= 0).ToList();
+        if (e.Names.Count < 2 || indices.Count == 0 || indices.Count >= e.Names.Count)
+            return false;
+        var category = FirstSegment(tweak.Category);
+        _sectionRank.TryAdd(category, _sectionRank.Count);
+        e.Parts ??= new();
+        var key = indices.Count > 1 ? e.PrimaryName + "|" + tweak.Element : null;
+        foreach (var i in indices)
+            e.Parts[i] = new ComponentPlace(category, SecondSegment(tweak.Category), _order++, tweak.Title, i < 4 ? "XYZW"[i].ToString() : (i + 1).ToString(),
+                key, tweak.Default, tweak.Range);
+        return true;
     }
 
     /// <summary>Diagnostics (<see cref="GdfRuntime.LegacyUnaddedReads"/>): a key read before it is added answers "".</summary>

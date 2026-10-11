@@ -29,6 +29,8 @@ public sealed class UiSettings
     public bool PreviewFloating { get; set; }
     public WindowPlacement? PreviewWindow { get; set; }
     public List<string> Pinned { get; set; } = new();
+    /// <summary>GDTs (by full relative name) pinned to the top of the Explorer's GDT tree.</summary>
+    public List<string> PinnedGdts { get; set; } = new();
     /// <summary>The Black Ops III folder chosen with Locate… (null: detect it). Tried before detection on every launch.</summary>
     public string? Bo3Root { get; set; }
     public List<RecentEntry> Recent { get; set; } = new();
@@ -38,6 +40,11 @@ public sealed class UiSettings
     public List<string> DocksCollapsed { get; set; } = new();
     /// <summary>When the automatic update check last ran; it runs at most once a day.</summary>
     public DateTime? LastUpdateCheckUtc { get; set; }
+    /// <summary>The version whose What's new has been shown; the notes open by themselves when this differs from the running one.</summary>
+    public string? LastSeenVersion { get; set; }
+    /// <summary>Tell Radiant and other tools about changes (APE's "Sync changes with Radiant and other applications",
+    /// QSettings EnableSync, on by default).</summary>
+    public bool SyncWithRadiant { get; set; } = true;
 
     public sealed class RecentEntry
     {

@@ -182,6 +182,22 @@ public partial class Program
     private static Popup PickerOf(PropertyEditorView view) =>
         view.GetVisualDescendants().OfType<Popup>().First(p => p.Classes.Contains("colorpicker"));
 
+    /// <summary>A real left press at the first point (in <paramref name="target"/>'s coordinates), moves through the rest,
+    /// and the release at the last: a drag in a popup's own top level.</summary>
+    private static void DragOn(TopLevel top, Control target, params Point[] points)
+    {
+        Point At(Point p) => target.TranslatePoint(p, top) ?? throw new InvalidOperationException($"{target} is not in the popup");
+        top.MouseDown(At(points[0]), MouseButton.Left);
+        foreach (var p in points.Skip(1))
+            top.MouseMove(At(p), RawInputModifiers.LeftMouseButton);
+        top.MouseUp(At(points[^1]), MouseButton.Left);
+        Pump();
+    }
+
+    /// <summary>A real left click at the centre of <paramref name="target"/>, in a popup's own top level.</summary>
+    private static void ClickIn(TopLevel top, Control target) =>
+        DragOn(top, target, new Point(target.Bounds.Width / 2, target.Bounds.Height / 2));
+
     private static void TypeText(Window window, string text)
     {
         window.KeyTextInput(text);
@@ -278,9 +294,13 @@ public partial class Program
         {
             Pump(50);
             var focused = popup.FocusManager?.GetFocusedElement();
-            Check($"colour: the keyboard starts on R ({focused?.GetType().Name})", ReferenceEquals(focused, panel.Fields[0]));
+            Check($"colour: the keyboard starts on the colour square ({focused?.GetType().Name})", ReferenceEquals(focused, panel.Square));
             Check($"colour: the Inspector stays on the colour's row, not a component ({tab.FocusedProperty?.Key})", tab.FocusedProperty == color);
+            Check($"colour: the square and hue strip show the colour (h {panel.Square.Hue:0}, s {panel.Square.Saturation:0.00}, v {panel.Square.Brightness:0.00})",
+                Math.Abs(panel.Square.Hue - 230.1) < 0.5 && Math.Abs(panel.Square.Saturation - 0.944) < 0.01
+                && Math.Abs(panel.Square.Brightness - 0.706) < 0.01 && Math.Abs(panel.HueStrip.Position - 230.1 / 360) < 0.01);
             Capture(window, Path.Combine(outDir, "50-colour-picker.png"));
+            panel.Fields[0].Focus();
             popup.KeyPress(Avalonia.Input.Key.Up, RawInputModifiers.Control, PhysicalKey.ArrowUp, null);
             popup.KeyRelease(Avalonia.Input.Key.Up, RawInputModifiers.Control, PhysicalKey.ArrowUp, null);
             Pump();
@@ -293,15 +313,43 @@ public partial class Program
             Pump();
             Check($"colour: hex sets R, G, B in the GDT spelling, alpha untouched ('{color.Value}')", color.Value == "1 0.501961 0 1");
             Check("colour: the picker's fields follow the value", panel.Fields[1].DataContext is NumberPropertyViewModel { RawValue: "0.501961" });
+            Check($"colour: … and so do the square and hue strip (h {panel.Square.Hue:0.0})",
+                Math.Abs(panel.Square.Hue - 30.1) < 0.2 && Math.Abs(panel.Square.Saturation - 1) < 0.001 && Math.Abs(panel.Square.Brightness - 1) < 0.001);
+
+            // ── By eye: drag the square, slide the hue and alpha, go back to where it was ──
+            var sq = panel.Square.Bounds;
+            DragOn(popup, panel.Square, new Point(sq.Width * 0.9, sq.Height * 0.1), new Point(sq.Width * 0.5, sq.Height * 0.5), new Point(0, sq.Height * 0.5));
+            Check($"colour: dragging the square to its left edge leaves a grey at its height, alpha as written ('{color.Value}')",
+                color.Value == "0.5 0.5 0.5 1" && color.Hex == "#808080");
+            var step = tab.Record.History.NextUndo?.Changes.SingleOrDefault();
+            Check($"colour: … one drag, one undo step ('{step?.Before}' → '{step?.After}')",
+                step is { Before: "1 0.501961 0 1", After: "0.5 0.5 0.5 1" });
+            Check($"colour: … and the hue stays where it was on a grey (h {panel.Square.Hue:0.0})", Math.Abs(panel.Square.Hue - 30.1) < 0.2);
+            var hs = panel.HueStrip.Bounds;
+            DragOn(popup, panel.HueStrip, new Point(hs.Width * 2 / 3, hs.Height / 2));
+            // Past the corner: the press is captured, so the pick clamps to full saturation and brightness.
+            DragOn(popup, panel.Square, new Point(sq.Width - 5, 5), new Point(sq.Width + 20, -20));
+            Check($"colour: sliding the hue to two thirds and picking the square's corner is blue ('{color.Value}', {color.Hex})",
+                color.Hex == "#0000FF" && color.Value.EndsWith(" 1 1") && !color.Value.Contains('E'));
+            var alpha = panel.AlphaStrip.Bounds;
+            DragOn(popup, panel.AlphaStrip, new Point(alpha.Width / 4, alpha.Height / 2));
+            Check($"colour: the alpha strip sets alpha alone ('{color.Value}')", color.Value.EndsWith(" 1 0.25") && color.Hex == "#0000FF");
+            panel.Square.Focus();
+            popup.KeyPress(Avalonia.Input.Key.Left, RawInputModifiers.Shift, PhysicalKey.ArrowLeft, null);
+            popup.KeyRelease(Avalonia.Input.Key.Left, RawInputModifiers.Shift, PhysicalKey.ArrowLeft, null);
+            Pump();
+            Check($"colour: Shift+← on the square takes saturation down 10% ('{color.Value}', {color.Hex})", color.Hex == "#1A1AFF" && color.Value.EndsWith(" 0.25"));
+            ClickIn(popup, panel.WasButton);
+            Pump();
+            Check($"colour: a click on the old colour goes back to how the picker opened ('{color.Value}')",
+                color.Value == "0.0392157 0.14902 0.705882 1");
             popup.KeyPress(Avalonia.Input.Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
             Pump();
             Check($"colour: Esc closes the picker and the keyboard goes back to the swatch ({window.FocusManager?.GetFocusedElement()?.GetType().Name})",
                 !picker.IsOpen && window.FocusManager?.GetFocusedElement() == swatch);
         }
-        tab.UndoCommand.Execute(null);
-        tab.UndoCommand.Execute(null);
-        Pump();
-        Check($"colour: two undos restore the exact original ('{color.Value}')", color.Value == "0.0392157 0.14902 0.705882 1");
+        // Back to before the picker's edits: each was a step (the last, going back, already restored the original).
+        Check($"colour: the original is back exactly ('{color.Value}')", color.Value == "0.0392157 0.14902 0.705882 1");
         var colorBox = colorView.GetVisualDescendants().OfType<TextBox>().First();
         Click(window, colorBox);
         colorBox.SelectAll();

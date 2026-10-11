@@ -304,6 +304,7 @@
               <Separator/>
               <MenuItem c:Cmd.Id="asset.derive"/>
               <MenuItem c:Cmd.Id="asset.underive"/>
+              <MenuItem c:Cmd.Id="asset.changeWeaponClass"/>
               <MenuItem c:Cmd.Id="asset.goToParent"/>
               <Separator/>
               <MenuItem c:Cmd.Id="asset.copyName"/>

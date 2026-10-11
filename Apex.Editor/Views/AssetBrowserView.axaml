@@ -399,6 +399,7 @@
             <controls:InvokableMenuItem Name="MenuMoveTo" Click="MenuMoveTo_Click"/>
             <controls:InvokableMenuItem Name="MenuDerive" Click="MenuDerive_Click"/>
             <controls:InvokableMenuItem Name="MenuUnderive" Click="MenuUnderive_Click"/>
+            <controls:InvokableMenuItem Name="MenuChangeClass" Click="MenuChangeClass_Click"/>
             <controls:InvokableMenuItem Name="MenuDelete" Click="MenuDelete_Click"/>
             <Separator Name="MenuMultiSeparator"/>
             <controls:InvokableMenuItem Name="MenuCompare" Header="Compare selected" Click="MenuCompare_Click"/>
@@ -430,6 +431,8 @@
                 </Panel>
                 <TextBlock DockPanel.Dock="Right" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding Badge}"
                            IsVisible="{Binding HasBadge}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                <controls:GlyphIcon DockPanel.Dock="Right" Glyph="pin" Size="11" Margin="8,0,0,0" VerticalAlignment="Center"
+                                    Foreground="{DynamicResource TextFaintBrush}" IsVisible="{Binding IsPinned}" ToolTip.Tip="Pinned"/>
                 <!-- The name measures first; a GDT's folder takes what is left, trimmed from its front so the part nearest
                      the file stays, then the suffix (an asset's GDT, or a single-type GDT's type) if there is room. -->
                 <controls:NameFirstPanel Spacing="8" ToolTip.Tip="{Binding Tip}" Background="Transparent">

@@ -164,6 +164,8 @@ public sealed partial class MainViewModel
                 candidates.Add(rec);
             if (op.Reparented is { } kids)
                 candidates.UnionWith(kids);
+            if (op.Family is { } family)
+                candidates.UnionWith(family);
         }
         // A record deleted (or dropped by a reload) since is no longer part of any GDT.
         candidates.RemoveWhere(r => !_byName.TryGetValue(r.Name, out var named) || !named.Contains(r));
@@ -286,6 +288,7 @@ public sealed partial class MainViewModel
             {
                 "mov" => op.Ghost?.Disk is null && (op.Record is { Disk: not null } || op.Record is { } gone && !IsLive(gone)),
                 "flat" => op.Record is { Disk: { } fd } fr && fd.Parent == fr.Parent,
+                "cls" => op.Record is { } cr && (cr.Disk is not null && !GdtSavePlanner.TypeChanged(cr) || !IsLive(cr)),
                 "gdt" => op.Gdt is { } g && savedGdts.Contains(g),
                 "add" => op.Record is { Disk: not null } || op.Record is { Disk: null } added && !IsLive(added),
                 // Never written where it went, and no old copy left to delete (a moved asset's ghost may still be in a file
@@ -318,6 +321,8 @@ public sealed partial class MainViewModel
         var saved = result.Files.GroupBy(f => f.Request.Tag is ExtensionSidecar x ? x.Owner : f.Request.Tag)
             .Count(g => g.Any(f => f.Status == GdtSaveStatus.Saved) && g.All(f => f.Succeeded));
         var savedFiles = result.Files.Where(f => f.Status == GdtSaveStatus.Saved).Select(f => f.Request.DisplayName).ToList();
+        if (savedFiles.Count > 0)
+            RadiantSaved();
         var conflicts = result.Files.Where(f => f.Status == GdtSaveStatus.Conflict).ToList();
         var failed = result.Files.FirstOrDefault(f => f.Status is GdtSaveStatus.Locked or GdtSaveStatus.ReadOnly
             or GdtSaveStatus.Invalid or GdtSaveStatus.Failed);
@@ -652,6 +657,7 @@ public sealed partial class MainViewModel
         ReloadFromDisk(gdt);
         foreach (var tab in OpenTabs.Where(t => t.Record.GdtName == gdt.Name))
             tab.SyncFromRecord();
+        RadiantSaved();
         Status = $"Restored {name} to how it was before the save at {when:HH:mm}. The version it replaced is backed up too.";
     }
 }

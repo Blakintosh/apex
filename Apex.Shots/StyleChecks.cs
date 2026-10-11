@@ -31,6 +31,25 @@ public partial class Program
 {
     private static void RunStyleChecks(string outDir)
     {
+        // A file field's ⚠ is a thin outline: its tooltip (why it is red) needs the whole box to take the pointer.
+        var warn = new Apex.Editor.Controls.GlyphIcon { Glyph = "warning", Size = 13 };
+        var host = new Window { Content = warn, Width = 40, Height = 40 };
+        host.Show();
+        // Laid out and drawn before asking: after a busy shard a pump alone can leave the box unmeasured, and the window's
+        // hit test reads the drawn scene.
+        host.UpdateLayout();
+        host.CaptureRenderedFrame();
+        Pump();
+        var inside = new Point(warn.Bounds.Width * 0.3, warn.Bounds.Height * 0.75); // in the triangle, off its lines
+        var bare = ((Avalonia.Rendering.ICustomHitTest)warn).HitTest(inside);
+        ToolTip.SetTip(warn, "No file at ‘x.xmodel_bin’");
+        host.CaptureRenderedFrame();
+        var tipped = ((Avalonia.Rendering.ICustomHitTest)warn).HitTest(inside);
+        var hit = warn.TranslatePoint(inside, host) is { } at ? host.InputHitTest(at) : null;
+        Check($"styles: an icon with a tooltip takes the pointer over its whole box, one without doesn't (bare {bare}, with tip {tipped}, window hit {hit?.GetType().Name ?? "nothing"}, box {warn.Bounds.Size})",
+            !bare && tipped && hit == warn);
+        host.Close();
+
         foreach (var theme in new[] { ThemeVariant.Dark, ThemeVariant.Light })
         {
             Application.Current!.RequestedThemeVariant = theme;

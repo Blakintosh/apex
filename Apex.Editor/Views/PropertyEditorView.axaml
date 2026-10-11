@@ -76,11 +76,13 @@
             </Button>
           </Grid>
         </DataTemplate>
-        <!-- "r g b a": the swatch opens R, G, B (A) and hex; the text stays editable beside it. -->
+        <!-- "r g b a": the swatch, a colour chip wide enough to read as one, opens the picker (square, hue, alpha, was/now,
+             R G B A, hex); the text stays editable beside it. -->
         <DataTemplate DataType="vm:ColorPropertyViewModel">
           <Grid ColumnDefinitions="Auto,*">
-            <Button Name="Swatch" Classes="rowaction swatch" ContentTemplate="{x:Null}" Width="24" Padding="4" ToolTip.Tip="Edit colour" AutomationProperties.Name="Edit colour">
-              <controls:ColorSwatch Color="{Binding Swatch}" Width="16" Height="16"/>
+            <Button Name="Swatch" Classes="rowaction swatch" ContentTemplate="{x:Null}" Width="36" Padding="3" Cursor="Hand"
+                    ToolTip.Tip="Pick a colour" AutomationProperties.Name="Pick a colour">
+              <controls:ColorSwatch Color="{Binding Swatch}" Width="30" Height="16"/>
             </Button>
             <!-- A popup of the row's own (not a Flyout, whose presenter costs a frame and a half to open). -->
             <Popup Classes="colorpicker" PlacementTarget="{Binding #Swatch}" Placement="BottomEdgeAlignedLeft" VerticalOffset="4"

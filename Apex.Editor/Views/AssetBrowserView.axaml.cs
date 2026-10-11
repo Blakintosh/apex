@@ -106,6 +106,7 @@ public partial class AssetBrowserView : UserControl
         Label(MenuMoveTo, CommandCatalog.MoveTo);
         Label(MenuDerive, CommandCatalog.Derive);
         Label(MenuUnderive, CommandCatalog.Underive);
+        Label(MenuChangeClass, CommandCatalog.ChangeWeaponClass);
         Label(MenuCutAssets, CommandCatalog.CutAssets);
         Label(MenuCopyAssets, CommandCatalog.CopyAssets);
         Label(MenuPasteAssets, CommandCatalog.PasteAssets);
@@ -813,8 +814,19 @@ public partial class AssetBrowserView : UserControl
         MenuToggle.Header = group is { IsExpanded: true } ? "Collapse" : "Expand";
         MenuNewIn.IsVisible = group?.Gdt is not null;
         MenuCollapseAll.IsVisible = group is not null && Vm.CanCollapseAll;
-        MenuPin.IsVisible = one;
-        MenuPin.IsChecked = one && Vm.IsPinned(selected[0]);
+        _assetPinHeader ??= MenuPin.Header;
+        if (group?.Gdt is { } pinGdt)
+        {
+            MenuPin.IsVisible = true;
+            MenuPin.Header = "Pin this GDT";
+            MenuPin.IsChecked = Vm.IsGdtPinned(pinGdt);
+        }
+        else
+        {
+            MenuPin.Header = _assetPinHeader;
+            MenuPin.IsVisible = one;
+            MenuPin.IsChecked = one && Vm.IsPinned(selected[0]);
+        }
         MenuCopy.Header = group is not null || one ? CommandCatalog.Get(CommandCatalog.CopyName).Name : $"Copy {selected.Count} names";
         var pasteTarget = Vm.CanPasteAssets ? PasteTarget() : null;
         MenuClipSeparator.IsVisible = assets || pasteTarget is not null;
@@ -828,6 +840,7 @@ public partial class AssetBrowserView : UserControl
         MenuMoveTo.IsVisible = assets;
         MenuDerive.IsVisible = one && !selected[0].Type.Equals(Services.Gdt.GdtLoader.UnknownType, StringComparison.OrdinalIgnoreCase);
         MenuUnderive.IsVisible = one && selected[0].Parent is not null;
+        MenuChangeClass.IsVisible = one && MainViewModel.CanChangeWeaponClass(selected[0]);
         MenuDelete.IsVisible = one;
         var sameType = selected.Select(a => a.Type).Distinct().Count() == 1;
         MenuMultiSeparator.IsVisible = selected.Count >= 2;
@@ -861,9 +874,13 @@ public partial class AssetBrowserView : UserControl
             Vm?.NewAssetIn(gdt);
     }
 
+    private object? _assetPinHeader;
+
     private void MenuPin_Click(object? sender, RoutedEventArgs e)
     {
-        if (SelectedAssets() is [var asset] && Vm is { } vm)
+        if (SelectedGroup() is { Gdt: { } gdt } && Vm is { } gdtVm)
+            gdtVm.TogglePinnedGdt(gdt);
+        else if (SelectedAssets() is [var asset] && Vm is { } vm)
             vm.TogglePinned(asset);
     }
 
@@ -903,6 +920,12 @@ public partial class AssetBrowserView : UserControl
     {
         if (SelectedAssets() is [var asset])
             Vm?.UnderiveAsset(asset);
+    }
+
+    private void MenuChangeClass_Click(object? sender, RoutedEventArgs e)
+    {
+        if (SelectedAssets() is [var asset])
+            Vm?.OpenChangeWeaponClass(asset);
     }
 
     private void MenuDelete_Click(object? sender, RoutedEventArgs e)

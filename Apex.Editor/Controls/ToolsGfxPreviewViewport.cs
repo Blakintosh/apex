@@ -267,6 +267,7 @@ public sealed class ToolsGfxPreviewViewport : Decorator
             _renderer.RenderRequested += RequestRender;
             _renderer.StatsChanged += OnStatsChanged;
             _renderer.ModelFailed += OnModelFailed;
+            _renderer.AnimatesChanged += SyncContinuous;
         }
         _renderer.Model = Model;
         _renderer.Pose = Pose;
@@ -278,6 +279,7 @@ public sealed class ToolsGfxPreviewViewport : Decorator
             Child = _viewport;
         }
         _viewport.Renderer = _renderer;
+        SyncContinuous();
         UpdateStatus();
         StartSpinWhenReady();
     }
@@ -289,6 +291,7 @@ public sealed class ToolsGfxPreviewViewport : Decorator
         _renderer.RenderRequested -= RequestRender;
         _renderer.StatsChanged -= OnStatsChanged;
         _renderer.ModelFailed -= OnModelFailed;
+        _renderer.AnimatesChanged -= SyncContinuous;
         _renderer.Pose = null;
         _renderer = null;
     }
@@ -314,6 +317,14 @@ public sealed class ToolsGfxPreviewViewport : Decorator
     private void OnModelFailed(string reason) => Failed?.Invoke(this, new ToolsGfxViewportFailure("model could not be created on the GPU: " + reason, false));
 
     private void RequestRender() => _viewport?.RequestRender();
+
+    /// <summary>A model with a time-driven material (flowing water, scrolling emissive) keeps drawing; anything else is
+    /// drawn only when something changes.</summary>
+    private void SyncContinuous()
+    {
+        if (_viewport is { } v)
+            v.IsContinuous = _renderer?.Animates == true;
+    }
 
     // The status line follows the renderer's stats (twice per frame while animating) at a readable rate.
     private static readonly TimeSpan StatusInterval = TimeSpan.FromMilliseconds(250);

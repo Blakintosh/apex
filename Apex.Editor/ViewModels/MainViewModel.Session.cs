@@ -41,6 +41,11 @@ public sealed partial class MainViewModel
         /// <summary><c>flat</c>: the parent the asset had and its own values before Underive.</summary>
         public string? OldParent { get; init; }
         public Dictionary<string, string>? OldValues { get; init; }
+
+        /// <summary><c>cls</c>: the class the family had, the family (root first), and the values of those it changed.</summary>
+        public string? OldType { get; init; }
+        public List<AssetRecord>? Family { get; init; }
+        public Dictionary<AssetRecord, Dictionary<string, string>>? FamilyValues { get; init; }
     }
 
     /// <summary>Writes land at most this long after the first edit they carry; typing never waits for the disk.</summary>
@@ -334,6 +339,17 @@ public sealed partial class MainViewModel
                     _replayFlattened.Add(flat);
                     break;
 
+                // The class and the keys it dropped: the family's other values come back with their sets, like any edit.
+                case "cls" when e.Type is not null:
+                    if (FindInGdt(e.Gdt, e.Name) is not { Parent: null } retyped || SchemaRegistry.Get(e.Type) is null)
+                    {
+                        Unapplied(e);
+                        break;
+                    }
+                    var clan = FamilyOf(retyped);
+                    RecordOp(RetypeOp(retyped, clan, e.Type, ReplayedValues(clan, e.Type, e.Keep == true), e.Keep == true, e));
+                    break;
+
                 case "set":
                     if (FindInGdt(e.Gdt, e.Name) is { } target)
                     {
@@ -526,6 +542,10 @@ public sealed partial class MainViewModel
     /// <summary>These records' values changed: journal them after <see cref="JournalDelay"/>. Costs a set insert.</summary>
     private void JournalDirty(IEnumerable<AssetRecord> records)
     {
+        // The same changes are Radiant's to hear about, journal or not.
+        var changed = records as IReadOnlyCollection<AssetRecord> ?? records.ToList();
+        RadiantDirty(changed);
+        records = changed;
         if (_journal is null || _replaying)
             return;
         foreach (var r in records)
@@ -928,6 +948,16 @@ public sealed partial class MainViewModel
             case "flat" when op.Record is { } flattened:
                 UndoUnderiveOp(op);
                 RebuildTab(flattened);
+                break;
+
+            // Its values go back with every other value, to their baselines.
+            case "cls" when op.Family is { } family:
+                UndoRetypeOp(op, restoreValues: false);
+                foreach (var rec in family)
+                {
+                    _leafCache[rec] = BrowserNode.ForAsset(rec, ToggleNode);
+                    RebuildTab(rec);
+                }
                 break;
         }
     }

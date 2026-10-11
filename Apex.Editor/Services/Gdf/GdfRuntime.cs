@@ -14,7 +14,15 @@ public sealed record PropertyRule(bool Visible, bool Enabled, string[]? Choices)
 }
 
 /// <summary>Where the script put one entry for this asset: its section, its title (null: the schema's label), its place in the form.</summary>
-public readonly record struct EntryLayout(string Category, string? Title, long Order, bool Placed, string Subgroup = "");
+public readonly record struct EntryLayout(string Category, string? Title, long Order, bool Placed, string Subgroup = "",
+    ComponentLayout? Component = null);
+
+/// <summary>
+/// A vector component a techsetdef tweaks on its own (<c>float1( "blurRadius" ) { x = &lt;cg01_x&gt; }</c>): the tweak's
+/// own title, section, default and range, in place of the vector entry's. A tweak over several components of one vector
+/// keeps them as one row (<see cref="VectorKey"/>); one over a single component is a row of its own (VectorKey null).
+/// </summary>
+public sealed record ComponentLayout(string? VectorKey, string? VectorTitle, string? VectorPart, string? Default, double? Min, double? Max, double? Step);
 
 /// <summary>
 /// The result of re-running a type's <c>GenerateUI</c> against a specific asset's values: a rule per
@@ -181,9 +189,13 @@ public static class GdfRuntime
                 continue;
             // A vector's label is its title plus a component suffix, which the schema already composed.
             var place = new EntryLayout(e.Category, e.Names.Count == 1 ? CleanTitle(e.Title) : null, host.SortKey(e), e.Placed, e.Subgroup);
-            foreach (var name in e.Names)
-                if (name.Length > 0)
-                    layout.TryAdd(name, place);
+            for (var i = 0; i < e.Names.Count; i++)
+            {
+                var name = e.Names[i];
+                if (name.Length == 0)
+                    continue;
+                layout.TryAdd(name, e.Parts?.GetValueOrDefault(i) is { } part ? host.PartLayout(part) : place);
+            }
             // A conditional SetSave(false) means APE would neither display nor persist the entry
             // for this asset state — treat it as hidden.
             var options = e.Kind == EntryKind.Combo ? SchemaMapper.ParseOptions(e.ComboOptions) : null;
@@ -301,6 +313,17 @@ public static class GdfRuntime
                     moved = moved with { Subgroup = place.Subgroup };
                 if (place.Title is { } title && title != def.Label)
                     moved = moved with { Label = title };
+                if (place.Component is { } c)
+                    moved = moved with
+                    {
+                        VectorKey = c.VectorKey,
+                        VectorTitle = c.VectorTitle,
+                        VectorPart = c.VectorPart,
+                        Default = c.Default ?? moved.Default,
+                        Min = c.Min ?? moved.Min,
+                        Max = c.Max ?? moved.Max,
+                        Step = c.Step ?? moved.Step,
+                    };
                 changed |= !ReferenceEquals(moved, def) || place.Order < last;
                 last = Math.Max(last, place.Order);
                 props.Add((moved, place.Order, i));

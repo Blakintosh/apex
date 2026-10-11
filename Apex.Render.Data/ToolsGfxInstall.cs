@@ -52,6 +52,10 @@ public sealed class ToolsGfxInstall
     /// <summary><c>share\raw\techsetdefs_stable_toolsgfx</c>.</summary>
     public string TechsetdefDir { get; }
 
+    /// <summary><c>share\raw\shaders_stable_toolsgfx</c>: the include root of techset shader sources. Only custom
+    /// sources live here; the core ones ship as APE's compiled cache alone.</summary>
+    public string ShaderSourceDir { get; }
+
     /// <summary><c>model_export</c>: where GDT xmodel <c>filename</c> values are rooted.</summary>
     public string ModelExportDir { get; }
 
@@ -74,6 +78,7 @@ public sealed class ToolsGfxInstall
         XAnimCacheDir = Path.Combine(ToolsGfxDir, "xanims", $"v{XAnimCacheVersion}");
         XBinCacheDir = Path.Combine(ToolsGfxDir, "xbins", $"v{XBinCacheVersion}");
         TechsetdefDir = Path.Combine(Root, "share", "raw", "techsetdefs_stable_toolsgfx");
+        ShaderSourceDir = Path.Combine(Root, "share", "raw", "shaders_stable_toolsgfx");
         ModelExportDir = Path.Combine(Root, "model_export");
         XAnimExportDir = Path.Combine(Root, "xanim_export");
         TextureAssetsDir = Path.Combine(Root, "texture_assets");

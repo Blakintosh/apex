@@ -41,6 +41,9 @@ public partial class Program
         new("live-timing", Tier.Full, true, "command checks", _ => { LivePaletteTiming(); LiveSearchMenuTiming(); }),
         new("save-ui", Tier.Fast, true, "save ui checks", RunSaveUiChecks),
         new("placement", Tier.Fast, true, "placement checks", RunPlacementChecks),
+        new("weapon-class", Tier.Fast, false, "weapon class checks", RunWeaponClassChecks),
+        new("links", Tier.Fast, false, "link checks", RunLinkChecks),
+        new("radiant-sync", Tier.Fast, false, "radiant sync checks", RunRadiantSyncChecks),
         new("buttons", Tier.Fast, true, "button checks", RunButtonChecks),
         new("save", Tier.Fast, false, "save checks", _ => RunSaveChecks()),
         new("perf", Tier.Full, true, "perf gates", _ => RunMockPerfGates()),
@@ -53,6 +56,7 @@ public partial class Program
         new("key-grid", Tier.Fast, false, "key grid checks", RunKeyGridChecks),
         new("notetracks", Tier.Fast, false, "notetrack checks", RunNotetrackChecks),
         new("install", Tier.Fast, false, "install checks", RunInstallChecks),
+        new("shader-compile", Tier.Fast, false, "shader compile checks", _ => RunShaderCompileChecks()),
         new("layout", Tier.Fast, false, "layout checks", RunLayoutChecks),
         new("themes", Tier.Fast, false, "theme checks", RunThemeChecks),
         new("updates", Tier.Fast, false, "update checks", RunUpdateChecks),
@@ -68,6 +72,9 @@ public partial class Program
         new("recoil-draw", Tier.Fast, true, "recoil checks", _ => RecoilPart(RecoilOverlayDrawChecks)),
         new("recoil-app", Tier.Fast, false, "recoil checks", o => RecoilPart(() => RecoilAppPartChecks(o))),
         new("recoil-render", Tier.Full, false, "recoil checks", _ => RecoilPart(RecoilRenderChecks)),
+        new("material-render", Tier.Full, false, "material render checks", RunMaterialRenderChecks),
+        // Real D3D11 on the install (read-only): a custom transparent shader over the opaque scene, shot to the shots folder.
+        new("custom-shader", Tier.Full, false, "custom shader checks", RunCustomShaderChecks),
         new("editor-pass", Tier.Fast, true, "editor pass checks", RunEditorPassChecks),
         new("editor-review", Tier.Fast, false, "editor review checks", RunEditorReviewChecks),
         new("live-smoke", Tier.Full, false, null, _ => LiveSmoke(), AfterSession: true),
@@ -82,10 +89,10 @@ public partial class Program
     private static readonly Dictionary<string, double> Costs = new()
     {
         ["main"] = 10, ["shell"] = 10, ["ref"] = 6, ["journal"] = 29, ["command"] = 6, ["live-timing"] = 13, ["save-ui"] = 6,
-        ["placement"] = 20, ["buttons"] = 25, ["save"] = 30, ["perf"] = 30, ["scroll"] = 4, ["tabs"] = 2, ["fields"] = 6,
+        ["placement"] = 20, ["weapon-class"] = 10, ["links"] = 3, ["radiant-sync"] = 8, ["buttons"] = 25, ["save"] = 30, ["perf"] = 30, ["scroll"] = 4, ["tabs"] = 2, ["fields"] = 6,
         ["lists"] = 5, ["set-view"] = 6, ["key-grid"] = 4, ["notetracks"] = 4, ["install"] = 5, ["layout"] = 4, ["themes"] = 4, ["appmenu"] = 4, ["anim-layout"] = 31, ["search"] = 12,
         ["extensions"] = 29, ["records"] = 64, ["hardening"] = 18, ["simulator"] = 8, ["recoil"] = 1, ["recoil-draw"] = 1,
-        ["recoil-app"] = 37, ["recoil-render"] = 2, ["editor-pass"] = 25, ["live-smoke"] = 2,
+        ["recoil-app"] = 37, ["recoil-render"] = 2, ["material-render"] = 15, ["shader-compile"] = 2, ["custom-shader"] = 15, ["editor-pass"] = 25, ["live-smoke"] = 2,
     };
 
     private const double DefaultCost = 20;

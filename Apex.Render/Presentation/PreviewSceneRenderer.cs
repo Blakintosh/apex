@@ -129,6 +129,15 @@ public sealed class PreviewSceneRenderer : ID3DViewportRenderer
     /// <summary>Frames drawn so far.</summary>
     public long FrameCount { get; private set; }
 
+    /// <summary>
+    /// What was drawn last frame reads cb9 <c>time</c> (flowing water, scrolling emissives): every frame differs, so
+    /// the host should keep drawing (<see cref="D3DViewport.IsContinuous"/>) instead of drawing on request.
+    /// </summary>
+    public bool Animates { get; private set; }
+
+    /// <summary><see cref="Animates"/> changed (raised after the frame that changed it).</summary>
+    public event Action? AnimatesChanged;
+
     /// <summary>Something the frame depends on became ready (e.g. the skybox finished loading): draw again.</summary>
     public event Action? RenderRequested;
 
@@ -290,6 +299,7 @@ public sealed class PreviewSceneRenderer : ID3DViewportRenderer
         var builder = _env.CreateSceneBuilder(state, camera, w, h);
         builder.SunPitchOverride = SunPitchOverride;
         builder.SunYawOverride = SunYawOverride;
+        builder.Time = SceneTime(frame.Time);
         var main = builder.Build(out var setup);
         CodeSceneConsts[]? views = null;
         if (setup is not null)
@@ -362,7 +372,21 @@ public sealed class PreviewSceneRenderer : ID3DViewportRenderer
         Stats = new PreviewFrameStats(_cpu.Elapsed.TotalMilliseconds, _timer?.LastMilliseconds ?? double.NaN, w, h, lod, tris);
         StatsChanged?.Invoke();
         SchedulePoll();
+
+        bool animates = _modelKey?.ReadsSceneTime == true || _attached.Keys.Any(k => k.ReadsSceneTime);
+        if (animates != Animates)
+        {
+            Animates = animates;
+            AnimatesChanged?.Invoke();
+        }
     }
+
+    /// <summary>
+    /// cb9 <c>time</c> for a frame drawn <paramref name="elapsed"/> after the viewport started: seconds, wrapped every
+    /// three hours as <c>ToolsGfx_PreviewRenderFrame</c> wraps its QueryPerformanceCounter time (so the float keeps
+    /// its precision).
+    /// </summary>
+    public static float SceneTime(TimeSpan elapsed) => (float)(elapsed.TotalSeconds % 10800.0);
 
     /// <summary><paramref name="camera"/> moved by a view kick (row vectors: the camera's frame in model space, then the kick).</summary>
     public static PreviewCamera Kicked(PreviewCamera camera, Matrix4x4 view)

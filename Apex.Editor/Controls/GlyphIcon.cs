@@ -15,7 +15,7 @@ namespace Apex.Editor.Controls;
 /// the command catalog's ↶ ⌕ ⋯…) or an icon name ("search"), so no view model changes to get the line set; a glyph with
 /// no path is drawn as text, which keeps the catalog's rarer symbols working.
 /// </summary>
-public sealed class GlyphIcon : Control
+public sealed class GlyphIcon : Control, Avalonia.Rendering.ICustomHitTest
 {
     public static readonly StyledProperty<string?> GlyphProperty =
         AvaloniaProperty.Register<GlyphIcon, string?>(nameof(Glyph));
@@ -90,6 +90,9 @@ public sealed class GlyphIcon : Control
         ["arrow-right"] = "M5 12h14M13 6l6 6-6 6",
         ["warning"] = "M12 3l10 18H2zM12 10v5M12 18h.01",
         ["arrow-down"] = "M12 5v14M6 13l6 6 6-6",
+        ["pin"] = "M12 17v5M9 3h6l-1 7 3 3v2H7v-2l3-3z",
+        ["lock"] = "M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4",
+        ["unlock"] = "M6 11h12v10H6zM8 11V7a4 4 0 0 1 7.5-1.5",
         ["check"] = "M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18zM8 12.5l3 3 5-6",
     };
 
@@ -117,6 +120,10 @@ public sealed class GlyphIcon : Control
     }
 
     protected override Size MeasureOverride(Size availableSize) => new(Size, Size);
+
+    // Only the stroke is drawn, so a thin outline (the ⚠) would take the pointer on its lines alone and its tooltip would
+    // hardly ever show. An icon that explains itself takes the pointer over its whole box; any other lets it through.
+    public bool HitTest(Point point) => ToolTip.GetTip(this) is not null && new Rect(Bounds.Size).Contains(point);
 
     public override void Render(DrawingContext context)
     {

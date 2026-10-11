@@ -244,7 +244,7 @@ public sealed partial class MainViewModel
             ActiveTab = tab;
         OpenTabs.Remove(old);
         ForgetTab(old);
-        old.PreviewPane?.Dispose();
+        DisposeTabPreview(old);
     }
 
     /// <summary>Edited assets (by name) whose derived tabs haven't caught up yet, with the keys edited (null: any).</summary>

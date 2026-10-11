@@ -4,6 +4,7 @@
         xmlns:views="using:Apex.Editor.Views"
         xmlns:controls="using:Apex.Editor.Controls"
         xmlns:c="using:Apex.Editor.Commands"
+        xmlns:svc="using:Apex.Editor.Services"
         x:Class="Apex.Editor.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="{Binding WindowTitle}"
@@ -42,13 +43,18 @@
                in Tab order. Without an install it is the mark alone, like the rest of the row. -->
           <Button Name="AppMenuButton" Classes="appmark" DockPanel.Dock="Left" VerticalAlignment="Center"
                   IsEnabled="{Binding !IsInstallMissing}"
-                  AutomationProperties.Name="Apex" ToolTip.Tip="Theme, updates and about Apex">
+                  AutomationProperties.Name="Apex" ToolTip.Tip="Theme, Radiant sync, updates and about Apex">
             <Button.Flyout>
               <MenuFlyout Placement="BottomEdgeAlignedLeft">
                 <MenuItem c:Cmd.Id="view.themeSystem" ToggleType="Radio" GroupName="theme"/>
                 <MenuItem c:Cmd.Id="view.themeGraphite" ToggleType="Radio" GroupName="theme"/>
                 <MenuItem c:Cmd.Id="view.themeSlate" ToggleType="Radio" GroupName="theme"/>
                 <MenuItem c:Cmd.Id="view.themeLight" ToggleType="Radio" GroupName="theme"/>
+                <Separator/>
+                <!-- APE's "Sync changes with Radiant and other applications": edits go to gdtDB\live\changes.log, saves run
+                     gdtdb.exe /update (RadiantSync). Only with an install. -->
+                <MenuItem c:Cmd.Id="app.syncRadiant" ToggleType="CheckBox"
+                          ToolTip.Tip="Radiant and other tools hear about each change as you make it, and about each save"/>
                 <Separator/>
                 <!-- Updates: how the last check went, and Check now, which keeps the menu open and updates the line in
                      place. Blackbird's Help > Updates is its sibling; the copy is the shared Updater's. While there is
@@ -72,6 +78,7 @@
                             Command="{Binding Updates.CheckNowCommand}" StaysOpenOnClick="True"
                             IsVisible="{Binding Updates.ShowsCheckNow}"/>
                 </MenuItem>
+                <MenuItem c:Cmd.Id="app.whatsNew"/>
                 <Separator/>
                 <MenuItem c:Cmd.Id="app.about"/>
               </MenuFlyout>
@@ -92,6 +99,38 @@
               <TextBlock Name="SidebarTitle" Text="Apex" FontSize="{StaticResource FontSizeBase}" FontWeight="SemiBold" VerticalAlignment="Center"/>
             </StackPanel>
           </Button>
+          <!-- What's new: the running version's release notes (read from its GitHub release), under the mark. -->
+          <Popup DockPanel.Dock="Left" PlacementTarget="{Binding #AppMenuButton}" Placement="BottomEdgeAlignedLeft" VerticalOffset="4"
+                 IsLightDismissEnabled="True" IsOpen="{Binding IsWhatsNewOpen, Mode=TwoWay}">
+            <Border Name="WhatsNewPanel" Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
+                    CornerRadius="{StaticResource RadiusOverlay}" BoxShadow="{DynamicResource ShadowLayer}" Padding="14" Width="420">
+              <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="{x:Static vm:MainViewModel.WhatsNewTitle}" FontSize="{StaticResource FontSizeMd}" FontWeight="SemiBold"/>
+                <Button DockPanel.Dock="Bottom" Classes="link teal" Content="All release notes on GitHub" HorizontalAlignment="Left" Margin="0,10,0,0"
+                        Command="{Binding OpenWhatsNewReleaseCommand}" IsVisible="{Binding HasWhatsNewUrl}"/>
+                <TextBlock DockPanel.Dock="Top" Classes="dim" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" Margin="0,8,0,0"
+                           Text="{Binding WhatsNewMessage}" IsVisible="{Binding HasWhatsNewMessage}"/>
+                <ScrollViewer MaxHeight="380" Margin="0,4,0,0" VerticalScrollBarVisibility="Auto">
+                  <ItemsControl ItemsSource="{Binding WhatsNewBlocks}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="svc:MdBlock">
+                        <Panel>
+                          <controls:MarkdownText Markdown="{Binding Text}" IsVisible="{Binding IsHeading}" FontWeight="SemiBold" TextWrapping="Wrap"
+                                                 FontSize="{StaticResource FontSizeBase}" Margin="0,12,0,2"/>
+                          <controls:MarkdownText Markdown="{Binding Text}" IsVisible="{Binding IsParagraph}" Classes="dim" TextWrapping="Wrap"
+                                                 FontSize="{StaticResource FontSizeSm}" Margin="0,6,0,0"/>
+                          <DockPanel IsVisible="{Binding IsBullet}" Margin="0,6,0,0">
+                            <TextBlock DockPanel.Dock="Left" Text="•" Classes="dim" Width="14" FontSize="{StaticResource FontSizeSm}"/>
+                            <controls:MarkdownText Markdown="{Binding Text}" TextWrapping="Wrap" FontSize="{StaticResource FontSizeSm}"/>
+                          </DockPanel>
+                        </Panel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </DockPanel>
+            </Border>
+          </Popup>
           <StackPanel DockPanel.Dock="Right" Name="SidebarActions" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
             <Button Name="UndoButton" Classes="icon" Content="↶" c:Cmd.Id="edit.undo" IsEnabled="{Binding CanUndoActive}" IsVisible="{Binding !IsInstallMissing}"/>
             <Button Name="RedoButton" Classes="icon" Content="↷" c:Cmd.Id="edit.redo" IsEnabled="{Binding CanRedoActive}" IsVisible="{Binding !IsInstallMissing}"/>
@@ -517,6 +556,111 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+    </Border>
+
+    <!-- ── Change weapon class ─────────────────────────────────────
+         From → To, what the new class can't hold as it is (a pick per choice it doesn't offer, the keys it has no
+         field for), and one button. Undo takes it back, so no warning colour. -->
+    <Border Grid.Row="0" Grid.RowSpan="3" Classes="dialogbackdrop" IsVisible="{Binding IsClassOpen}"
+            PointerPressed="ClassBackdrop_PointerPressed">
+      <Border Name="ClassCard" Classes="dialogcard" Width="600" PointerPressed="PaletteCard_PointerPressed" KeyboardNavigation.TabNavigation="Cycle"
+              DataContext="{Binding ClassDialog}" x:DataType="vm:WeaponClassDialogViewModel">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Spacing="14">
+            <StackPanel Spacing="6">
+              <TextBlock FontWeight="SemiBold" FontSize="{StaticResource FontSizeMd}" Text="Change weapon class"/>
+              <TextBlock Classes="dim" FontSize="{StaticResource FontSizeBase}" TextWrapping="Wrap" Text="{Binding Intro}"/>
+            </StackPanel>
+            <Grid ColumnDefinitions="*,32,*" RowDefinitions="Auto,6,Auto">
+              <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="From"/>
+              <TextBlock Grid.Column="2" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="To"/>
+              <Border Grid.Row="2" Height="30" Padding="10,0" CornerRadius="{StaticResource RadiusMd}"
+                      Background="{DynamicResource BgFieldBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1">
+                <TextBlock Classes="dim mono" FontSize="{StaticResource FontSizeBase}" Text="{Binding From}" VerticalAlignment="Center"/>
+              </Border>
+              <controls:GlyphIcon Grid.Row="2" Grid.Column="1" Glyph="arrow-right" Size="14" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  Foreground="{DynamicResource TextFaintBrush}"/>
+              <ComboBox Grid.Row="2" Grid.Column="2" Name="ClassTargetBox" Classes="field" HorizontalAlignment="Stretch" FontFamily="{StaticResource MonoFont}"
+                        ItemsSource="{Binding Targets}" SelectedItem="{Binding Target}" AutomationProperties.Name="New class"/>
+            </Grid>
+            <Border Padding="12,9" CornerRadius="{StaticResource RadiusMd}" Background="{DynamicResource BgFieldBrush}">
+              <WrapPanel>
+                <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding CarriedText}" Margin="0,0,16,0"/>
+                <TextBlock FontSize="{StaticResource FontSizeSm}" Text="{Binding ChoicesText}" Margin="0,0,16,0"
+                           Foreground="{DynamicResource MarkBrush}" IsVisible="{Binding HasChoices}"/>
+                <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding OrphansText}" Margin="0,0,16,0"/>
+                <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding NewFieldsText}"/>
+              </WrapPanel>
+            </Border>
+            <TextBlock Classes="dim" FontSize="{StaticResource FontSizeBase}" Text="Every value carries over as it is."
+                       IsVisible="{Binding NothingToSettle}"/>
+            <TextBlock FontSize="{StaticResource FontSizeSm}" Foreground="{DynamicResource DangerTextBrush}" TextWrapping="Wrap"
+                       Text="{Binding Unavailable}" IsVisible="{Binding !!Unavailable.Length}"/>
+          </StackPanel>
+          <DockPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+              <Button Name="ClassCancelButton" Classes="outline" Content="Cancel" Command="{Binding CancelCommand}"/>
+              <Button Name="ClassAcceptButton" Classes="accent" Command="{Binding AcceptCommand}" IsEnabled="{Binding !Unavailable.Length}">
+                <TextBlock Text="{Binding ActionLabel}"/>
+              </Button>
+            </StackPanel>
+            <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" VerticalAlignment="Center" Text="Ctrl+Z takes it back until you save."/>
+          </DockPanel>
+          <ScrollViewer MaxHeight="380" Margin="0,14,0,0" IsVisible="{Binding !NothingToSettle}">
+            <StackPanel Spacing="16">
+              <StackPanel Spacing="8" IsVisible="{Binding HasChoices}">
+                <TextBlock FontSize="{StaticResource FontSizeSm}">
+                  <Run Text="Needs a new value" FontWeight="SemiBold" FontSize="{StaticResource FontSizeBase}"/><Run Text="   "/><Run Text="{Binding ChoicesNote}" Foreground="{DynamicResource TextFaintBrush}"/>
+                </TextBlock>
+                <ItemsControl Name="ClassChoiceList" ItemsSource="{Binding Choices}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:RemapChoiceRow">
+                      <Grid ColumnDefinitions="150,*,24,180" Margin="0,0,0,6">
+                        <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Key}">
+                          <Run Text="{Binding Label}"/><Run Text=" "/><Run Text="{Binding Key}" FontSize="{StaticResource FontSizeXs}" Foreground="{DynamicResource TextFaintBrush}"/>
+                        </TextBlock>
+                        <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0" TextTrimming="CharacterEllipsis">
+                          <Run Text="{Binding OldValue}" FontFamily="{StaticResource MonoFont}" TextDecorations="Strikethrough" Foreground="{DynamicResource TextDimBrush}"/><Run Text="  "/><Run Text="{Binding HoldersText}" FontSize="{StaticResource FontSizeXs}" Foreground="{DynamicResource TextFaintBrush}"/>
+                        </TextBlock>
+                        <controls:GlyphIcon Grid.Column="2" Glyph="arrow-right" Size="13" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                            Foreground="{DynamicResource TextFaintBrush}"/>
+                        <ComboBox Grid.Column="3" Classes="field" HorizontalAlignment="Stretch" FontFamily="{StaticResource MonoFont}"
+                                  ItemsSource="{Binding Options}" SelectedItem="{Binding Selected}" AutomationProperties.Name="{Binding AccessibleName}"/>
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+              <StackPanel Spacing="8" IsVisible="{Binding HasOrphans}">
+                <TextBlock FontSize="{StaticResource FontSizeSm}">
+                  <Run Text="{Binding OrphansHeading}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeBase}"/><Run Text="   "/><Run Text="{Binding OrphansNote}" Foreground="{DynamicResource TextFaintBrush}"/>
+                </TextBlock>
+                <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="10,4"
+                        IsVisible="{Binding HasSetOrphans}">
+                  <ItemsControl Name="ClassOrphanList" ItemsSource="{Binding Orphans}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:RemapOrphanRow">
+                        <Grid ColumnDefinitions="*,*,Auto" Margin="0,3">
+                          <TextBlock Classes="mono" FontSize="{StaticResource FontSizeSm}" Text="{Binding Key}" TextTrimming="CharacterEllipsis"/>
+                          <TextBlock Grid.Column="1" Classes="dim mono" FontSize="{StaticResource FontSizeSm}" Text="{Binding Value}" TextTrimming="CharacterEllipsis"
+                                     Margin="10,0,0,0" ToolTip.Tip="{Binding Value}"/>
+                          <TextBlock Grid.Column="2" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding HoldersText}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Border>
+                <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="{Binding DefaultOrphansText}" IsVisible="{Binding HasDefaultOrphans}"/>
+                <CheckBox Name="ClassKeepOrphans" IsChecked="{Binding KeepOrphans}">
+                  <TextBlock>
+                    <Run Text="Keep them in the GDT anyway"/><Run Text="  (APE and the linker ignore them)" Foreground="{DynamicResource TextFaintBrush}" FontSize="{StaticResource FontSizeSm}"/>
+                  </TextBlock>
+                </CheckBox>
+              </StackPanel>
+            </StackPanel>
           </ScrollViewer>
         </DockPanel>
       </Border>

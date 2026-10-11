@@ -15,13 +15,14 @@ public sealed class RenderTargetPool : IDisposable
     {
         public readonly int Width = width, Height = height;
         public readonly GpuTexture?[] Targets = new GpuTexture?[RenderTargetId.Count];
-        public GpuTexture? SceneDepth, SceneDepthCopy;
+        public GpuTexture? SceneDepth, SceneDepthCopy, SceneResolve;
         public Vortice.Direct3D11.ID3D11DepthStencilView? SceneDepthReadOnly;
 
         public void Dispose()
         {
             SceneDepthReadOnly?.Dispose();
             SceneDepthCopy?.Dispose();
+            SceneResolve?.Dispose();
             foreach (var t in Targets)
                 t?.Dispose();
             SceneDepth?.Dispose();
@@ -94,6 +95,24 @@ public sealed class RenderTargetPool : IDisposable
         {
             var set = Active;
             return set.SceneDepthCopy ??= GpuTexture.CreateTarget(_gfx, RenderTargetTable.SceneDepth(set.Width, set.Height), "DS0 copy");
+        }
+    }
+
+    /// <summary>
+    /// A copy of the opaque lit scene (RT33's format, full mip chain for <c>GenerateMips</c>) that a transparent
+    /// draw samples as <c>iResolveScene</c>. Not one of APE's targets: APE binds nothing there, so this exists
+    /// only for custom shaders that read it, and is only allocated when one is drawn.
+    /// </summary>
+    public GpuTexture SceneResolve
+    {
+        get
+        {
+            var set = Active;
+            int mips = 1 + (int)Math.Floor(Math.Log2(Math.Max(set.Width, set.Height)));
+            var hdr = RenderTargetTable.Get(RenderTargetId.Hdr).DescFor(set.Width, set.Height);
+            return set.SceneResolve ??= GpuTexture.CreateTarget(_gfx, new TargetDesc(hdr.TextureFormat, set.Width, set.Height,
+                RtvFormat: hdr.RtvFormat, SrvFormat: hdr.SrvFormat, MipLevels: mips,
+                MiscFlags: Vortice.Direct3D11.ResourceOptionFlags.GenerateMips), "scene resolve (iResolveScene)");
         }
     }
 

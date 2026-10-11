@@ -41,13 +41,16 @@ Every check belongs to exactly one tier, decided by what it needs:
 |---|---|---|---|
 | main | fast | | mock data, screenshots of every surface |
 | shell, ref, command, scroll, tabs, layout, search | fast | | mock data, real input |
+| links | fast | | mock data, a named pipe of its own |
 | journal | fast | yes | mock data, session journal in temp |
 | save | fast | | GDT save path on temp copies of 35 install GDTs |
-| save-ui, placement, buttons, fields, lists, notetracks, install, anim-layout, extensions, records, hardening, simulator, editor-pass | fast | some (see `Gates` in Suite.cs) | a temp install |
+| save-ui, placement, weapon-class, radiant-sync, buttons, fields, lists, notetracks, install, anim-layout, extensions, records, hardening, simulator, editor-pass | fast | some (see `Gates` in Suite.cs) | a temp install |
 | recoil, recoil-draw, recoil-app | fast | recoil-draw | pure, a test window, a temp install |
 | live-timing | full | yes | the whole install (palette and search menu over 125k assets) |
 | perf | full | yes | mock data, timed interactions |
-| recoil-render | full | | real D3D11 and APE's renderer data (read-only) |
+| recoil-render, material-render | full | | real D3D11 and APE's renderer data (read-only) |
+| shader-compile | fast | | d3dcompiler_47 on a scratch shader tree (no device) |
+| custom-shader | full | | real D3D11, the install read-only and the user's blak_frosted_glass test asset (skipped without it); shots in `<shots>\custom-shader` |
 | live-smoke | full | | the whole install, read-only |
 
 `--list-groups` prints the list with each group's tier, gates and cost.

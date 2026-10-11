@@ -31,7 +31,7 @@ public sealed class ToolsGfxData
         Install = install;
         ApexCache = apexCache ?? ApexToolsGfxCache.Default;
         Policy = policy ?? CachePolicy.Default;
-        Shaders = new ShaderCache(install);
+        Shaders = new ShaderCache(install, ApexCache, Policy);
         Images = new ImageCache(install);
         Models = new ModelCacheLocator(install, ApexCache, Policy);
         // APE resolves assets through gdtdb, which also covers texture_assets / art_assets / xanim_export GDTs; those

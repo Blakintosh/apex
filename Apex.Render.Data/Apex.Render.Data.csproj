@@ -10,5 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="K4os.Compression.LZ4" Version="1.3.8" />
+    <!-- Compiles custom .hlsl sources APE has not cached (ShaderSourceCompiler); d3dcompiler_47 is CPU-only. -->
+    <PackageReference Include="Vortice.D3DCompiler" Version="3.8.3" />
   </ItemGroup>
 </Project>

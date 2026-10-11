@@ -19,6 +19,14 @@ public partial class App : Application
         ActualThemeVariantChanged += (_, _) => ApplyTypeVariant();
     }
 
+    /// <summary>Shows <paramref name="window"/> over whatever had the focus (restored if minimised).</summary>
+    private static void BringToFront(Avalonia.Controls.Window window)
+    {
+        if (window.WindowState == Avalonia.Controls.WindowState.Minimized)
+            window.WindowState = Avalonia.Controls.WindowState.Normal;
+        window.Activate();
+    }
+
     private void ApplyTypeVariant() =>
         TypeStyles.ApplyVariant(Services.AppTheme.IsLight(ActualThemeVariant));
 
@@ -43,8 +51,16 @@ public partial class App : Application
             vm.Updates.RestartRequested += (_, _) => window.Close();
             // After the first frame: the check and its download run in the background and only ever show a ready update.
             window.Opened += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(vm.CheckForUpdatesIfDue, Avalonia.Threading.DispatcherPriority.Background);
+            window.Opened += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(vm.ShowWhatsNewIfUpdated, Avalonia.Threading.DispatcherPriority.Background);
+            // asset:// links: this start's own, then those later starts hand over (Radiant starts Apex per click).
+            foreach (var link in Program.StartupLinks)
+                vm.OpenLink(link);
+            vm.LinkArrived += () => BringToFront(window);
+            var links = new System.Threading.CancellationTokenSource();
+            Services.LinkInstance.Listen(link => Avalonia.Threading.Dispatcher.UIThread.Post(() => vm.OpenLink(link)), links.Token);
             desktop.Exit += (_, _) =>
             {
+                links.Cancel();
                 vm.Dispose();
                 // Preview devices outlive their last viewport for a grace period; release them now.
                 Apex.Render.Presentation.SharedGfxDevices.DisposeIdle();

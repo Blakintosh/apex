@@ -29,6 +29,7 @@ public static class CommandCatalog
     public const string PasteAssets = "asset.paste";
     public const string Derive = "asset.derive";
     public const string Underive = "asset.underive";
+    public const string ChangeWeaponClass = "asset.changeWeaponClass";
     public const string Delete = "asset.delete";
     public const string Compare = "asset.compare";
     public const string Pin = "asset.pin";
@@ -80,7 +81,9 @@ public static class CommandCatalog
     public const string ThemeSlate = "view.themeSlate";
     public const string ThemeLight = "view.themeLight";
     public const string CheckForUpdates = "app.checkUpdates";
+    public const string SyncWithRadiant = "app.syncRadiant";
     public const string About = "app.about";
+    public const string WhatsNew = "app.whatsNew";
 
     // ── Explorer ──
     public const string SearchAssets = "explorer.search";
@@ -139,6 +142,7 @@ public static class CommandCatalog
         C(MoveTo, "Move to…", CatAsset, "→") with { Keywords = "another gdt file relocate" },
         C(Derive, "Derive", CatAsset, "↳") with { Keywords = "inherit child parent template based on" },
         C(Underive, "Underive", CatAsset, "⇤") with { Keywords = "flatten detach parent inherited values root" },
+        C(ChangeWeaponClass, "Change weapon class…", CatAsset, "⌖") with { Keywords = "remap convert type deffile gdf bulletweapon projectileweapon grenadeweapon meleeweapon dualwieldweapon" },
         new CommandInfo(CopyAssets, "Copy", CatAsset, "⧉", CommandScope.Explorer, "Ctrl+C") with { Keywords = "clipboard assets paste" },
         new CommandInfo(CutAssets, "Cut", CatAsset, "✂", CommandScope.Explorer, "Ctrl+X") with { Keywords = "clipboard move assets paste" },
         new CommandInfo(PasteAssets, "Paste", CatAsset, "⎗", CommandScope.Explorer, "Ctrl+V") with { Keywords = "clipboard assets gdt" },
@@ -182,6 +186,8 @@ public static class CommandCatalog
         C(ThemeSlate, "Slate theme", CatView, "●") with { IsToggle = true, Keywords = "appearance dark mode blue colour color" },
         C(ThemeLight, "Light theme", CatView, "○") with { IsToggle = true, Keywords = "appearance light mode white day colour color" },
         C(CheckForUpdates, "Check for updates", CatView, "↓") with { Keywords = "update updates new version release latest github download install" },
+        C(SyncWithRadiant, "Sync changes with Radiant", CatView, "⇄") with { IsToggle = true, Keywords = "radiant ape live notify gdtdb database changes log other applications" },
+        C(WhatsNew, "What's new", CatView, "✦") with { Keywords = "release notes changelog changes latest version updated" },
         C(About, "About Apex", CatView, "ⓘ") with { Keywords = "version info information release" },
 
         C(SearchAssets, "Search assets", CatExplorer, "⌕", "Ctrl+Shift+F") with { Keywords = "filter find" },

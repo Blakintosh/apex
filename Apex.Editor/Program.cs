@@ -17,12 +17,21 @@ class Program
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetDefaultDllDirectories(uint directoryFlags);
 
+    /// <summary>The <c>asset://</c> links Apex was started with (opened once the window's GDTs load).</summary>
+    public static string[] StartupLinks { get; private set; } = [];
+
     // Initialization code. Don't use any Avalonia, third-party APIs or any
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
     [STAThread]
     public static void Main(string[] args)
     {
+        // Radiant opens each asset link by starting Apex with it: an Apex that is already running takes the link, and this
+        // start goes no further.
+        StartupLinks = Array.FindAll(args, Services.AssetLink.IsLink);
+        if (StartupLinks.Length > 0 && Services.LinkInstance.TryForward(StartupLinks))
+            return;
+
         // Apex ships in <BO3>in, and installs often keep other copies of dxgi.dll and d3d11.dll
         // there for the Mod Tools (DXVK, or old Windows 10 builds). Rendering through those crashes,
         // so Windows' search skips the exe folder, and .NET's own probe of it, which runs first for

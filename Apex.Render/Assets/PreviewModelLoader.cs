@@ -140,6 +140,10 @@ public sealed record PreviewModelOptions
     /// <see cref="PreviewModelLoader.DefaultMaterial"/>, as APE does, instead of failing the whole model (hidden when that
     /// cannot be built either).</summary>
     public bool SkipBrokenMaterials { get; init; }
+    /// <summary>Draw a plain surface (<see cref="PreviewModelLoader.DecalUnderlayMaterial"/>) under each surface whose
+    /// material is a decal, so the decal has something to land on: for previewing a material on its own (APE draws
+    /// the decal alone, which shows nothing). Models leave it off: their decals sit on their other surfaces.</summary>
+    public bool DecalUnderlay { get; init; }
 }
 
 /// <summary>
@@ -171,6 +175,10 @@ public sealed class PreparedPreviewModel
     public int BrokenMaterialCount => Materials.Values.Count(m => m is null) + DefaultedMaterials.Count;
     /// <summary>Materials whose surfaces are not drawn at all.</summary>
     public int UndrawnMaterialCount => Materials.Values.Count(m => m is null);
+    /// <summary>A material reads cb9 <c>time</c> (<see cref="PreparedPass.ReadsSceneTime"/>): the model changes from
+    /// frame to frame even when nothing else does.</summary>
+    public bool ReadsSceneTime => _readsSceneTime ??= Materials.Values.Any(m => m?.Values.Any(p => p.ReadsSceneTime) == true);
+    private bool? _readsSceneTime;
 
     /// <summary>
     /// Drops the loaded image data (the bulk of a prepared model) once it is on the GPU; a later
@@ -369,6 +377,8 @@ public sealed class PreviewModelLoader
                 warnings.AddRange(p.Warnings);
         else if (fallbackError is not null)
             warnings.Add(fallbackError);
+        if (options.DecalUnderlay)
+            lods = UnderlayDecals(data, lods, overrides, materials, warnings, options, materialDefaults, cancellationToken);
         return new PreparedPreviewModel
         {
             Name = name,
@@ -380,6 +390,63 @@ public sealed class PreviewModelLoader
             Warnings = warnings,
         };
     }
+
+    /// <summary>
+    /// <see cref="PreviewModelOptions.DecalUnderlay"/>: each surface drawn only as a decal gets a twin with
+    /// <see cref="DecalUnderlayMaterial"/> under it. A decal blends into the G-buffer (or the lit buffer) of what is
+    /// already drawn and draws no depth of its own, so on a preview shape alone it lands on nothing and the frame shows
+    /// the sky there; APE draws it alone, so its material preview of a decal is empty.
+    /// </summary>
+    private static IReadOnlyList<GpuMesh> UnderlayDecals(ToolsGfxData data, IReadOnlyList<GpuMesh> lods,
+        IReadOnlyDictionary<string, string> overrides, Dictionary<string, IReadOnlyDictionary<PreviewTechnique, PreparedPass>?> materials,
+        List<string> warnings, PreviewModelOptions options, IReadOnlyDictionary<string, string> materialDefaults, CancellationToken cancellationToken)
+    {
+        bool IsDecal(GpuSurface s) =>
+            materials.GetValueOrDefault(overrides.GetValueOrDefault(s.Material, s.Material)) is { } passes
+            && (passes.ContainsKey(PreviewTechnique.GbufferDecal) || passes.ContainsKey(PreviewTechnique.LitDecal));
+        if (!lods.Any(m => m.Surfaces.Any(IsDecal)))
+            return lods;
+        try
+        {
+            var underlay = PrepareMaterial(data, DecalUnderlayMaterial, options with { Techniques = null }, materialDefaults, cancellationToken);
+            foreach (var p in underlay.Values)
+                warnings.AddRange(p.Warnings);
+            materials[DecalUnderlayMaterial] = underlay;
+        }
+        catch (Exception ex) when (ex is not (OutOfMemoryException or OperationCanceledException))
+        {
+            warnings.Add($"decal underlay: {ex.Message}");
+            return lods;
+        }
+        return lods.Select(mesh => mesh.Surfaces.Any(IsDecal)
+            ? new GpuMesh
+            {
+                Surfaces = mesh.Surfaces.SelectMany(s => IsDecal(s)
+                    ? new[]
+                    {
+                        new GpuSurface
+                        {
+                            Material = DecalUnderlayMaterial, Vertices = s.Vertices, Indices = s.Indices, TriangleCount = s.TriangleCount,
+                            RigidBone = s.RigidBone, BoundsMin = s.BoundsMin, BoundsMax = s.BoundsMax,
+                        },
+                        s,
+                    }
+                    : new[] { s }).ToList(),
+                Bones = mesh.Bones, BindPose = mesh.BindPose, LocalBones = mesh.LocalBones, BaseMats = mesh.BaseMats,
+                BoneBounds = mesh.BoneBounds, BoundsMin = mesh.BoundsMin, BoundsMax = mesh.BoundsMax,
+            }
+            : mesh).ToList();
+    }
+
+    /// <summary>The surface Apex draws under a decal in a material preview (<see cref="PreviewModelOptions.DecalUnderlay"/>):
+    /// a plain mid-grey <c>lit</c> material, not in any GDT.</summary>
+    public const string DecalUnderlayMaterial = "$apex_decal_underlay";
+
+    private static readonly IReadOnlyDictionary<string, string> DecalUnderlayFields = new Dictionary<string, string>
+    {
+        ["materialType"] = "lit",
+        ["colorTint"] = "0.5 0.5 0.5 1",
+    };
 
     /// <summary>The material APE draws a surface with when the surface's own material fails to load
     /// (<c>Material_GetCached</c> 0x140451290): <c>texture_assets\code.gdt</c>, techset <c>tools\default</c>.</summary>
@@ -526,11 +593,12 @@ public sealed class PreviewModelLoader
         IReadOnlyDictionary<string, string> materialDefaults, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var entry = data.Gdt.Find(material, "material") ?? throw new FileNotFoundException($"material '{material}' not found in the GDTs");
+        var own = material == DecalUnderlayMaterial ? DecalUnderlayFields
+            : (data.Gdt.Find(material, "material") ?? throw new FileNotFoundException($"material '{material}' not found in the GDTs")).Fields;
         var fields = new Dictionary<string, string>(materialDefaults, StringComparer.Ordinal);
-        foreach (var (k, v) in entry.Fields)
+        foreach (var (k, v) in own)
             fields[k] = v;
-        var techset = data.Techsets.Load(entry.Fields.GetValueOrDefault("materialType") ?? "", options.MaterialType);
+        var techset = data.Techsets.Load(own.GetValueOrDefault("materialType") ?? "", options.MaterialType);
         var values = MaterialEvaluator.Evaluate(techset, fields);
 
         var want = options.Techniques;

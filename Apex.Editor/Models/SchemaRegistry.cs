@@ -14,6 +14,7 @@ public static class SchemaRegistry
     private static readonly Dictionary<string, AssetSchema> MockSchemas = new(StringComparer.OrdinalIgnoreCase)
     {
         ["weapon"] = BuildWeapon(),
+        ["projectileweapon"] = BuildProjectileWeapon(),
         ["xmodel"] = BuildXModel(),
         ["material"] = BuildMaterial(),
     };
@@ -153,6 +154,42 @@ public static class SchemaRegistry
                 "Sound alias when firing with an empty magazine.") { RefType = "sound" },
         },
     };
+
+    /// <summary>
+    /// The mock's second weapon class, so Change weapon class has somewhere to go: the weapon's fields less the
+    /// bullet-only ones, other impact types and classes, and a few of its own.
+    /// </summary>
+    private static AssetSchema BuildProjectileWeapon()
+    {
+        var props = new List<PropertyDef>();
+        foreach (var p in BuildWeapon().Properties)
+        {
+            switch (p.Key)
+            {
+                case "penetrateType" or "tracerType" or "rechamberBoltAction" or "holdBreathToSteady":
+                    continue;
+                case "weaponClass":
+                    props.Add(p with { Choices = new[] { "rocketlauncher", "grenade", "pistol", "rifle", "special" }, Default = "rocketlauncher" });
+                    break;
+                case "impactType":
+                    props.Add(p with { Choices = new[] { "rocket_explode", "grenade_explode", "grenade_bounce", "projectile_dud", "bolt" }, Default = "rocket_explode" });
+                    break;
+                case "fireType":
+                    props.Add(p with { Choices = new[] { "Full Auto", "Single Shot", "3-Round Burst" }, Default = "Single Shot" });
+                    break;
+                default:
+                    props.Add(p);
+                    break;
+            }
+        }
+        props.Add(new("projectileSpeed", "Projectile Speed", "Projectile", PropertyKind.Number,
+            "Launch speed of the projectile, in inches per second.") { Min = 0, Max = 20000, Step = 50, Default = "1000" });
+        props.Add(new("projectileModel", "Projectile Model", "Projectile", PropertyKind.AssetRef,
+            "The xmodel the projectile is drawn with in flight.") { RefType = "xmodel" });
+        props.Add(new("guidedMissileType", "Missile Guidance", "Projectile", PropertyKind.Choice,
+            "How the projectile steers after launch.") { Choices = new[] { "None", "Sidewinder", "Javelin", "HeatSeeking" }, Default = "None" });
+        return new AssetSchema { TypeName = "projectileweapon", GdfName = "projectileweapon.gdf", Properties = props };
+    }
 
     private static AssetSchema BuildXModel() => new()
     {

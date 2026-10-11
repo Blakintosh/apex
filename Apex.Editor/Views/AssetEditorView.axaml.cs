@@ -410,7 +410,8 @@ public partial class AssetEditorView : UserControl
 
     private const double RowHeight = 30;
 
-    private static double HeaderHeight(CategoryViewModel c) => c.IsFirst ? 34 : 42;
+    // Border.psection: 36 high, and 12 above it after the first (Workspace.axaml).
+    private static double HeaderHeight(CategoryViewModel c) => c.IsFirst ? 34 : 48;
 
     /// <summary>A form row's height, which each kind fixes (see the row styles), so offsets are sums.</summary>
     private static double HeightOf(object item) => item switch

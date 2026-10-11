@@ -14,7 +14,13 @@ namespace Apex.Render.Data.Techsets;
 /// <param name="Title">The tweak's <c>title</c>; null when it gives none (samplers keep the deffile's titles).</param>
 /// <param name="SortIndex">The tweak's <c>sortindex</c>.</param>
 /// <param name="Fields">GDT fields the element reads, first to last.</param>
-public sealed record TechsetdefTweak(string Element, string Category, string? Title, double SortIndex, IReadOnlyList<string> Fields);
+/// <param name="Default">The tweak's <c>default</c> (what a new material starts with); null when it gives none.</param>
+/// <param name="Range">The tweak's <c>range = "min", "max", "step"</c>; null when it gives none.</param>
+public sealed record TechsetdefTweak(string Element, string Category, string? Title, double SortIndex, IReadOnlyList<string> Fields,
+    string? Default = null, TweakRange? Range = null);
+
+/// <summary>A tweak's numeric range: the smallest and largest value, and the step a nudge moves it by (0 when none given).</summary>
+public readonly record struct TweakRange(double Min, double Max, double Step);
 
 /// <summary>What the material editor needs from the techsetdefs: the material types by category, and their tweaks.</summary>
 public sealed partial class TechsetdefLibrary
@@ -174,9 +180,19 @@ public sealed partial class TechsetdefLibrary
             var refs = FieldRefs(fields);
             if (refs.Count == 0)
                 continue;
-            list.Add((new TechsetdefTweak(b.Name, category, string.IsNullOrEmpty(title) ? null : title, sort, refs), list.Count));
+            var def = tweak.Text("default")?.Trim();
+            list.Add((new TechsetdefTweak(b.Name, category, string.IsNullOrEmpty(title) ? null : title, sort, refs,
+                string.IsNullOrEmpty(def) ? null : def, ParseRange(tweak.Strings("range"))), list.Count));
         }
         return list.OrderBy(t => t.Tweak.SortIndex).ThenBy(t => t.Order).Select(t => t.Tweak).ToList();
+    }
+
+    private static TweakRange? ParseRange(List<string> parts)
+    {
+        double Num(int i) => i < parts.Count && double.TryParse(parts[i], System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : double.NaN;
+        var (min, max, step) = (Num(0), Num(1), Num(2));
+        return double.IsNaN(min) || double.IsNaN(max) || max <= min ? null : new TweakRange(min, max, double.IsNaN(step) ? 0 : step);
     }
 
     /// <summary>The GDT fields an element reads through its value fields, in order, once each (its tweak excluded).</summary>
@@ -285,7 +301,8 @@ public sealed partial class TechsetdefLibrary
         {
             var best = byLayout.OrderByDescending(kv => kv.Value.Count).ThenBy(kv => kv.Value.First).First();
             var (category, title, sort) = best.Key;
-            union[field] = new TechsetdefTweak(best.Value.Tweak.Element, category, title, sort, best.Value.Tweak.Fields);
+            union[field] = new TechsetdefTweak(best.Value.Tweak.Element, category, title, sort, best.Value.Tweak.Fields,
+                best.Value.Tweak.Default, best.Value.Tweak.Range);
         }
         return union;
     }

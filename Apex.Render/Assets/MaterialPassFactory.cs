@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+using Apex.Render.Constants;
 using Apex.Render.Data;
 using Apex.Render.Data.Assets;
 using Apex.Render.Data.Techsets;
@@ -74,8 +76,16 @@ public sealed class MaterialPassFactory : IDisposable
                 images.Add(new PreparedImage(t.Binding.Name, t.Texture, r.Image));
             }
         }
-        return new PreparedPass(technique, stages, images, warnings) { MissingImages = missing };
+        return new PreparedPass(technique, stages, images, warnings) { MissingImages = missing, ReadsSceneTime = stages.Any(ReadsSceneTime) };
     }
+
+    /// <summary>cb9 <c>time</c>: the vec4 and component of <see cref="CodeSceneConsts.Time"/>.</summary>
+    private static readonly int TimeOffset = (int)Marshal.OffsetOf<CodeSceneConsts>(nameof(CodeSceneConsts.Time));
+
+    /// <summary>Whether a stage's program reads cb9 <c>time</c> (scrolling, flowing, pulsing materials).</summary>
+    private static bool ReadsSceneTime(StageBinding stage) =>
+        stage.Reflection.FindBinding("CodeSceneConstBuffer") is { } cb
+        && Data.Shaders.DxbcConstantReads.Reads(stage.Binary.Dxbc, cb.BindPoint, TimeOffset / 16, TimeOffset % 16 / 4);
 
     /// <summary>GPU objects for a <see cref="Prepare"/>d pass (call on the thread that owns the device context).</summary>
     public MaterialPass Create(PreparedPass prepared)
@@ -346,4 +356,7 @@ public sealed record PreparedPass(
 {
     /// <summary>Images APE could not load either (<see cref="ResolvedImage.Missing"/>); APE then fails the material.</summary>
     public IReadOnlyList<string> MissingImages { get; init; } = [];
+
+    /// <summary>A stage reads cb9 <c>time</c>, so the pass changes from frame to frame (water flow, UV scroll).</summary>
+    public bool ReadsSceneTime { get; init; }
 }

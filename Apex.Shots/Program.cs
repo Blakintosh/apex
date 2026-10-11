@@ -32,6 +32,9 @@ public partial class Program
             return ListGroups(args);
         // First thing, in every mode: the save path may write only under this run's temp folder, never the install.
         Console.WriteLine($"GDT writes allowed only under {SaveRoot}");
+        // Nor may a run tell the install's Radiant about its edits (gdtDB\live\changes.log, gdtdb.exe /update): the
+        // groups on the real install edit values too. The radiant-sync checks lift it for their temp install.
+        Environment.SetEnvironmentVariable("APEX_NO_RADIANT_SYNC", "1");
         // Never the user's own extensions: none unless a run (or a check) points the folder somewhere.
         if (Environment.GetEnvironmentVariable(Apex.Editor.Services.Extensions.ExtensionRegistry.DirVariable) is not { Length: > 0 })
             Environment.SetEnvironmentVariable(Apex.Editor.Services.Extensions.ExtensionRegistry.DirVariable, NewScratch("no-extensions"));

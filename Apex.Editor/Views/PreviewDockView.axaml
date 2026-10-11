@@ -15,6 +15,15 @@
   <DockPanel>
     <DockPanel DockPanel.Dock="Top" Height="38" Margin="12,0,6,0">
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+        <!-- Holds the preview on what it shows now while the active asset changes; click again to follow the active asset. -->
+        <Button Name="LockButton" Classes="icon" Command="{Binding TogglePreviewLockCommand}"
+                IsVisible="{Binding HasActiveTab}" IsEnabled="{Binding CanLockPreview}"
+                AutomationProperties.Name="Lock preview" ToolTip.Tip="{Binding PreviewLockTip}" ToolTip.ShowOnDisabled="True">
+          <Panel>
+            <controls:GlyphIcon Glyph="unlock" Size="14" IsVisible="{Binding !IsPreviewLocked}"/>
+            <controls:GlyphIcon Glyph="lock" Size="14" Foreground="{DynamicResource MarkBrush}" IsVisible="{Binding IsPreviewLocked}"/>
+          </Panel>
+        </Button>
         <Button Name="MaximizeButton" Classes="icon" c:Cmd.Id="view.maximizePreview"
                 IsVisible="{Binding ShowDockedPreview}"
                 AutomationProperties.Name="{Binding PreviewMaximizeLabel}">

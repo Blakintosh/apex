@@ -52,6 +52,7 @@ public sealed partial class MainViewModel
         r.Bind(K.MoveTo, () => MoveTo(new[] { ActiveTab!.Record }), Tab);
         r.Bind(K.Derive, () => DeriveAsset(ActiveTab!.Record), Tab);
         r.Bind(K.Underive, () => UnderiveAsset(ActiveTab!.Record), () => ActiveTab is { HasParent: true, IsParentMissing: false });
+        r.Bind(K.ChangeWeaponClass, () => OpenChangeWeaponClass(ActiveTab!.Record), () => CanChangeWeaponClass(ActiveTab?.Record));
         r.Bind(K.CopyAssets, () => CopyAssets(new[] { ActiveTab!.Record }), Tab);
         r.Bind(K.CutAssets, () => CutAssets(new[] { ActiveTab!.Record }), Tab);
         r.Bind(K.PasteAssets, PasteFromPalette, () => CanPasteAssets);
@@ -110,6 +111,8 @@ public sealed partial class MainViewModel
         r.Bind(K.PreviousPane, () => Shell?.CyclePaneFocus(-1));
         r.Bind(K.CheckForUpdates, CheckForUpdates);
         r.Bind(K.About, () => Shell?.ShowAbout());
+        r.Bind(K.WhatsNew, ShowWhatsNew);
+        r.Bind(K.SyncWithRadiant, () => SyncWithRadiant = !SyncWithRadiant, available: () => _env.IsAvailable, isChecked: () => SyncWithRadiant);
 
         // Explorer
         r.Bind(K.SearchAssets, () =>

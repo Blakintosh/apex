@@ -17,7 +17,8 @@ public sealed class JournalEntry
     /// all its values), <c>ren</c> (rename), <c>del</c> (delete), <c>mov</c> (moved from GDT <c>gdt</c> to <c>to</c>),
     /// <c>flat</c> (Underive: <c>parent</c> was its parent, <c>props</c> every value it took), <c>set</c> (an asset's
     /// changed values), <c>xset</c> (an asset's changed extension values; <c>type</c> is the extension), <c>tabs</c>
-    /// (open tabs), <c>bye</c> (Apex closed normally).
+    /// (open tabs), <c>cls</c> (Change weapon class: <c>name</c> is the root, <c>type</c> its new class, <c>from</c> its
+    /// old one; the family's values travel in their sets), <c>bye</c> (Apex closed normally).
     /// </summary>
     [JsonPropertyName("op")] public string Op { get; set; } = "";
 
@@ -31,7 +32,7 @@ public sealed class JournalEntry
     [JsonPropertyName("type")] public string? Type { get; set; }
     [JsonPropertyName("parent")] public string? Parent { get; set; }
 
-    /// <summary><c>add</c>: the asset it was duplicated from, when it was.</summary>
+    /// <summary><c>add</c>: the asset it was duplicated from, when it was. <c>cls</c>: the class it had.</summary>
     [JsonPropertyName("from")] public string? From { get; set; }
 
     /// <summary><c>add</c>: every value the new asset started with.</summary>
@@ -42,6 +43,12 @@ public sealed class JournalEntry
 
     /// <summary><c>set</c>: each changed key with its baseline and current value (null: the key is absent).</summary>
     [JsonPropertyName("ch")] public List<JournalChange>? Changes { get; set; }
+
+    /// <summary>
+    /// <c>cls</c>: the keys the new class has no field for were kept. Unless so, a replay drops them again: an empty one
+    /// on a root asset reads as missing, so no set records that it went.
+    /// </summary>
+    [JsonPropertyName("keep")] public bool? Keep { get; set; }
 
     [JsonPropertyName("tabs")] public List<JournalTab>? Tabs { get; set; }
     [JsonPropertyName("active")] public int? Active { get; set; }

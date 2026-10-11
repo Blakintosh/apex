@@ -32,7 +32,7 @@ public static class GdtLoader
                 Source = e.BodyLength > 0
                     ? new GdtPropertySource(source.FullPath, e.BodyOffset, e.BodyLength)
                     : null,
-                Disk = stamp is null ? null : new Save.DiskRef(e.Name, e.IsDerived ? e.TypeOrParent : null, e.BodyOffset),
+                Disk = stamp is null ? null : new Save.DiskRef(e.Name, e.IsDerived ? e.TypeOrParent : null, e.BodyOffset, e.IsDerived ? null : e.TypeOrParent),
             });
         }
 

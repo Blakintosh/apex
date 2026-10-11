@@ -206,33 +206,9 @@ public sealed partial class TechsetdefLibrary
             var v = body.First(key);
             if (v is null)
                 continue;
-            var declType = key switch
-            {
-                "vs" => "VertexShader",
-                "ls" => "LocalShader",
-                "hs" => "HullShader",
-                "ds" => "DomainShader",
-                "gs" => "GeometryShader",
-                "ps" => "PixelShader",
-                _ => "ComputeShader",
-            };
-
-            string? decl;
-            TsFields sb;
-            if (v.IsText)
-            {
-                decl = v.Text;
-                sb = unit.ResolveNamed(declType, decl) ?? new TsFields();
-            }
-            else if (v.Kind == ValueKind.Call)
-            {
-                decl = v.Parent;
-                sb = unit.ResolveInline(declType, v);
-            }
-            else
-            {
+            if (StageFields(unit, key, v) is not { } sb)
                 continue;
-            }
+            var decl = v.IsText ? v.Text : v.Parent;
 
             var source = sb.Text("source") ?? techniqueSource;
             if (source is null)
@@ -283,6 +259,25 @@ public sealed partial class TechsetdefLibrary
         };
     }
 
+    /// <summary>A technique stage's fields: a named shader declaration (<c>ps = "ps_lit"</c>) or an inline one
+    /// (<c>ps = PixelShader() : "parent" { … }</c>); null for anything else.</summary>
+    private static TsFields? StageFields(TechsetUnit unit, string key, TsValue v)
+    {
+        var declType = key switch
+        {
+            "vs" => "VertexShader",
+            "ls" => "LocalShader",
+            "hs" => "HullShader",
+            "ds" => "DomainShader",
+            "gs" => "GeometryShader",
+            "ps" => "PixelShader",
+            _ => "ComputeShader",
+        };
+        if (v.IsText)
+            return unit.ResolveNamed(declType, v.Text) ?? new TsFields();
+        return v.Kind == ValueKind.Call ? unit.ResolveInline(declType, v) : null;
+    }
+
     private static List<MaterialElement> BuildElements(TechsetUnit unit)
     {
         var list = new List<MaterialElement>();
@@ -304,6 +299,29 @@ public sealed partial class TechsetdefLibrary
             };
             if (e is not null)
                 list.Add(e);
+        }
+
+        // Samplers declared inside a technique's shader stage (ps = PixelShader() { s = Sampler("no tile", "nomip bilinear") },
+        // as emblem.techsetdef does): material samplers like the top-level ones, bound by name. A top-level element of
+        // the same name wins.
+        var names = new HashSet<string>(list.Select(e => e.Name), StringComparer.Ordinal);
+        foreach (var technique in unit.Declarations().Where(b => b.Type == "Technique"))
+        {
+            var body = unit.Resolve(technique);
+            foreach (var key in StageKeys)
+            {
+                if (body.First(key) is not { } v || StageFields(unit, key, v) is not { } stage)
+                    continue;
+                foreach (var name in stage.Keys)
+                {
+                    if (stage.First(name) is not { Kind: ValueKind.Call, Text: "Sampler" } s || !names.Add(name))
+                        continue;
+                    var fields = new TsFields();
+                    if (s.Body is { } statements)
+                        fields.Apply(statements);
+                    list.Add(new SamplerElement(name, fields, s.Args) { GdtBindings = Bindings(fields, s.Args) });
+                }
+            }
         }
         return list;
     }
