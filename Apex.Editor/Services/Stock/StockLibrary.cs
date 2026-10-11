@@ -47,10 +47,15 @@ public sealed record StockProgress(string What, int Done, int Total);
 /// <summary>The stock helper's work that needs the game's fastfiles. Behind an interface so the checks can answer without the helper.</summary>
 public interface IStockBackend
 {
-    Task<StockDeps> DepsAsync(string type, string name, string map, string? zone, string? prefix, bool renameAll, CancellationToken cancel = default);
+    /// <param name="carry">Classify for a build with Dragon's stock carry (class <c>carried</c>) instead of for a clone.</param>
+    Task<StockDeps> DepsAsync(string type, string name, string map, string? zone, string? prefix, bool renameAll, CancellationToken cancel = default, bool carry = false);
     Task<StockExtractResult> ExtractAsync(StockExtractRequest request, Action<StockProgress>? progress, CancellationToken cancel = default);
     Task<StockUndoResult> UndoAsync(string manifest, CancellationToken cancel = default);
     Task<StockDescription> DescribeAsync(string type, string name, string? zone, CancellationToken cancel = default);
+
+    /// <summary>What the install has and what each feature may do (the helper's <c>status</c>). A backend that does not know says it can't be used directly.</summary>
+    Task<StockStatus> StatusAsync(string? project, CancellationToken cancel = default) =>
+        Task.FromResult(StockStatus.Unknown("This backend does not report the install's components."));
 }
 
 /// <summary>
@@ -244,15 +249,17 @@ public sealed class StockLibrary : IStockBackend, IDisposable
             State = Db is not null ? StockState.Ready : Problem.Length > 0 || ExePath is null ? StockState.Failed : StockState.Indexing;
             Volatile.Write(ref _refreshing, 0);
             Changed?.Invoke();
+            // a new index changes what may be used directly (Dragon accepts the schema, the helper's own entry)
+            StartStatusRefresh();
         }
     }
 
     // ── IStockBackend ───────────────────────────────────────────────────────
 
-    public async Task<StockDeps> DepsAsync(string type, string name, string map, string? zone, string? prefix, bool renameAll, CancellationToken cancel = default)
+    public async Task<StockDeps> DepsAsync(string type, string name, string map, string? zone, string? prefix, bool renameAll, CancellationToken cancel = default, bool carry = false)
     {
         if (Backend is { } fake)
-            return await fake.DepsAsync(type, name, map, zone, prefix, renameAll, cancel).ConfigureAwait(false);
+            return await fake.DepsAsync(type, name, map, zone, prefix, renameAll, cancel, carry).ConfigureAwait(false);
         var args = new Dictionary<string, object?> { ["type"] = type, ["name"] = name, ["map"] = map };
         if (zone is { Length: > 0 })
             args["zone"] = zone;
@@ -260,6 +267,8 @@ public sealed class StockLibrary : IStockBackend, IDisposable
             args["prefix"] = prefix;
         if (renameAll)
             args["rename_all"] = true;
+        if (carry)
+            args["carry"] = true;
         return StockDeps.Parse(await CallAsync("deps", args, null, cancel).ConfigureAwait(false));
     }
 
@@ -315,6 +324,49 @@ public sealed class StockLibrary : IStockBackend, IDisposable
         if (zone is { Length: > 0 })
             args["zone"] = zone;
         return StockDescription.Parse(await CallAsync("describe", args, null, cancel).ConfigureAwait(false));
+    }
+
+    // ── Status: what the install has, what each feature may do ───────────────
+
+    /// <summary>
+    /// The helper's last <c>status</c> answer; "unknown" until the first one lands, or when the helper is missing or fails.
+    /// Features read the verdicts (<see cref="StockStatus.UseDirectly"/>) and show the reason and fix when they are off.
+    /// </summary>
+    public StockStatus Status { get; private set; } = StockStatus.Unknown("");
+
+    private int _statusGen;
+
+    /// <summary>Asks for <c>status</c> now, off the calling thread; <see cref="Changed"/> fires when it lands.</summary>
+    public void StartStatusRefresh(string? project = null) => _ = RefreshStatusAsync(project);
+
+    public async Task<StockStatus> RefreshStatusAsync(string? project = null, CancellationToken cancel = default)
+    {
+        var gen = Interlocked.Increment(ref _statusGen);
+        StockStatus status;
+        try
+        {
+            if (Backend is { } fake)
+                status = await fake.StatusAsync(project, cancel).ConfigureAwait(false);
+            else if (ExePath is null)
+                status = StockStatus.Unknown("The Stock Library helper (stocklib.exe) is not installed.", "Install it from Components");
+            else
+            {
+                var args = new Dictionary<string, object?>();
+                if (project is { Length: > 0 })
+                    args["project"] = project;
+                status = StockStatus.Parse(await CallAsync("status", args, null, cancel).ConfigureAwait(false));
+            }
+        }
+        catch (Exception ex) when (ex is StockHelperException or TimeoutException or OperationCanceledException or KeyNotFoundException or InvalidOperationException)
+        {
+            status = StockStatus.Unknown("The Stock Library helper did not answer: " + ex.Message, "Check that stocklib.exe is the version that matches Apex");
+        }
+        if (gen == Volatile.Read(ref _statusGen))
+        {
+            Status = status;
+            Changed?.Invoke();
+        }
+        return status;
     }
 
     /// <summary>True when the dependencies, a clone or the fields can be asked for: a backend is set, or the helper is installed.</summary>

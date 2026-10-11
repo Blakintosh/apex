@@ -33,7 +33,8 @@ public sealed class StockHeader
         _ => kind,
     };
 
-    public static StockHeader Build(StockOrigin origin, StockDb? db)
+    /// <param name="useDirectly">Dragon carries stock assets for this install (the helper's <c>use_directly</c> verdict): a map can name any of them.</param>
+    public static StockHeader Build(StockOrigin origin, StockDb? db, bool useDirectly = false)
     {
         var zones = origin.Zones.Where(z => !z.StartsWith("en_", StringComparison.OrdinalIgnoreCase)).ToList();
         if (zones.Count == 0)
@@ -60,6 +61,8 @@ public sealed class StockHeader
         }
         var banner = always.Count > 0
             ? $"You can use this {noun} in your map without copying it. To change it, create a local copy. Your copy goes in one of your GDTs and takes precedence over the stock one."
+            : useDirectly
+            ? $"Use this {noun} in your map by name: Dragon takes it from the game's files when you build, with everything it needs. To change it, create a local copy. Your copy goes in one of your GDTs and takes precedence over the stock one."
             : $"This {noun} ships only in {(zones.Count > 0 ? zones[0] + ".ff" : "a zone")}, which maps don't load on their own, so a map that uses it needs its own copy. Create a local copy to put it in one of your GDTs.";
         return new StockHeader
         {
@@ -67,7 +70,7 @@ public sealed class StockHeader
             Kind = origin.Kind,
             Info = string.Join(" · ", parts),
             Banner = banner,
-            AlwaysLoaded = always.Count > 0,
+            AlwaysLoaded = always.Count > 0 || useDirectly,
         };
     }
 

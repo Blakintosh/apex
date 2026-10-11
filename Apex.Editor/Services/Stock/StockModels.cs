@@ -6,7 +6,8 @@ using System.Text.Json;
 namespace Apex.Editor.Services.Stock;
 
 /// <summary>What a clone does with one dependency (the helper's <c>class</c>; docs/classify.md).</summary>
-public enum StockClass { Copy, UseShipped, Rebuilt, Local, Embedded, Unsupported, Missing }
+/// <remarks><see cref="Carried"/> only appears in a carry-mode walk: Dragon takes the compiled asset from the stock zone when it links.</remarks>
+public enum StockClass { Copy, UseShipped, Rebuilt, Local, Embedded, Unsupported, Missing, Carried }
 
 public sealed record StockNaming(bool KeepAllowed, bool MustRename, bool OverridesStock, string Why, string Proposed);
 
@@ -41,6 +42,7 @@ public sealed class StockDepNode
         "rebuilt" => StockClass.Rebuilt,
         "local" => StockClass.Local,
         "embedded" => StockClass.Embedded,
+        "carried" => StockClass.Carried,
         "unsupported" => StockClass.Unsupported,
         _ => StockClass.Missing,
     };
