@@ -54,6 +54,14 @@ public sealed class AssetRecord
     public IPropertySource? Source { get; set; }
 
     /// <summary>
+    /// Set on a record that stands for a shipped Black Ops III asset (read from the game's fastfiles by the stock helper):
+    /// it is in no GDT, so <see cref="Disk"/> is null and <see cref="GdtName"/> is empty, and nothing edits or saves it.
+    /// </summary>
+    public Services.Stock.StockOrigin? Stock { get; init; }
+
+    public bool IsStock => Stock is not null;
+
+    /// <summary>
     /// The asset in its GDT as of the file's <see cref="GdtFile.Stamp"/>: name, parent and body offset there. Null for
     /// an asset created this session and not saved yet. A rename changes <see cref="Name"/> but not this, which is how
     /// a save finds the asset to rename.
