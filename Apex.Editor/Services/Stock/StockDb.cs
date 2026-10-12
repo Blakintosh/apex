@@ -151,6 +151,36 @@ public sealed class StockDb
         return _alwaysLoaded = set;
     }
 
+    /// <summary>The zones that define sound aliases and the bank languages there are (the sound view's filters); empty when the index has no sound tables yet.</summary>
+    public (IReadOnlyList<string> Zones, IReadOnlyList<string> Langs) SoundFilters()
+    {
+        var zones = new List<string>();
+        var langs = new List<string>();
+        try
+        {
+            using var db = Open();
+            using (var cmd = db.CreateCommand())
+            {
+                cmd.CommandText = "SELECT DISTINCT z.name FROM sound_alias s JOIN zone z ON z.id = s.zone_id ORDER BY z.name COLLATE NOCASE";
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    zones.Add(r.GetString(0));
+            }
+            using (var cmd = db.CreateCommand())
+            {
+                cmd.CommandText = "SELECT DISTINCT lang FROM sound_alias ORDER BY lang";
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    langs.Add(r.GetString(0));
+            }
+        }
+        catch (Microsoft.Data.Sqlite.SqliteException)
+        {
+            // an index made before the sound tables: the helper's own answer says to index again
+        }
+        return (zones, langs);
+    }
+
     /// <summary>How many assets of every kind the index holds (without the hidden LOD meshes).</summary>
     public int AssetCount()
     {

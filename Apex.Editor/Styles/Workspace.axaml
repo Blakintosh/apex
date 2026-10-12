@@ -608,6 +608,36 @@
   <Style Selector="Button.seg.stock">
     <Setter Property="FontStyle" Value="Italic"/>
   </Style>
+  <!-- Stock sounds rows: the Explorer's row look. -->
+  <Style Selector="ListBox.soundrows">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Padding" Value="0,0,0,8"/>
+  </Style>
+  <Style Selector="ListBox.soundrows ListBoxItem">
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="MinHeight" Value="26"/>
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}"/>
+    <Setter Property="Margin" Value="0"/>
+  </Style>
+  <Style Selector="ListBox.soundrows TextBlock.rowname">
+    <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+  </Style>
+  <Style Selector="ListBox.soundrows ListBoxItem:selected TextBlock.rowname">
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+  </Style>
+  <Style Selector="ListBox.soundrows ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgRowHoverBrush}"/>
+  </Style>
+  <Style Selector="ListBox.soundrows ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+  <Style Selector="ListBox.soundrows ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgActiveBrush}"/>
+  </Style>
+  <Style Selector="ListBox.soundrows TextBlock.rowname.stock">
+    <Setter Property="FontStyle" Value="Italic"/>
+  </Style>
+
   <!-- Section headings ("Pinned", "All assets") sit in the list but are not rows. -->
   <Style Selector="ListBox.xtree ListBoxItem.heading">
     <Setter Property="IsHitTestVisible" Value="False"/>

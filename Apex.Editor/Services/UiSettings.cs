@@ -37,6 +37,8 @@ public sealed class UiSettings
     public string? StocklibPath { get; set; }
     /// <summary>The map or mod the last local copy of a stock asset went into ("usermap:zm_guns" or "mod:zm_moreguns"); offered first next time.</summary>
     public string? CloneTarget { get; set; }
+    /// <summary>The soundalias CSV the last local copy of a stock sound went into (full path); offered first next time.</summary>
+    public string? SoundAliasFile { get; set; }
     public List<RecentEntry> Recent { get; set; } = new();
     /// <summary>The height of the dock under an asset's preview, per asset type (the xanim's notetracks dock).</summary>
     public Dictionary<string, double> DockHeights { get; set; } = new(StringComparer.OrdinalIgnoreCase);

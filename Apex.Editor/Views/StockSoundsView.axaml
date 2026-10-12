@@ -1,0 +1,192 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Apex.Editor.ViewModels"
+             xmlns:stock="using:Apex.Editor.Services.Stock"
+             xmlns:controls="using:Apex.Editor.Controls"
+             x:Class="Apex.Editor.Views.StockSoundsView"
+             x:DataType="vm:StockSoundsViewModel">
+
+  <!--
+    Stock sounds: every alias of every shipped sound bank. The list loads a page at a time as it scrolls (the rows are
+    virtualized, so 50,000 names cost what the screen shows); the details pane shows the definition read-only. Names are
+    italic, as stock names are everywhere in Apex. Nothing here edits an alias.
+  -->
+  <Border Classes="pane">
+    <DockPanel>
+      <Border DockPanel.Dock="Top" Classes="panehead">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Name="SoundsCloseButton" Classes="tool" Content="Close" ToolTip.Tip="Close Stock sounds (Esc)"
+                  Command="{Binding CloseCommand}" HorizontalAlignment="Right"/>
+          <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <TextBlock Classes="h-pane" Text="Stock sounds" VerticalAlignment="Center"/>
+            <TextBlock Name="SoundsCount" Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding CountText}" VerticalAlignment="Center"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <!-- Filters -->
+      <Border DockPanel.Dock="Top" Padding="{StaticResource PaddingPane}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Name="SoundsClearFilters" Classes="link teal" Command="{Binding ClearFiltersCommand}" IsVisible="{Binding HasFilters}"
+                  Margin="12,0,0,0" VerticalAlignment="Center">
+            <TextBlock Text="Clear filters" FontSize="{StaticResource FontSizeSm}"/>
+          </Button>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center" Margin="12,0,0,0">
+            <CheckBox Name="SoundsWithAudio" IsChecked="{Binding OnlyWithAudio}" ToolTip.Tip="Hide sounds whose audio the reader could not find">
+              <TextBlock Text="Has audio" Foreground="{DynamicResource TextSoftBrush}"/>
+            </CheckBox>
+            <CheckBox Name="SoundsEveryDefinition" IsChecked="{Binding EveryDefinition}" ToolTip.Tip="List the definition of each zone separately, instead of one row for the name">
+              <TextBlock Text="Each zone" Foreground="{DynamicResource TextSoftBrush}"/>
+            </CheckBox>
+          </StackPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+            <ComboBox Name="SoundsZoneBox" Classes="field small" Width="170" ItemsSource="{Binding Zones}" SelectedItem="{Binding Zone}"
+                      AutomationProperties.Name="Zone">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:SoundFilterChoice">
+                  <TextBlock Text="{Binding Label}" FontSize="{StaticResource FontSizeSm}" TextTrimming="CharacterEllipsis"/>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <ComboBox Name="SoundsLangBox" Classes="field small" Width="130" ItemsSource="{Binding Langs}" SelectedItem="{Binding Lang}"
+                      AutomationProperties.Name="Language">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:SoundFilterChoice">
+                  <TextBlock Text="{Binding Label}" FontSize="{StaticResource FontSizeSm}" TextTrimming="CharacterEllipsis"/>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <ComboBox Name="SoundsStorageBox" Classes="field small" Width="150" ItemsSource="{Binding Storages}" SelectedItem="{Binding Storage}"
+                      AutomationProperties.Name="Loaded or streamed">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:SoundFilterChoice">
+                  <TextBlock Text="{Binding Label}" FontSize="{StaticResource FontSizeSm}" TextTrimming="CharacterEllipsis"/>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+          <TextBox Name="SoundsSearchBox" Classes="field small" Text="{Binding Query}" PlaceholderText="Search sound aliases: a name, or a pattern like wpn_*_fire"
+                   AutomationProperties.Name="Search stock sounds" MinWidth="220"/>
+        </DockPanel>
+      </Border>
+
+      <Border DockPanel.Dock="Top" Padding="14,7" Background="{DynamicResource BgFieldBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"
+              IsVisible="{Binding HasNote}">
+        <TextBlock Name="SoundsNote" Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding Note}" TextWrapping="Wrap"/>
+      </Border>
+
+      <Grid ColumnDefinitions="*,1,380">
+        <!-- The list -->
+        <DockPanel Grid.Column="0">
+          <ProgressBar DockPanel.Dock="Bottom" Height="3" IsIndeterminate="True" IsVisible="{Binding IsLoading}"/>
+          <Grid DockPanel.Dock="Top" ColumnDefinitions="*,150,56,76,72" Margin="14,6,14,4">
+            <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Alias"/>
+            <TextBlock Grid.Column="1" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Zone"/>
+            <TextBlock Grid.Column="2" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Variants"/>
+            <TextBlock Grid.Column="3" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Storage"/>
+            <TextBlock Grid.Column="4" Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Length" HorizontalAlignment="Right"/>
+          </Grid>
+          <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource LineBrush}"/>
+          <ListBox Name="SoundsList" Classes="soundrows" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" SelectionMode="Single"
+                   AutomationProperties.Name="Stock sounds">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:StockSoundRow">
+                <Grid ColumnDefinitions="*,150,56,76,72" Height="30" Margin="14,0" Background="Transparent">
+                  <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Classes="rowname stock" Text="{Binding Name}" TextTrimming="CharacterEllipsis" FontSize="{StaticResource FontSizeBase}"/>
+                    <Border Classes="stocktag" IsVisible="{Binding !!LangText.Length}" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding LangText}" FontSize="{StaticResource FontSizeXs}" Classes="dim"/>
+                    </Border>
+                    <TextBlock Text="loops" IsVisible="{Binding IsLooping}" Classes="faint" FontSize="{StaticResource FontSizeXs}" VerticalAlignment="Center"/>
+                  </StackPanel>
+                  <TextBlock Grid.Column="1" Classes="mono dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding ZoneText}" ToolTip.Tip="{Binding ZoneTip}"
+                             VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock Grid.Column="2" Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding VariantsText}" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="3" Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding StorageText}" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="4" Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding DurationText}" VerticalAlignment="Center"
+                             HorizontalAlignment="Right" Classes.faint="{Binding !HasAudio}"/>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+
+        <Border Grid.Column="1" Background="{DynamicResource LineBrush}"/>
+
+        <!-- The details -->
+        <Panel Grid.Column="2">
+          <TextBlock Name="SoundsNoSelection" Classes="faint" FontSize="{StaticResource FontSizeBase}" TextWrapping="Wrap" TextAlignment="Center"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="260" IsVisible="{Binding HasNoSelection}"
+                     Text="Pick a sound to see its definition and hear it."/>
+          <ScrollViewer IsVisible="{Binding HasSelection}" VerticalScrollBarVisibility="Auto">
+            <StackPanel Name="SoundDetails" Margin="18,16,18,18" Spacing="14">
+              <StackPanel Spacing="4">
+                <SelectableTextBlock Name="SoundTitle" Classes="mono" FontStyle="Italic" FontWeight="SemiBold" FontSize="{StaticResource FontSizeMd}"
+                                     Text="{Binding Selected.Name}" TextWrapping="Wrap"/>
+                <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" Text="Read-only: defined by the game's sound banks."/>
+              </StackPanel>
+
+              <!-- Hear it -->
+              <Border Background="{DynamicResource BgFieldBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
+                      CornerRadius="{StaticResource RadiusMd}" Padding="12,10">
+                <StackPanel Spacing="8">
+                  <DockPanel>
+                    <Button DockPanel.Dock="Left" Name="SoundPlayButton" Classes="accent" Command="{Binding PlayCommand}" IsEnabled="{Binding CanPlay}"
+                            MinWidth="92" AutomationProperties.Name="Play or stop">
+                      <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
+                        <controls:GlyphIcon Glyph="play" Size="12" IsVisible="{Binding !IsBusy}" VerticalAlignment="Center"/>
+                        <controls:GlyphIcon Glyph="stop" Size="12" IsVisible="{Binding IsBusy}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding PlayLabel}"/>
+                      </StackPanel>
+                    </Button>
+                    <ComboBox Name="SoundVariantBox" Classes="field small" Margin="10,0,0,0" HorizontalAlignment="Stretch" ItemsSource="{Binding VariantChoices}"
+                              SelectedIndex="{Binding VariantIndex}" IsVisible="{Binding HasManyVariants}" AutomationProperties.Name="Variant"/>
+                  </DockPanel>
+                  <TextBlock Name="SoundPlayText" Classes="dim" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" Text="{Binding PlayText}"
+                             IsVisible="{Binding !!PlayText.Length}"/>
+                </StackPanel>
+              </Border>
+
+              <!-- Where it is defined -->
+              <StackPanel Spacing="6" IsVisible="{Binding HasManyDefinitions}">
+                <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Defined in"/>
+                <ListBox Name="SoundDefinitions" Classes="soundrows" ItemsSource="{Binding Definitions}" SelectedItem="{Binding SelectedDef}" MaxHeight="150">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="stock:StockSoundDef">
+                      <TextBlock Margin="8,0" Height="26" VerticalAlignment="Center" Classes="mono" FontSize="{StaticResource FontSizeSm}"
+                                 TextTrimming="CharacterEllipsis" Text="{Binding Bank}"/>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </StackPanel>
+
+              <TextBlock Name="SoundDefinitionNote" Classes="dim" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" Text="{Binding DefinitionNote}"
+                         IsVisible="{Binding !!DefinitionNote.Length}"/>
+              <ProgressBar Height="3" IsIndeterminate="True" IsVisible="{Binding IsReadingDefinition}"/>
+
+              <!-- The definition -->
+              <ItemsControl Name="SoundFields" ItemsSource="{Binding Fields}" IsVisible="{Binding HasDef}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:SoundField">
+                    <Grid ColumnDefinitions="120,*" Margin="0,2">
+                      <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding Label}" VerticalAlignment="Top"/>
+                      <SelectableTextBlock Grid.Column="1" Classes="mono" FontSize="{StaticResource FontSizeSm}" Text="{Binding Value}" TextWrapping="Wrap"/>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <StackPanel Spacing="6">
+                <Button Name="SoundCopyButton" Classes="outline" HorizontalAlignment="Left" Command="{Binding CopyCommand}" IsEnabled="{Binding CanCopy}"
+                        ToolTip.Tip="{Binding CopyTip}" ToolTip.ShowOnDisabled="True" AutomationProperties.Name="Create local copy">
+                  <TextBlock Text="Create local copy"/>
+                </Button>
+                <TextBlock Name="SoundCopyTip" Classes="faint" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" Text="{Binding CopyTip}"/>
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </Panel>
+      </Grid>
+    </DockPanel>
+  </Border>
+</UserControl>
