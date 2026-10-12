@@ -1134,7 +1134,7 @@
               <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="The audio goes to"/>
               <Border Background="{DynamicResource BgFieldBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
                       CornerRadius="{StaticResource RadiusMd}" Padding="10,6">
-                <TextBlock Name="SoundCopyFiles" Classes="mono dim" FontSize="{StaticResource FontSizeSm}" TextTrimming="CharacterEllipsis">
+                <TextBlock Name="SoundCopyFiles" Classes="dim" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FontSizeSm}" TextTrimming="CharacterEllipsis">
                   <Run Text="{Binding AudioFolder, Mode=OneWay}"/><Run Text="{Binding FilesText, Mode=OneWay}"/>
                 </TextBlock>
               </Border>
@@ -1145,7 +1145,7 @@
               <Border Background="{DynamicResource BgFieldBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
                       CornerRadius="{StaticResource RadiusMd}" Padding="10,8" MaxHeight="150">
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                  <SelectableTextBlock Name="SoundCopyRows" Classes="mono" FontSize="{StaticResource FontSizeSm}" Text="{Binding RowsText}"/>
+                  <SelectableTextBlock Name="SoundCopyRows" FontFamily="{StaticResource MonoFont}" FontSize="{StaticResource FontSizeSm}" Text="{Binding RowsText}"/>
                 </ScrollViewer>
               </Border>
             </StackPanel>

@@ -94,9 +94,6 @@ public static class StockSoundCopier
             problems.Add("The variants to copy are not valid.");
         if (!Path.GetExtension(plan.CsvPath).Equals(".csv", StringComparison.OrdinalIgnoreCase))
             problems.Add("The alias file has to be a .csv.");
-        foreach (var v in plan.Variants)
-            if (File.Exists(plan.FullPath(v)))
-                problems.Add($"{plan.FileSpec(v)} already exists in sound_assets.");
         if (File.Exists(plan.CsvPath))
         {
             try
@@ -118,6 +115,9 @@ public static class StockSoundCopier
                 problems.Add($"{Path.GetFileName(plan.CsvPath)} can't be read: {ex.Message}");
             }
         }
+        foreach (var v in plan.Variants)
+            if (File.Exists(plan.FullPath(v)))
+                problems.Add($"{plan.FileSpec(v)} already exists in sound_assets.");
         return problems;
     }
 

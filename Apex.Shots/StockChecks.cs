@@ -33,6 +33,7 @@ public partial class Program
         var dbPath = Path.Combine(temp, "stock.db");
         BuildStockFixture(dbPath);
         StockDbChecks(dbPath);
+        AddSoundFixture(dbPath);
         StockUiChecks(dbPath, temp, outDir);
     }
 
@@ -180,7 +181,7 @@ public partial class Program
 
     // ═══ The helper, answered from captured output ═════════════════════════════════════════════════════════════════════
 
-    private sealed class FakeStockBackend : IStockBackend
+    private sealed partial class FakeStockBackend : IStockBackend
     {
         public readonly List<string> Calls = new();
         public string? ExtractedName;
@@ -264,6 +265,7 @@ public partial class Program
             StockCloneChecks(vm, window, fake, outDir);
             StockUseChecks(vm, window, fake, temp, outDir);
             StockOfferChecks(window, vm, temp, outDir);
+            StockSoundChecks(vm, window, fake, temp, outDir, dbPath);
         }
         finally
         {

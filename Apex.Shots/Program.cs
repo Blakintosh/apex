@@ -68,6 +68,13 @@ public partial class Program
             Directory.CreateDirectory(shotsDir);
             return await RunLiveOnly(() => RunLiveStockChecks(shotsDir));
         }
+        // --stock-sounds-live: the Stock sounds view with the real helper on the real install; one copy into a throwaway folder, undone.
+        if (args.Contains("--stock-sounds-live"))
+        {
+            var shotsDir = args.FirstOrDefault(a => !a.StartsWith("--", StringComparison.Ordinal)) ?? "shots";
+            Directory.CreateDirectory(shotsDir);
+            return await RunLiveOnly(() => RunLiveStockSounds(shotsDir));
+        }
         if (args.Contains("--fields-live"))
             return await RunLiveOnly(RunLiveFieldChecks);
         // --notetracks-live: the install's xanim notetrack actions and their sound aliases (read-only).

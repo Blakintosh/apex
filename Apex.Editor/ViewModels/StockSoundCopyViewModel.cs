@@ -122,8 +122,8 @@ public sealed partial class StockSoundCopyViewModel : ObservableObject
         var problems = StockSoundCopier.Problems(plan);
         Problem = problems.Count > 0 ? problems[0] : "";
         FilesText = plan.Variants.Count == 1
-            ? plan.FileSpec(plan.Variants[0])
-            : $"{plan.FileSpec(plan.Variants[0])} … {plan.FileName(plan.Variants[^1])}  ({plan.Variants.Count:N0} files)";
+            ? plan.FileName(plan.Variants[0])
+            : $"{plan.FileName(plan.Variants[0])} … {plan.FileName(plan.Variants[^1])}  ({plan.Variants.Count:N0} files)";
         RowsText = string.Join("\n", StockSoundCopier.PreviewRows(plan));
         OnPropertyChanged(nameof(CanCreate));
     }
@@ -225,7 +225,7 @@ public sealed partial class StockSoundCopyViewModel : ObservableObject
             _result = result;
             var files = result.Files.Count;
             ResultTitle = $"Created {files:N0} local sound{(files == 1 ? "" : "s")}";
-            ResultDetail = $"{files:N0} file{(files == 1 ? "" : "s")} in {AudioFolder}, and {result.Rows.Count:N0} alias row{(result.Rows.Count == 1 ? "" : "s")} for {Alias} in {Path.GetFileName(result.CsvPath)}"
+            ResultDetail = $"{files:N0} file{(files == 1 ? "" : "s")} in {AudioFolder.TrimEnd(Path.DirectorySeparatorChar)}, and {result.Rows.Count:N0} alias row{(result.Rows.Count == 1 ? "" : "s")} for {Alias} in {Path.GetFileName(result.CsvPath)}"
                            + (result.CsvCreated ? " (a new file)." : ".");
             AfterText = "Mix settings (volume, distance, pan, ducks) are not read from the game's banks: the rows use the soundalias defaults, with Bus " + StockSoundCopier.DefaultBus + ". Set them in the CSV.";
             CanUndo = true;

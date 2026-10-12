@@ -32,6 +32,9 @@ public sealed partial class MainViewModel
     /// <summary>The folder of the install's soundalias CSVs; the harness points it at a temp folder.</summary>
     public Func<string?>? SoundAliasesSource { get; set; }
 
+    /// <summary>Builds the preview (the helper's export and the audio output); the harness answers with a silent output.</summary>
+    public Func<StockLibrary, StockSoundPreview>? SoundPreviewFactory { get; set; }
+
     /// <summary>Asks for a soundalias CSV (the window's file picker); null: no picker.</summary>
     public Func<Task<string?>>? SoundCsvPicker { get; set; }
 
@@ -51,7 +54,7 @@ public sealed partial class MainViewModel
             InstallStockHelper();
             return;
         }
-        StockSounds = new StockSoundsViewModel(Stock, CloseStockSounds, OpenSoundCopy);
+        StockSounds = new StockSoundsViewModel(Stock, CloseStockSounds, OpenSoundCopy, SoundPreviewFactory?.Invoke(Stock));
     }
 
     private void CloseStockSounds()

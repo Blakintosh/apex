@@ -109,7 +109,7 @@ public sealed partial class StockSoundsViewModel : ObservableObject, IDisposable
 
     public IReadOnlyList<SoundFilterChoice> Storages { get; } = new[]
     {
-        new SoundFilterChoice("Loaded and streamed", null),
+        new SoundFilterChoice("Any storage", null),
         new SoundFilterChoice("Loaded", "loaded"),
         new SoundFilterChoice("Streamed", "streamed"),
     };
@@ -318,7 +318,7 @@ public sealed partial class StockSoundsViewModel : ObservableObject, IDisposable
     public ObservableCollection<StockSoundDef> Definitions { get; } = new();
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasDef), nameof(CanPlay), nameof(CanCopy), nameof(CopyTip), nameof(VariantChoices), nameof(HasManyVariants))]
+    [NotifyPropertyChangedFor(nameof(HasDef), nameof(CanPlay), nameof(CanCopy), nameof(CopyTip), nameof(HasManyVariants))]
     private StockSoundDef? _selectedDef;
 
     public bool HasDef => SelectedDef is not null;
@@ -387,6 +387,7 @@ public sealed partial class StockSoundsViewModel : ObservableObject, IDisposable
     {
         StopPlayback();
         VariantIndex = 0;
+        OnPropertyChanged(nameof(VariantText));
         Fields.Clear();
         PlayText = "";
         if (value is null)
@@ -447,10 +448,26 @@ public sealed partial class StockSoundsViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private int _variantIndex;
 
-    public IReadOnlyList<string> VariantChoices =>
-        SelectedDef is { Variants: > 1 } d ? Enumerable.Range(1, d.Variants).Select(i => $"Variant {i} of {d.Variants}").ToList() : Array.Empty<string>();
+    /// <summary>"Variant 3 of 8"; empty when the sound has one.</summary>
+    public string VariantText => SelectedDef is { Variants: > 1 } d ? $"Variant {VariantIndex + 1} of {d.Variants}" : "";
 
     public bool HasManyVariants => SelectedDef is { Variants: > 1 };
+
+    partial void OnVariantIndexChanged(int value) => OnPropertyChanged(nameof(VariantText));
+
+    [RelayCommand]
+    private void NextVariant()
+    {
+        if (SelectedDef is { Variants: > 1 } d)
+            VariantIndex = (VariantIndex + 1) % d.Variants;
+    }
+
+    [RelayCommand]
+    private void PreviousVariant()
+    {
+        if (SelectedDef is { Variants: > 1 } d)
+            VariantIndex = (VariantIndex + d.Variants - 1) % d.Variants;
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PlayLabel), nameof(IsBusy))]
