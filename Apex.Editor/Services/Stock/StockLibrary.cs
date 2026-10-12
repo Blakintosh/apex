@@ -56,6 +56,18 @@ public interface IStockBackend
     /// <summary>What the install has and what each feature may do (the helper's <c>status</c>). A backend that does not know says it can't be used directly.</summary>
     Task<StockStatus> StatusAsync(string? project, CancellationToken cancel = default) =>
         Task.FromResult(StockStatus.Unknown("This backend does not report the install's components."));
+
+    /// <summary>The shipped sound aliases, grouped or by definition (the helper's <c>sounds</c>).</summary>
+    Task<StockSoundPage> SoundsAsync(StockSoundQuery query, CancellationToken cancel = default) =>
+        throw new StockHelperException("This backend has no sounds.");
+
+    /// <summary>Every definition of one alias (the helper's <c>sound</c>).</summary>
+    Task<StockSoundDefs> SoundAsync(string name, CancellationToken cancel = default) =>
+        throw new StockHelperException("This backend has no sounds.");
+
+    /// <summary>Writes one variant of an alias's audio to <paramref name="outPath"/>, a file (the helper's <c>sound_export</c>). <paramref name="format"/> is "flac" (the bank's stream untouched) or "wav".</summary>
+    Task<StockSoundExport> SoundExportAsync(string name, string? zone, int variant, string format, string outPath, CancellationToken cancel = default) =>
+        throw new StockHelperException("This backend has no sounds.");
 }
 
 /// <summary>
@@ -324,6 +336,44 @@ public sealed class StockLibrary : IStockBackend, IDisposable
         if (zone is { Length: > 0 })
             args["zone"] = zone;
         return StockDescription.Parse(await CallAsync("describe", args, null, cancel).ConfigureAwait(false));
+    }
+
+    // ── Sounds ──────────────────────────────────────────────────────────────
+
+    /// <summary>The words an older helper answers with for a method it lacks; the sound view tells the user to update it.</summary>
+    public static bool IsUnknownMethod(Exception ex) => ex.Message.Contains("unknown method", StringComparison.OrdinalIgnoreCase);
+
+    public async Task<StockSoundPage> SoundsAsync(StockSoundQuery query, CancellationToken cancel = default)
+    {
+        if (Backend is { } fake)
+            return await fake.SoundsAsync(query, cancel).ConfigureAwait(false);
+        var args = new Dictionary<string, object?> { ["group"] = query.Group, ["limit"] = query.Limit, ["offset"] = query.Offset };
+        if (query.Query.Length > 0)
+            args["q"] = query.Query;
+        if (query.Zone is { Length: > 0 })
+            args["zone"] = query.Zone;
+        if (query.Lang is { Length: > 0 })
+            args["lang"] = query.Lang;
+        if (query.Status is { Length: > 0 })
+            args["status"] = query.Status;
+        return StockSoundPage.Parse(await CallAsync("sounds", args, null, cancel).ConfigureAwait(false));
+    }
+
+    public async Task<StockSoundDefs> SoundAsync(string name, CancellationToken cancel = default)
+    {
+        if (Backend is { } fake)
+            return await fake.SoundAsync(name, cancel).ConfigureAwait(false);
+        return StockSoundDefs.Parse(await CallAsync("sound", new Dictionary<string, object?> { ["name"] = name }, null, cancel).ConfigureAwait(false));
+    }
+
+    public async Task<StockSoundExport> SoundExportAsync(string name, string? zone, int variant, string format, string outPath, CancellationToken cancel = default)
+    {
+        if (Backend is { } fake)
+            return await fake.SoundExportAsync(name, zone, variant, format, outPath, cancel).ConfigureAwait(false);
+        var args = new Dictionary<string, object?> { ["name"] = name, ["variant"] = variant, ["format"] = format, ["out"] = outPath };
+        if (zone is { Length: > 0 })
+            args["zone"] = zone;
+        return StockSoundExport.Parse(await CallAsync("sound_export", args, null, cancel).ConfigureAwait(false));
     }
 
     // ── Status: what the install has, what each feature may do ───────────────
