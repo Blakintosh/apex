@@ -81,6 +81,7 @@
                 </MenuItem>
                 <MenuItem c:Cmd.Id="app.whatsNew"/>
                 <MenuItem c:Cmd.Id="app.components"/>
+                <MenuItem c:Cmd.Id="app.stockSounds"/>
                 <Separator/>
                 <MenuItem c:Cmd.Id="app.about"/>
               </MenuFlyout>
@@ -416,6 +417,9 @@
             <!-- Full-card overlays: table (spreadsheet) mode and compare mode. -->
             <Border Grid.ColumnSpan="3" Classes="flat solid" IsVisible="{Binding IsTableOpen}">
               <views:TableView DataContext="{Binding Table}"/>
+            </Border>
+            <Border Grid.ColumnSpan="3" Classes="flat solid" IsVisible="{Binding IsStockSoundsOpen}">
+              <views:StockSoundsView DataContext="{Binding StockSounds}"/>
             </Border>
             <Border Grid.ColumnSpan="3" Classes="flat solid" IsVisible="{Binding IsCompareOpen}">
               <views:CompareView DataContext="{Binding Compare}"/>
@@ -1035,6 +1039,121 @@
             <TextBlock FontWeight="SemiBold" FontSize="{StaticResource FontSizeMd}" Text="Can't make a copy yet"/>
             <TextBlock Name="CloneFailText" Foreground="{DynamicResource DangerTextBrush}" TextWrapping="Wrap" Text="{Binding Error}"/>
           </StackPanel>
+        </DockPanel>
+      </Border>
+    </Border>
+
+    <!-- ── Create local copy of a stock sound: the audio into sound_assets, the alias rows into a soundalias CSV ── -->
+    <Border Grid.Row="0" Grid.RowSpan="3" Classes="dialogbackdrop" IsVisible="{Binding IsSoundCopyOpen}" PointerPressed="SoundCopyBackdrop_PointerPressed">
+      <Border Name="SoundCopyCard" Classes="dialogcard" Width="760" Padding="0" PointerPressed="PaletteCard_PointerPressed"
+              KeyboardNavigation.TabNavigation="Cycle" DataContext="{Binding SoundCopyDialog}" x:DataType="vm:StockSoundCopyViewModel">
+        <DockPanel>
+          <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1" Padding="24,18,20,14">
+            <StackPanel Spacing="4">
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Name="SoundCopyCloseButton" Classes="icon" Content="✕" Command="{Binding CloseCommand}"
+                        AutomationProperties.Name="Close" ToolTip.Tip="Close"/>
+                <TextBlock FontWeight="SemiBold" FontSize="{StaticResource FontSizeMd}" Text="Create local copy" VerticalAlignment="Center"/>
+              </DockPanel>
+              <TextBlock Name="SoundCopySubtitle" Classes="dim" FontSize="{StaticResource FontSizeBase}" TextTrimming="CharacterEllipsis">
+                <Run Text="{Binding Alias, Mode=OneWay}" FontStyle="Italic" Foreground="{DynamicResource TextSoftBrush}"/><Run Text="  ·  sound  ·  "/><Run Text="{Binding Subtitle, Mode=OneWay}"/>
+              </TextBlock>
+            </StackPanel>
+          </Border>
+
+          <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="24,12">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="16,0,0,0">
+                <Button Name="SoundCopyUndoButton" Classes="outline" Command="{Binding UndoCommand}" IsVisible="{Binding ShowResult}" IsEnabled="{Binding CanUndo}">
+                  <TextBlock Text="Undo"/>
+                </Button>
+                <Button Name="SoundCopyCancelButton" Classes="outline" Command="{Binding CloseCommand}" IsVisible="{Binding !ShowResult}" IsEnabled="{Binding !IsRunning}">
+                  <TextBlock Text="Cancel"/>
+                </Button>
+                <Button Name="SoundCopyCreateButton" Classes="accent" Command="{Binding CreateCommand}" IsVisible="{Binding !ShowResult}" IsEnabled="{Binding CanCreate}">
+                  <TextBlock Text="{Binding CreateLabel}"/>
+                </Button>
+                <Button Name="SoundCopyDoneButton" Classes="accent" Command="{Binding CloseCommand}" IsVisible="{Binding ShowResult}">
+                  <TextBlock Text="Done"/>
+                </Button>
+              </StackPanel>
+              <StackPanel IsVisible="{Binding IsRunning}" VerticalAlignment="Center" Spacing="4">
+                <ProgressBar Height="4" Minimum="0" Maximum="1" Value="{Binding ProgressFraction}"/>
+                <TextBlock Name="SoundCopyProgressText" Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="{Binding ProgressText}" TextTrimming="CharacterEllipsis"/>
+              </StackPanel>
+              <TextBlock Name="SoundCopyProblem" FontSize="{StaticResource FontSizeSm}" VerticalAlignment="Center" TextWrapping="Wrap" MaxLines="2"
+                         Foreground="{DynamicResource DangerTextBrush}" Text="{Binding Problem}" IsVisible="{Binding HasProblem}"/>
+              <TextBlock Name="SoundCopyError" FontSize="{StaticResource FontSizeSm}" VerticalAlignment="Center" TextWrapping="Wrap" MaxLines="2"
+                         Foreground="{DynamicResource DangerTextBrush}" Text="{Binding Error}" IsVisible="{Binding !!Error.Length}"/>
+            </DockPanel>
+          </Border>
+
+          <Panel>
+          <!-- After the copy -->
+          <StackPanel Name="SoundCopyResult" IsVisible="{Binding ShowResult}" Spacing="14" Margin="24,20">
+            <StackPanel Spacing="4">
+              <TextBlock Name="SoundCopyResultTitle" FontWeight="SemiBold" FontSize="{StaticResource FontSizeMd}" Text="{Binding ResultTitle}"/>
+              <TextBlock Name="SoundCopyResultDetail" Classes="dim" FontSize="{StaticResource FontSizeBase}" TextWrapping="Wrap" Text="{Binding ResultDetail}"/>
+            </StackPanel>
+            <TextBlock Name="SoundCopyAfter" Classes="faint" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" Text="{Binding AfterText}"/>
+          </StackPanel>
+
+          <!-- Before the copy -->
+          <StackPanel IsVisible="{Binding ShowPlan}" Spacing="14" Margin="24,16,24,18">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Add the alias to"/>
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Name="SoundCopyBrowse" Classes="outline" Margin="8,0,0,0" Command="{Binding BrowseCommand}" IsEnabled="{Binding !IsRunning}"
+                        AutomationProperties.Name="Choose another alias file">
+                  <TextBlock Text="Browse…"/>
+                </Button>
+                <ComboBox Name="SoundCopyCsvBox" Classes="field" HorizontalAlignment="Stretch" ItemsSource="{Binding Choices}" SelectedItem="{Binding Csv}"
+                          IsEnabled="{Binding !IsRunning}" AutomationProperties.Name="Soundalias CSV">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SoundCsvChoice">
+                      <TextBlock FontSize="{StaticResource FontSizeSm}" TextTrimming="CharacterEllipsis">
+                        <Run Text="{Binding Label, Mode=OneWay}" FontFamily="{StaticResource MonoFont}"/><Run Text="  "/><Run Text="{Binding Detail, Mode=OneWay}" Foreground="{DynamicResource TextFaintBrush}"/>
+                      </TextBlock>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </DockPanel>
+            </StackPanel>
+
+            <StackPanel Spacing="6" IsVisible="{Binding HasManyVariants}">
+              <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="Variants"/>
+              <RadioButton Name="SoundCopyAllVariants" GroupName="SoundCopyVariants" IsChecked="{Binding AllVariants}" IsEnabled="{Binding !IsRunning}">
+                <TextBlock Text="{Binding AllVariantsText}" Foreground="{DynamicResource TextSoftBrush}"/>
+              </RadioButton>
+              <RadioButton Name="SoundCopyOneVariant" GroupName="SoundCopyVariants" IsChecked="{Binding OnlyOne}" IsEnabled="{Binding !IsRunning}">
+                <TextBlock Text="{Binding OneVariantText}" Foreground="{DynamicResource TextSoftBrush}"/>
+              </RadioButton>
+            </StackPanel>
+
+            <StackPanel Spacing="6">
+              <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="The audio goes to"/>
+              <Border Background="{DynamicResource BgFieldBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
+                      CornerRadius="{StaticResource RadiusMd}" Padding="10,6">
+                <TextBlock Name="SoundCopyFiles" Classes="mono dim" FontSize="{StaticResource FontSizeSm}" TextTrimming="CharacterEllipsis">
+                  <Run Text="{Binding AudioFolder, Mode=OneWay}"/><Run Text="{Binding FilesText, Mode=OneWay}"/>
+                </TextBlock>
+              </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="6">
+              <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" Text="The rows it adds"/>
+              <Border Background="{DynamicResource BgFieldBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
+                      CornerRadius="{StaticResource RadiusMd}" Padding="10,8" MaxHeight="150">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                  <SelectableTextBlock Name="SoundCopyRows" Classes="mono" FontSize="{StaticResource FontSizeSm}" Text="{Binding RowsText}"/>
+                </ScrollViewer>
+              </Border>
+            </StackPanel>
+
+            <TextBlock Classes="faint" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap"
+                       Text="The audio is the bank's own stream, untouched. The alias's mix settings (volume, distance, pan, ducks) aren't read from the game's banks, so the rows leave them at the soundalias defaults and use Bus bus_fx."/>
+          </StackPanel>
+          </Panel>
         </DockPanel>
       </Border>
     </Border>

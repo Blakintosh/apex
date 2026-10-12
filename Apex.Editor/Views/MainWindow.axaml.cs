@@ -54,6 +54,7 @@ public partial class MainWindow : Window, IShellView
             vm.PropertyChanged += Vm_PropertyChanged;
             vm.EditorFocusRequested += FocusEditor;
             vm.Shell = this;
+            vm.SoundCsvPicker = () => PickSoundCsv(this);
             RestorePaneSizes(vm);
             ApplyLayout();
         };
@@ -633,6 +634,26 @@ public partial class MainWindow : Window, IShellView
     {
         Vm?.Components?.CloseCommand.Execute(null);
         e.Handled = true;
+    }
+
+    private void SoundCopyBackdrop_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        Vm?.SoundCopyDialog?.CloseCommand.Execute(null);
+        e.Handled = true;
+    }
+
+    /// <summary>The file picker for a soundalias CSV; null when it was cancelled. Replaceable so the harness can answer it.</summary>
+    public static Func<TopLevel, System.Threading.Tasks.Task<string?>> PickSoundCsv { get; set; } = DefaultPickSoundCsvAsync;
+
+    private static async System.Threading.Tasks.Task<string?> DefaultPickSoundCsvAsync(TopLevel top)
+    {
+        var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Choose a soundalias CSV",
+            AllowMultiple = false,
+            FileTypeFilter = new[] { new FilePickerFileType("Soundalias CSV") { Patterns = new[] { "*.csv" } } },
+        });
+        return files.Count == 0 ? null : files[0].TryGetLocalPath();
     }
 
     private void StockHelperBackdrop_PointerPressed(object? sender, PointerPressedEventArgs e)

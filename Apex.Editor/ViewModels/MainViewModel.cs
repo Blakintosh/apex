@@ -3038,7 +3038,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     /// <summary>Escape unwinds one layer of UI at a time: dialog → palette → overlay mode.</summary>
     public bool IsAnyLayerOpen =>
-        IsConfirmOpen || IsConflictOpen || IsRenameOpen || IsNewOpen || IsClassOpen || IsCloneOpen || IsStockHelperOpen || IsUseOpen || IsComponentsOpen || IsPaletteOpen || IsCompareOpen || IsTableOpen || IsAlertOpen;
+        IsConfirmOpen || IsConflictOpen || IsRenameOpen || IsNewOpen || IsClassOpen || IsCloneOpen || IsStockHelperOpen || IsUseOpen || IsComponentsOpen || IsSoundCopyOpen || IsPaletteOpen || IsStockSoundsOpen || IsCompareOpen || IsTableOpen || IsAlertOpen;
 
     public bool DismissTopLayer()
     {
@@ -3051,7 +3051,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (UseDialog is { } use) { use.CloseCommand.Execute(null); return true; }
         if (Components is { } components) { components.CloseCommand.Execute(null); return true; }
         if (CloneDialog is { } clone) { clone.CloseCommand.Execute(null); return true; }
+        if (SoundCopyDialog is { } soundCopy) { soundCopy.CloseCommand.Execute(null); return true; }
         if (IsPaletteOpen) { IsPaletteOpen = false; return true; }
+        if (StockSounds is { } sounds) { sounds.CloseCommand.Execute(null); return true; }
         if (IsCompareOpen) { Compare = null; return true; }
         if (IsTableOpen) { Table = null; return true; }
         if (IsAlertOpen) { DismissAlert(null); return true; }

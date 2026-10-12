@@ -41,6 +41,7 @@ public sealed partial class MainViewModel
     /// <summary>Uses <paramref name="library"/> (the harness hands in one over a fixture database).</summary>
     public void UseStockLibrary(StockLibrary library)
     {
+        CloseStockSounds();
         if (!ReferenceEquals(Stock, StockLibrary.None))
         {
             Stock.Changed -= OnStockChanged;
