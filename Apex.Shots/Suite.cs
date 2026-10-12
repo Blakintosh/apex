@@ -66,6 +66,7 @@ public partial class Program
         new("extensions", Tier.Fast, true, "extension checks", RunExtensionChecks),
         new("records", Tier.Fast, true, "record checks", RunRecordChecks),
         new("hardening", Tier.Fast, false, "hardening checks", _ => RunHardeningChecks()),
+        new("xmodel-schema", Tier.Fast, false, "xmodel schema checks", RunXModelSchemaChecks),
         new("simulator", Tier.Fast, true, "simulator checks", RunSimulatorChecks),
         // Recoil in four, in the order it always ran: the timing tier needs only the overlay's draw cost.
         new("recoil", Tier.Fast, false, "recoil checks", _ => RecoilPart(RecoilLogicChecks)),
@@ -91,7 +92,7 @@ public partial class Program
         ["main"] = 10, ["shell"] = 10, ["ref"] = 6, ["journal"] = 29, ["command"] = 6, ["live-timing"] = 13, ["save-ui"] = 6,
         ["placement"] = 20, ["weapon-class"] = 10, ["links"] = 3, ["radiant-sync"] = 8, ["buttons"] = 25, ["save"] = 30, ["perf"] = 30, ["scroll"] = 4, ["tabs"] = 2, ["fields"] = 6,
         ["lists"] = 5, ["set-view"] = 6, ["key-grid"] = 4, ["notetracks"] = 4, ["install"] = 5, ["layout"] = 4, ["themes"] = 4, ["appmenu"] = 4, ["anim-layout"] = 31, ["search"] = 12,
-        ["extensions"] = 29, ["records"] = 64, ["hardening"] = 18, ["simulator"] = 8, ["recoil"] = 1, ["recoil-draw"] = 1,
+        ["extensions"] = 29, ["records"] = 64, ["hardening"] = 18, ["xmodel-schema"] = 1, ["simulator"] = 8, ["recoil"] = 1, ["recoil-draw"] = 1,
         ["recoil-app"] = 37, ["recoil-render"] = 2, ["material-render"] = 15, ["shader-compile"] = 2, ["custom-shader"] = 15, ["editor-pass"] = 25, ["live-smoke"] = 2,
     };
 
