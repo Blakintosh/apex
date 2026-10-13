@@ -226,18 +226,18 @@ public static class SchemaRegistry
     /// <summary>The xmodel's LOD slots as the linker reads them (case-sensitive GDT keys), then the shared LOD settings.</summary>
     private static IEnumerable<PropertyDef> BuildXModelLods()
     {
-        // file key, force-rigid key, autogen key, autogen percent key, label, subgroup
-        (string File, string Rigid, string Auto, string Pct, string Label)[] slots =
+        // file key, force-rigid key, autogen key, autogen percent key, label, the percent xmodel.gdf defaults to
+        (string File, string Rigid, string Auto, string Pct, string Label, string PctDefault)[] slots =
         {
-            ("mediumLod", "forceMediumLodRigid", "autogenMediumLod", "autogenMediumLodPercent", "Medium"),
-            ("lowLod", "forceLowLodRigid", "autogenLowLod", "autogenLowLodPercent", "Low"),
-            ("lowestLod", "forceLowestLodRigid", "autogenLowestLod", "autogenLowestLodPercent", "Lowest"),
-            ("lod4File", "forceLod4Rigid", "autogenLod4", "autogenLod4Percent", "LOD 4"),
-            ("lod5File", "forceLod5Rigid", "autogenLod5", "autogenLod5Percent", "LOD 5"),
-            ("lod6File", "forceLod6Rigid", "autogenLod6", "autogenLod6Percent", "LOD 6"),
-            ("lod7File", "forceLod7Rigid", "autogenLod7", "autogenLod7Percent", "LOD 7"),
+            ("mediumLod", "forceMediumLodRigid", "autogenMediumLod", "autogenMediumLodPercent", "Medium", "50"),
+            ("lowLod", "forceLowLodRigid", "autogenLowLod", "autogenLowLodPercent", "Low", "25"),
+            ("lowestLod", "forceLowestLodRigid", "autogenLowestLod", "autogenLowestLodPercent", "Lowest", "13"),
+            ("lod4File", "forceLod4Rigid", "autogenLod4", "autogenLod4Percent", "LOD 4", "13"),
+            ("lod5File", "forceLod5Rigid", "autogenLod5", "autogenLod5Percent", "LOD 5", "13"),
+            ("lod6File", "forceLod6Rigid", "autogenLod6", "autogenLod6Percent", "LOD 6", "13"),
+            ("lod7File", "forceLod7Rigid", "autogenLod7", "autogenLod7Percent", "LOD 7", "13"),
         };
-        foreach (var (file, rigid, auto, pct, label) in slots)
+        foreach (var (file, rigid, auto, pct, label, pctDefault) in slots)
         {
             var sub = label + " LOD";
             yield return new(auto, "Auto-Generate", "LODs", PropertyKind.Toggle,
@@ -245,7 +245,7 @@ public static class SchemaRegistry
                 { Subgroup = sub, Default = "0" };
             yield return new(pct, "Auto-Generate Percent", "LODs", PropertyKind.Number,
                 $"Percentage of the previous LOD's faces kept in the generated {label.ToLowerInvariant()} LOD.")
-                { Subgroup = sub, Min = 0, Max = 100, Step = 1, IsInteger = true, Default = "90" };
+                { Subgroup = sub, Min = 0, Max = 100, Step = 1, IsInteger = true, Default = pctDefault };
             yield return new(file, "Source File", "LODs", PropertyKind.Text,
                 $"Exported model used for the {label.ToLowerInvariant()} level of detail.")
                 { Subgroup = sub, FileKind = PropertyFileKind.Model, RelativeRoot = "model_export/" };
@@ -255,10 +255,10 @@ public static class SchemaRegistry
         }
         yield return new("dropLOD", "Drop LOD", "LODs", PropertyKind.Choice,
             "The LOD from which the model stops being drawn.")
-            { Subgroup = "Distance", Choices = new[] { "None", "Medium", "Low", "Lowest", "LOD4", "LOD5", "LOD6", "LOD7" }, Default = "None" };
+            { Subgroup = "Distance", Choices = new[] { "Auto", "None", "Medium", "Low", "Lowest", "LOD4", "LOD5", "LOD6", "LOD7" }, Default = "Auto" };
         yield return new("ShadowLOD", "Shadow LOD", "LODs", PropertyKind.Choice,
             "The LOD from which the model stops casting shadows.")
-            { Subgroup = "Distance", Choices = new[] { "None", "Medium", "Low", "Lowest", "LOD4", "LOD5", "LOD6", "LOD7" }, Default = "None" };
+            { Subgroup = "Distance", Choices = new[] { "Auto", "None", "Medium", "Low", "Lowest", "LOD4", "LOD5", "LOD6", "LOD7" }, Default = "Auto" };
         yield return new("LODBiasPercent", "LOD Bias", "LODs", PropertyKind.Number,
             "Distance bias applied when selecting LODs (scales switch distances by 2^-bias).")
             { Subgroup = "Distance", Min = -10, Max = 10, Step = 0.1, Default = "0" };
@@ -270,16 +270,16 @@ public static class SchemaRegistry
             "Use the priorities below when generating LODs instead of the defaults.") { Subgroup = "Auto-Generate Priorities", Default = "0" };
         yield return new("lodPositionPriority", "Position Priority", "LODs", PropertyKind.Number,
             "How strongly auto-generated LODs preserve vertex positions.")
-            { Subgroup = "Auto-Generate Priorities", Min = 0, Max = 100, Step = 0.01, Default = "32" };
+            { Subgroup = "Auto-Generate Priorities", Min = 0, Max = 100, Step = 0.01, Default = "12" };
         yield return new("lodNormalPriority", "Normal Priority", "LODs", PropertyKind.Number,
             "How strongly auto-generated LODs preserve normals.")
-            { Subgroup = "Auto-Generate Priorities", Min = 0, Max = 100, Step = 0.001, Default = "0.03125" };
+            { Subgroup = "Auto-Generate Priorities", Min = 0, Max = 100, Step = 0.001, Default = "1.54" };
         yield return new("LodUvPriority", "UV Priority", "LODs", PropertyKind.Number,
             "How strongly auto-generated LODs preserve UVs.")
-            { Subgroup = "Auto-Generate Priorities", Min = 0, Max = 100, Step = 0.001, Default = "0.0625" };
+            { Subgroup = "Auto-Generate Priorities", Min = 0, Max = 100, Step = 0.001, Default = "3.5" };
         yield return new("LodColorPriority", "Color Priority", "LODs", PropertyKind.Number,
             "How strongly auto-generated LODs preserve vertex colours.")
-            { Subgroup = "Auto-Generate Priorities", Min = 0, Max = 100, Step = 0.001, Default = "0.03125" };
+            { Subgroup = "Auto-Generate Priorities", Min = 0, Max = 100, Step = 0.001, Default = "0.008" };
     }
 
     private static AssetSchema BuildMaterial() => new()
