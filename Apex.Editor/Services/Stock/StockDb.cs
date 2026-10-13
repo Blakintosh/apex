@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Apex.Editor.Services.Components;
 using Microsoft.Data.Sqlite;
 
@@ -77,6 +78,42 @@ public sealed class StockDb
         var connection = new SqliteConnection(_connection);
         connection.Open();
         return connection;
+    }
+
+    /// <summary>The stock.db schema this Apex reads (docs/schema.md of the helper: version 1; minors only add tables).</summary>
+    public const int SchemaVersion = 1;
+
+    /// <summary>
+    /// Why this index can't be used, in a sentence for the stock views, or null when it can: a <c>meta.schema_version</c>
+    /// other than <see cref="SchemaVersion"/> (an index from a newer or older Stock Library), or a file SQLite can't read
+    /// (damaged, not a database). A missing file is no problem here: it just isn't built yet. Only stock features are
+    /// turned off by it; local assets never read stock.db.
+    /// </summary>
+    public string? SchemaProblem()
+    {
+        if (!Exists)
+            return null;
+        try
+        {
+            using var db = Open();
+            using var cmd = db.CreateCommand();
+            cmd.CommandText = "SELECT value FROM meta WHERE key = 'schema_version'";
+            var value = cmd.ExecuteScalar() as string;
+            if (!int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var version))
+                return "The stock index doesn't say which schema it has. Rebuild it from Components.";
+            if (version > SchemaVersion)
+                return $"The stock index was made by a newer Stock Library (schema {version}); this Apex reads schema {SchemaVersion}. Update Apex to use it.";
+            if (version < SchemaVersion)
+                return $"The stock index is from an older Stock Library (schema {version}). Rebuild it from Components.";
+            using var probe = db.CreateCommand();
+            probe.CommandText = "SELECT 1 FROM asset LIMIT 1";
+            probe.ExecuteScalar();
+            return null;
+        }
+        catch (Exception ex) when (ex is SqliteException or IOException or InvalidOperationException)
+        {
+            return $"The stock index can't be read ({ex.Message.TrimEnd('.')}). Rebuild it from Components.";
+        }
     }
 
     /// <summary>The index's meta rows and zone count; null when there is no usable database yet.</summary>
@@ -194,10 +231,26 @@ public sealed class StockDb
     /// Assets whose name holds every word, best first (an exact name, then names that start with the first word, then the
     /// shorter, then by name), one page of them, with the count over all of them and each kind's count over the words alone.
     /// </summary>
-    public StockResult Search(StockQuery query)
+    /// <param name="cancel">A newer search supersedes this one: the running statement is interrupted (SQLite
+    /// <c>sqlite3_interrupt</c>) and the search throws <see cref="OperationCanceledException"/>.</param>
+    public StockResult Search(StockQuery query, CancellationToken cancel = default)
     {
         var words = query.Words.Where(w => w.Length > 0).ToList();
+        cancel.ThrowIfCancellationRequested();
         using var db = Open();
+        using var interrupt = cancel.Register(() => SQLitePCL.raw.sqlite3_interrupt(db.Handle));
+        try
+        {
+            return Search(db, query, words, cancel);
+        }
+        catch (SqliteException) when (cancel.IsCancellationRequested)
+        {
+            throw new OperationCanceledException(cancel);
+        }
+    }
+
+    private StockResult Search(SqliteConnection db, StockQuery query, List<string> words, CancellationToken cancel)
+    {
         var (where, add) = NameFilter(words);
 
         // Facets: every kind's count over the words, whatever kind is picked.
@@ -214,6 +267,7 @@ public sealed class StockDb
             }
         }
 
+        cancel.ThrowIfCancellationRequested();
         var engineTypes = EngineTypes();
         var picked = query.Kinds.Count == 0
             ? null
@@ -242,6 +296,7 @@ public sealed class StockDb
             while (r.Read())
                 rows.Add((r.GetInt64(0), r.GetString(1), r.GetString(2)));
         }
+        cancel.ThrowIfCancellationRequested();
         return new StockResult(WithZones(db, rows), total, counts);
     }
 

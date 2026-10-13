@@ -91,11 +91,27 @@ public sealed class StockLibrary : IStockBackend, IDisposable
         _install = bo3Root is null ? null : StockDb.Canonical(bo3Root);
         DbPath = dbPath ?? (_install is null ? null : StockDb.DefaultPath(_install));
         ExePath = Locate(bo3Root, configuredExe);
-        Db = DbPath is not null && File.Exists(DbPath) ? new StockDb(DbPath) : null;
+        Db = OpenUsable();
         State = bo3Root is null && Db is null ? StockState.Unavailable
             : Db is not null ? StockState.Ready
+            : Problem.Length > 0 && ExePath is null ? StockState.Failed
             : ExePath is null ? StockState.HelperMissing
             : StockState.Indexing;
+    }
+
+    /// <summary>
+    /// stock.db when it exists and has the schema this Apex reads; otherwise null, with <see cref="Problem"/> saying why
+    /// (newer or older schema, damaged). Only the stock features go quiet: local assets never read stock.db.
+    /// </summary>
+    private StockDb? OpenUsable()
+    {
+        if (DbPath is null || !File.Exists(DbPath))
+            return null;
+        var db = new StockDb(DbPath);
+        if (db.SchemaProblem() is not { } problem)
+            return db;
+        Problem = problem;
+        return null;
     }
 
     /// <summary>A library with no install behind it (mock data): nothing to search, nothing to offer.</summary>
@@ -283,7 +299,10 @@ public sealed class StockLibrary : IStockBackend, IDisposable
             Progress = "";
             ProgressFraction = 0;
             // The refresh may have made the database (or replaced it): a new reader forgets what the old one cached.
-            Db = DbPath is not null && File.Exists(DbPath) ? new StockDb(DbPath) : null;
+            var problem = Problem;
+            Db = OpenUsable();
+            if (Problem.Length == 0)
+                Problem = problem;
             ShippedAssets.UseDatabase(Db);
             State = Db is not null ? StockState.Ready : Problem.Length > 0 || ExePath is null ? StockState.Failed : StockState.Indexing;
             Volatile.Write(ref _refreshing, 0);
@@ -468,12 +487,11 @@ public sealed class StockLibrary : IStockBackend, IDisposable
     /// <summary>True when the asset's preview caches are there: no helper is needed to show it.</summary>
     public bool IsCached(string engineType, string name) => ManifestPath(engineType, name) is { } path && File.Exists(path);
 
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Task<StockCacheResult>> _caching = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Makes sure the asset's preview caches exist: nothing to do when its manifest is there, else one <c>cache</c> request
     /// to the helper (the first view of an asset reads the game's files; later ones, in any session, read the caches). Asking
-    /// again while a request runs waits for that one. Cancelling stops the wait, not the helper's work.
+    /// again while a request runs waits for that one. Cancelling stops the wait; when no preview waits any more, the helper is told to drop the request.
     /// </summary>
     public async Task<StockCacheResult> CacheAsync(string engineType, string name, CancellationToken cancel = default)
     {
@@ -484,22 +502,46 @@ public sealed class StockLibrary : IStockBackend, IDisposable
             return StockCacheResult.AlreadyThere;
         if (Backend is not null)
             throw new StockHelperException("The check backend writes no preview caches.");
-        var task = _caching.GetOrAdd(kind + " " + name, _ => RunCacheAsync(kind, name));
+        var key = kind + "\0" + name;
+        CacheRun run;
+        lock (_cacheRuns)
+        {
+            run = _cacheRuns.TryGetValue(key, out var existing) && !existing.Task.IsCompleted ? existing : _cacheRuns[key] = new CacheRun(kind, name, this);
+            run.Waiters++;
+        }
         try
         {
-            return await task.WaitAsync(cancel).ConfigureAwait(false);
+            return await run.Task.WaitAsync(cancel).ConfigureAwait(false);
         }
         finally
         {
-            if (task.IsCompleted)
-                _caching.TryRemove(new KeyValuePair<string, Task<StockCacheResult>>(kind + " " + name, task));
+            lock (_cacheRuns)
+            {
+                // the last preview waiting for it went away: the helper drops the request (protocol "cancel")
+                if (--run.Waiters == 0 && !run.Task.IsCompleted)
+                    run.Cancel.Cancel();
+                if ((run.Task.IsCompleted || run.Waiters == 0) && _cacheRuns.TryGetValue(key, out var current) && current == run)
+                    _cacheRuns.Remove(key);
+            }
         }
     }
 
-    private async Task<StockCacheResult> RunCacheAsync(string kind, string name)
+    private readonly Dictionary<string, CacheRun> _cacheRuns = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>One <c>cache</c> request shared by every preview of the asset; cancelled when none waits any more.</summary>
+    private sealed class CacheRun
+    {
+        public readonly CancellationTokenSource Cancel = new();
+        public readonly Task<StockCacheResult> Task;
+        public int Waiters;
+
+        public CacheRun(string kind, string name, StockLibrary library) => Task = library.RunCacheAsync(kind, name, Cancel.Token);
+    }
+
+    private async Task<StockCacheResult> RunCacheAsync(string kind, string name, CancellationToken cancel)
     {
         var args = new Dictionary<string, object?> { ["type"] = kind, ["name"] = name };
-        var result = Read("cache", await CallAsync("cache", args, null, CancellationToken.None).ConfigureAwait(false), StockCacheResult.Parse);
+        var result = Read("cache", await CallAsync("cache", args, null, cancel).ConfigureAwait(false), StockCacheResult.Parse);
         // Images written since the by-name index was built are not in it.
         Preview.ToolsGfx.ToolsGfxPreviewService.StockCachesChanged();
         return result;

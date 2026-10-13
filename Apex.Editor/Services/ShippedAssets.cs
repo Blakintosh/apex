@@ -25,7 +25,8 @@ public static class ShippedAssets
         if (string.Equals(_root, bo3Root, StringComparison.OrdinalIgnoreCase) && _load is not null)
             return;
         _root = bo3Root;
-        _db = bo3Root is not null && DefaultDatabase(bo3Root) is { Exists: true } db ? db : null;
+        // an index this Apex can't read (another schema, damaged) is no index: the shipped lists answer
+        _db = bo3Root is not null && DefaultDatabase(bo3Root) is { Exists: true } db && db.SchemaProblem() is null ? db : null;
         _load = bo3Root is null || _db is not null ? null : Task.Run(() => Read(bo3Root));
     }
 
