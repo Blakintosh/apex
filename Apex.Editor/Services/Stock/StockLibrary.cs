@@ -209,6 +209,22 @@ public sealed class StockLibrary : IStockBackend, IDisposable
         return await helper.CallAsync(method, args, onEvent, cancel).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Reads an answer. A helper of another version can answer without a field Apex expects; that fails the request like
+    /// any helper error, so the callers' catch shows it instead of leaving a dialog or a tab loading.
+    /// </summary>
+    private static T Read<T>(string method, JsonElement answer, Func<JsonElement, T> parse)
+    {
+        try
+        {
+            return parse(answer);
+        }
+        catch (Exception ex) when (ex is KeyNotFoundException or InvalidOperationException or FormatException or JsonException)
+        {
+            throw new StockHelperException($"The stock helper's answer to {method} isn't one this Apex reads ({ex.Message}). Check that stocklib.exe matches Apex.");
+        }
+    }
+
     // ── Index refresh ───────────────────────────────────────────────────────
 
     /// <summary>
@@ -281,7 +297,7 @@ public sealed class StockLibrary : IStockBackend, IDisposable
             args["rename_all"] = true;
         if (carry)
             args["carry"] = true;
-        return StockDeps.Parse(await CallAsync("deps", args, null, cancel).ConfigureAwait(false));
+        return Read("deps", await CallAsync("deps", args, null, cancel).ConfigureAwait(false), StockDeps.Parse);
     }
 
     public async Task<StockExtractResult> ExtractAsync(StockExtractRequest request, Action<StockProgress>? progress, CancellationToken cancel = default)
@@ -317,7 +333,7 @@ public sealed class StockLibrary : IStockBackend, IDisposable
                     break;
             }
         }, cancel).ConfigureAwait(false);
-        return StockExtractResult.Parse(result);
+        return Read("extract", result, StockExtractResult.Parse);
     }
 
     public async Task<StockUndoResult> UndoAsync(string manifest, CancellationToken cancel = default)
@@ -325,7 +341,7 @@ public sealed class StockLibrary : IStockBackend, IDisposable
         if (Backend is { } fake)
             return await fake.UndoAsync(manifest, cancel).ConfigureAwait(false);
         var args = new Dictionary<string, object?> { ["manifest"] = manifest };
-        return StockUndoResult.Parse(await CallAsync("undo", args, null, cancel).ConfigureAwait(false));
+        return Read("undo", await CallAsync("undo", args, null, cancel).ConfigureAwait(false), StockUndoResult.Parse);
     }
 
     public async Task<StockDescription> DescribeAsync(string type, string name, string? zone, CancellationToken cancel = default)
@@ -335,7 +351,7 @@ public sealed class StockLibrary : IStockBackend, IDisposable
         var args = new Dictionary<string, object?> { ["type"] = type, ["name"] = name };
         if (zone is { Length: > 0 })
             args["zone"] = zone;
-        return StockDescription.Parse(await CallAsync("describe", args, null, cancel).ConfigureAwait(false));
+        return Read("describe", await CallAsync("describe", args, null, cancel).ConfigureAwait(false), StockDescription.Parse);
     }
 
     // ── Sounds ──────────────────────────────────────────────────────────────
@@ -356,14 +372,14 @@ public sealed class StockLibrary : IStockBackend, IDisposable
             args["lang"] = query.Lang;
         if (query.Status is { Length: > 0 })
             args["status"] = query.Status;
-        return StockSoundPage.Parse(await CallAsync("sounds", args, null, cancel).ConfigureAwait(false));
+        return Read("sounds", await CallAsync("sounds", args, null, cancel).ConfigureAwait(false), StockSoundPage.Parse);
     }
 
     public async Task<StockSoundDefs> SoundAsync(string name, CancellationToken cancel = default)
     {
         if (Backend is { } fake)
             return await fake.SoundAsync(name, cancel).ConfigureAwait(false);
-        return StockSoundDefs.Parse(await CallAsync("sound", new Dictionary<string, object?> { ["name"] = name }, null, cancel).ConfigureAwait(false));
+        return Read("sound", await CallAsync("sound", new Dictionary<string, object?> { ["name"] = name }, null, cancel).ConfigureAwait(false), StockSoundDefs.Parse);
     }
 
     public async Task<StockSoundExport> SoundExportAsync(string name, string? zone, int variant, string format, string outPath, CancellationToken cancel = default)
@@ -373,7 +389,7 @@ public sealed class StockLibrary : IStockBackend, IDisposable
         var args = new Dictionary<string, object?> { ["name"] = name, ["variant"] = variant, ["format"] = format, ["out"] = outPath };
         if (zone is { Length: > 0 })
             args["zone"] = zone;
-        return StockSoundExport.Parse(await CallAsync("sound_export", args, null, cancel).ConfigureAwait(false));
+        return Read("sound_export", await CallAsync("sound_export", args, null, cancel).ConfigureAwait(false), StockSoundExport.Parse);
     }
 
     // ── Status: what the install has, what each feature may do ───────────────
@@ -472,7 +488,7 @@ public sealed class StockLibrary : IStockBackend, IDisposable
     private async Task<StockCacheResult> RunCacheAsync(string kind, string name)
     {
         var args = new Dictionary<string, object?> { ["type"] = kind, ["name"] = name };
-        var result = StockCacheResult.Parse(await CallAsync("cache", args, null, CancellationToken.None).ConfigureAwait(false));
+        var result = Read("cache", await CallAsync("cache", args, null, CancellationToken.None).ConfigureAwait(false), StockCacheResult.Parse);
         // Images written since the by-name index was built are not in it.
         Preview.ToolsGfx.ToolsGfxPreviewService.StockCachesChanged();
         return result;
