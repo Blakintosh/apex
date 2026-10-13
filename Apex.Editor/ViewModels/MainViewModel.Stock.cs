@@ -62,7 +62,7 @@ public sealed partial class MainViewModel
     private void StartStockRefresh()
     {
         if (Stock.ExePath is not null)
-            Stock.StartRefreshIfStale();
+            Stock.StartRefresh();
         // what the install has (Dragon, Blackbird, the Radiant plugin) decides whether stock assets can be used directly
         Stock.StartStatusRefresh();
         NotifyStockState();

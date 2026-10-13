@@ -176,7 +176,7 @@ public sealed class StockLibrary : IStockBackend, IDisposable
         State = Db is not null ? StockState.Ready : located is null ? StockState.HelperMissing : StockState.Indexing;
         Changed?.Invoke();
         if (located is not null)
-            StartRefreshIfStale();
+            StartRefresh();
     }
 
     // ── The helper process ──────────────────────────────────────────────────
@@ -216,88 +216,15 @@ public sealed class StockLibrary : IStockBackend, IDisposable
     /// Builds or refreshes the index in the background (cheap when nothing changed: the helper compares the fastfiles'
     /// fingerprints and writes nothing). Searches keep reading the old index until the refresh commits.
     /// </summary>
-    public void StartRefresh() => StartRefresh(force: true);
-
-    /// <summary>
-    /// Refreshes only when the install's zone files or the helper differ from the last successful refresh.
-    /// Stock zones change when the game updates, so most launches do nothing: no progress, no helper process.
-    /// </summary>
-    public void StartRefreshIfStale() => StartRefresh(force: false);
-
-    private void StartRefresh(bool force)
+    public void StartRefresh()
     {
         if (ExePath is null || Backend is not null || Interlocked.CompareExchange(ref _refreshing, 1, 0) != 0)
             return;
-        _ = Task.Run(() => RefreshAsync(force));
+        _ = Task.Run(RefreshAsync);
     }
 
-    private string? StampPath => DbPath is null ? null : DbPath + ".stamp";
-
-    /// <summary>The name, size and write time of every file under <c>&lt;BO3&gt;\zone</c>, plus the helper's own file. Null when there is nothing to compare.</summary>
-    private string? ComputeStamp()
+    private async Task RefreshAsync()
     {
-        if (_install is null || ExePath is null)
-            return null;
-        var zone = Path.Combine(_install, "zone");
-        if (!Directory.Exists(zone))
-            return null;
-        var lines = new List<string>();
-        try
-        {
-            foreach (var file in new DirectoryInfo(zone).EnumerateFiles("*", SearchOption.AllDirectories))
-                lines.Add($"{Path.GetRelativePath(zone, file.FullName)}|{file.Length}|{file.LastWriteTimeUtc.Ticks}");
-            var exe = new FileInfo(ExePath);
-            lines.Add($"helper|{exe.Length}|{exe.LastWriteTimeUtc.Ticks}");
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return null;
-        }
-        lines.Sort(StringComparer.Ordinal);
-        return string.Join('\n', lines);
-    }
-
-    private bool IsUpToDate(string? stamp)
-    {
-        if (stamp is null || Db is not { Exists: true } || StampPath is not { } path)
-            return false;
-        try
-        {
-            return File.Exists(path) && File.ReadAllText(path) == stamp;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return false;
-        }
-    }
-
-    private void WriteStamp(string? stamp)
-    {
-        if (StampPath is not { } path)
-            return;
-        try
-        {
-            if (stamp is null)
-                File.Delete(path);
-            else
-                File.WriteAllText(path, stamp);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            // no stamp just means the next launch refreshes again
-        }
-    }
-
-    private async Task RefreshAsync(bool force)
-    {
-        // taken before the index runs: a zone that changes meanwhile leaves the stamp stale and gets re-read next time
-        var stamp = ComputeStamp();
-        if (!force && IsUpToDate(stamp))
-        {
-            Volatile.Write(ref _refreshing, 0);
-            return;
-        }
-        var succeeded = false;
         try
         {
             if (Db is null)
@@ -320,7 +247,6 @@ public sealed class StockLibrary : IStockBackend, IDisposable
                 Changed?.Invoke();
             }, CancellationToken.None).ConfigureAwait(false);
             Problem = "";
-            succeeded = true;
         }
         catch (Exception ex) when (ex is StockHelperException or TimeoutException or OperationCanceledException)
         {
@@ -328,7 +254,6 @@ public sealed class StockLibrary : IStockBackend, IDisposable
         }
         finally
         {
-            WriteStamp(succeeded ? stamp : null);
             Progress = "";
             ProgressFraction = 0;
             // The refresh may have made the database (or replaced it): a new reader forgets what the old one cached.
