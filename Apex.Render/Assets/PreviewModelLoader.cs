@@ -144,6 +144,9 @@ public sealed record PreviewModelOptions
     /// material is a decal, so the decal has something to land on: for previewing a material on its own (APE draws
     /// the decal alone, which shows nothing). Models leave it off: their decals sit on their other surfaces.</summary>
     public bool DecalUnderlay { get; init; }
+    /// <summary>Auto-generated LODs come from this decimator's caches (Dragon's hybrid, when Dragon is installed); null:
+    /// APE's own autogen caches. A LOD with no cache ends the LOD list there, quietly.</summary>
+    public AutoLodAlgo? AutoLod { get; init; }
 }
 
 /// <summary>
@@ -223,9 +226,6 @@ public sealed class PreviewModelLoader
     {
     }
 
-    /// <summary>GDT xmodel LOD file fields in LOD order.</summary>
-    private static readonly string[] LodFields = ["filename", "mediumLod", "lowLod", "lowestLod", "lod4File", "lod5File", "lod6File", "lod7File"];
-
     public PreviewModel Load(string xmodelName, PreviewModelOptions? options = null)
         => Create(Prepare(_data, xmodelName, options, _materialDefaults));
 
@@ -240,21 +240,33 @@ public sealed class PreviewModelLoader
     {
         var entry = data.Gdt.Find(xmodelName, "xmodel") ?? throw new FileNotFoundException($"xmodel '{xmodelName}' not found in the GDTs");
         var lodParams = XModelLodParameters.FromGdt(entry.Fields);
-        var files = new List<string>();
-        foreach (var field in LodFields)
-        {
-            if (!entry.Fields.TryGetValue(field, out var file) || string.IsNullOrWhiteSpace(file))
-                break;
-            files.Add(file);
-        }
-        if (files.Count == 0)
+        var slots = XModelLodSlots.Read(entry.Fields);
+        if (slots.Count == 0)
             throw new InvalidDataException($"{xmodelName}: no LOD files");
-        var lodMeshes = new GpuMesh[files.Count];
-        ForEachInOrder(files.Count, cancellationToken, i =>
+        // Auto LODs are looked up first (cheap, no parsing): the list ends at the first one without a cache.
+        var located = new CacheLocation?[slots.Count];
+        int count = slots.Count;
+        for (int i = 0; i < slots.Count; i++)
         {
-            var bin = data.Models.ResolveModelExportPath(files[i]);
-            var loc = data.Models.FindXMesh(bin, lodParams)
-                ?? throw new FileNotFoundException($"{xmodelName}: no xmesh cache for {Path.GetFileName(files[i])} (open the model in APE once to convert it)");
+            if (!slots[i].Autogen)
+                continue;
+            located[i] = data.Models.FindAutogenXMesh(data.Models.ResolveModelExportPath(slots[i].File), lodParams, slots[i].Percent, options?.AutoLod);
+            if (located[i] is null)
+            {
+                count = i;
+                break;
+            }
+        }
+        var lodMeshes = new GpuMesh[count];
+        ForEachInOrder(count, cancellationToken, i =>
+        {
+            var loc = located[i];
+            if (loc is null)
+            {
+                var bin = data.Models.ResolveModelExportPath(slots[i].File);
+                loc = data.Models.FindXMesh(bin, lodParams)
+                    ?? throw new FileNotFoundException($"{xmodelName}: no xmesh cache for {Path.GetFileName(slots[i].File)} (open the model in APE once to convert it)");
+            }
             lodMeshes[i] = GpuMesh.FromXMesh(loc.Payload is { } payload ? XMeshData.Parse(payload, loc.Path) : XMeshData.Load(loc.Path));
         });
         return PrepareMeshes(data, xmodelName, lodMeshes, entry.Fields.GetValueOrDefault("skinOverride"), options, materialDefaults, cancellationToken);

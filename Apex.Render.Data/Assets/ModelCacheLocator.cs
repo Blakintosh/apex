@@ -106,7 +106,60 @@ public sealed class ModelCacheLocator
             ?? (Stock is null ? null : Newest(Path.Combine(Stock.XMeshCacheDir, name), $"pct{percent}_*.lz4", expected));
     }
 
-    /// <summary>Locates the xbin (material list) cache: <c>xbins\v1\&lt;xmodelName&gt;\&lt;Sig(xmodel_bin)&gt;.lz4</c>.</summary>
+    /// <summary>
+    /// Locates the xmesh of an auto-generated LOD. With no <paramref name="algo"/>: APE's own (stock decimation) cache, as
+    /// <see cref="FindXMesh"/> finds it, never converted. With one (Dragon's hybrid): only a cache made by that algorithm
+    /// for exactly these inputs — <see cref="AutoLodFileName"/> in Apex's cache or APE's, then a file Dragon reported for
+    /// that name (<see cref="RememberAutoLod"/>) — never a stock or stale one. Null when there is none.
+    /// </summary>
+    /// <param name="sourceBinPath">Absolute path of the LOD's source .xmodel_bin (the previous LOD's file).</param>
+    public CacheLocation? FindAutogenXMesh(string sourceBinPath, XModelLodParameters parameters, int percent, AutoLodAlgo? algo)
+    {
+        if (algo is null)
+            return FindXMesh(sourceBinPath, parameters, percent);
+        if (AutoLodFileName(sourceBinPath, parameters, percent, algo) is not { } name)
+            return null;
+        var (file, hash) = name;
+        var folder = XModelName(sourceBinPath);
+        foreach (var dir in new[] { Policy.UseApexCache ? ApexCache.XMeshCacheDir : null, Policy.UseApeCache ? Install.XMeshCacheDir : null })
+        {
+            if (dir is null)
+                continue;
+            var path = Path.Combine(dir, folder, file);
+            if (File.Exists(path) && new FileInfo(path).Length > 4)
+                return new CacheLocation(path, CacheMatch.Exact, hash) { Origin = dir == Install.XMeshCacheDir ? CacheOrigin.Ape : CacheOrigin.ApexCache };
+        }
+        return KnownAutoLods.TryGetValue(folder + "\\" + file, out var known) && File.Exists(known) && new FileInfo(known).Length > 4
+            ? new CacheLocation(known, CacheMatch.Exact, hash) { Origin = CacheOrigin.ApexCache }
+            : null;
+    }
+
+    /// <summary>
+    /// <c>pct&lt;P&gt;_&lt;marker&gt;_&lt;hash&gt;.lz4</c> of an auto LOD made by <paramref name="algo"/> and its key
+    /// (<see cref="CacheKeys.XMeshHash"/> with the algorithm's tag); null when the source file is missing.
+    /// </summary>
+    public static (string File, CacheHash Hash)? AutoLodFileName(string sourceBinPath, XModelLodParameters parameters, int percent, AutoLodAlgo algo)
+    {
+        if (!File.Exists(sourceBinPath))
+            return null;
+        var hash = CacheKeys.XMeshHash(CacheKeys.FileSignature(sourceBinPath), parameters, algo: algo);
+        return ($"pct{percent}_{algo.Marker}_{hash.ToFileName()}.lz4", hash);
+    }
+
+    // xmodel folder\expected file name -> where Dragon actually wrote that LOD (this session).
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> KnownAutoLods = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Records where Dragon wrote the auto LOD Apex expects at <paramref name="sourceBinPath"/>/<paramref name="percent"/>,
+    /// so <see cref="FindAutogenXMesh"/> finds it even when Dragon keeps it outside Apex's and APE's caches.
+    /// </summary>
+    public static void RememberAutoLod(string sourceBinPath, XModelLodParameters parameters, int percent, AutoLodAlgo algo, string cachePath)
+    {
+        if (AutoLodFileName(sourceBinPath, parameters, percent, algo) is { } name)
+            KnownAutoLods[XModelName(sourceBinPath) + "\\" + name.File] = cachePath;
+    }
+
+    /// <summary>Locates the xbin (material list) cache:<c>xbins\v1\&lt;xmodelName&gt;\&lt;Sig(xmodel_bin)&gt;.lz4</c>.</summary>
     public CacheLocation? FindXBin(string xmodelBinPath)
     {
         var name = XModelName(xmodelBinPath);
@@ -191,7 +244,8 @@ public sealed class ModelCacheLocator
         if (!Directory.Exists(dir))
             return null;
         // Header-only files are interrupted APE writes; never pick them.
-        var f = new DirectoryInfo(dir).EnumerateFiles(pattern).Where(x => x.Length > 4)
+        // "pct25_lodh1_…" is another decimator's auto LOD (FindAutogenXMesh): never a stand-in for APE's.
+        var f = new DirectoryInfo(dir).EnumerateFiles(pattern).Where(x => x.Length > 4 && !(pattern.StartsWith("pct", StringComparison.Ordinal) && x.Name.Contains("_lod", StringComparison.OrdinalIgnoreCase)))
             .OrderByDescending(x => x.LastWriteTimeUtc).FirstOrDefault();
         return f is null ? null : new CacheLocation(f.FullName, CacheMatch.ByName, expected);
     }

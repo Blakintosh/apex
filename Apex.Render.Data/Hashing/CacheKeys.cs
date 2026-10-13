@@ -67,10 +67,12 @@ public static class CacheKeys
     /// if (lod0Path != "" &amp;&amp; lod0Path != thisPath) { h = Chain(h, lod0Path); h = Chain(h, Sig(lod0)) }   // autogen LODs
     /// h = Chain(h, { i32 -1; f32 1; f32 pos; f32 normal; f32 uv; f32 color; f32 1; f32 scale })
     /// </code>
-    /// The LOD percent is not part of the hash.
+    /// The LOD percent is not part of the hash. An auto LOD made by another decimator than APE's (Dragon's hybrid,
+    /// <see cref="AutoLodAlgo"/>) chains its tag (ASCII) after the block, so its key never names a stock cache and the
+    /// stock key stays as it was.
     /// </summary>
     public static CacheHash XMeshHash(CacheHash xmodelBinSignature, XModelLodParameters parameters,
-        string? autogenSourcePath = null, CacheHash autogenSourceSignature = default)
+        string? autogenSourcePath = null, CacheHash autogenSourceSignature = default, AutoLodAlgo? algo = null)
     {
         var h = xmodelBinSignature;
         if (!string.IsNullOrEmpty(autogenSourcePath))
@@ -88,7 +90,8 @@ public static class CacheKeys
         BinaryPrimitives.WriteSingleLittleEndian(block[20..], parameters.ColorPriority);
         BinaryPrimitives.WriteSingleLittleEndian(block[24..], 1.0f);
         BinaryPrimitives.WriteSingleLittleEndian(block[28..], parameters.Scale);
-        return Md4.Chain(h, block);
+        h = Md4.Chain(h, block);
+        return algo is null ? h : Md4.Chain(h, Encoding.ASCII.GetBytes(algo.Tag));
     }
 
     /// <summary>
@@ -102,6 +105,42 @@ public static class CacheKeys
         h = Md4.Chain(h, [useBones ? (byte)1 : (byte)0]);
         return Md4.Chain(h, Encoding.ASCII.GetBytes(node ?? string.Empty));
     }
+}
+
+/// <summary>
+/// An auto LOD decimator other than APE's, named as Dragon's <c>auto-lod</c> capability names it (<c>"hybrid-1"</c>).
+/// Its caches are keyed with <see cref="Tag"/> and carry <see cref="Marker"/> in the file name
+/// (<c>pct25_lodh1_&lt;hash&gt;.lz4</c>), so a stock cache and a hybrid one can never be taken for each other
+/// (bb-linker docs/lod-decimator-eval.md §6).
+/// </summary>
+public sealed record AutoLodAlgo
+{
+    public AutoLodAlgo(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || name.Any(c => c > 0x7e || c <= ' ' || c is '\\' or '/' or ':' or '*' or '?' or '"' or '<' or '>' or '|'))
+            throw new ArgumentException($"not an auto LOD algorithm name: '{name}'", nameof(name));
+        Name = name;
+    }
+
+    /// <summary>"hybrid-1".</summary>
+    public string Name { get; }
+
+    /// <summary>Chained into the xmesh key: <c>"lodalt-hybrid-1"</c>.</summary>
+    public string Tag => "lodalt-" + Name;
+
+    /// <summary>In the cache file name: <c>"lodh1"</c> for <c>hybrid-1</c> (first letter and version), else <c>"lod-" + name</c>.</summary>
+    public string Marker
+    {
+        get
+        {
+            var dash = Name.LastIndexOf('-');
+            return dash > 0 && dash < Name.Length - 1 && Name[(dash + 1)..].All(char.IsAsciiDigit)
+                ? "lod" + char.ToLowerInvariant(Name[0]) + Name[(dash + 1)..]
+                : "lod-" + Name.ToLowerInvariant();
+        }
+    }
+
+    public override string ToString() => Name;
 }
 
 /// <summary>
