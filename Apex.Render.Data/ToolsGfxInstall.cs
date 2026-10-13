@@ -10,13 +10,10 @@ namespace Apex.Render.Data;
 ///   1. an explicit root passed to <see cref="FromRoot"/>,
 ///   2. the <c>APEX_BO3_ROOT</c> environment variable,
 ///   3. <c>TA_TOOLS_PATH</c> (the root or one of its subdirectories),
-///   4. the default Steam install path.
+///   4. the install Apex.exe sits in (Apex.exe is in the install's bin folder).
 /// </summary>
 public sealed class ToolsGfxInstall
 {
-    /// <summary>Default Steam install location used when no environment override is set.</summary>
-    public const string DefaultRoot = @"I:\SteamLibrary\steamapps\common\Call of Duty Black Ops III";
-
     /// <summary>Shader cache version directory (APE hard-codes v14).</summary>
     public const int ShaderCacheVersion = 14;
 
@@ -115,7 +112,14 @@ public sealed class ToolsGfxInstall
             }
         }
 
-        return Directory.Exists(DefaultRoot) ? DefaultRoot : null;
+        var here = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        for (var i = 0; i < 3 && !string.IsNullOrEmpty(here); i++)
+        {
+            here = Path.GetDirectoryName(here) ?? string.Empty;
+            if (Directory.Exists(Path.Combine(here, "share", "assetconvert")))
+                return here;
+        }
+        return null;
     }
 
     public override string ToString() => Root;
