@@ -39,7 +39,7 @@ public sealed class StockHeader
         var zones = origin.Zones.Where(z => !z.StartsWith("en_", StringComparison.OrdinalIgnoreCase)).ToList();
         if (zones.Count == 0)
             zones = origin.Zones.ToList();
-        var always = db is null ? new System.Collections.Generic.List<string>() : zones.Where(z => db.AlwaysLoadedZones().Contains(z)).ToList();
+        var always = AlwaysLoadedOf(db, zones);
         var noun = Noun(origin.Kind);
         var parts = new System.Collections.Generic.List<string>
         {
@@ -72,6 +72,22 @@ public sealed class StockHeader
             Banner = banner,
             AlwaysLoaded = always.Count > 0 || useDirectly,
         };
+    }
+
+    /// <summary>The zones among <paramref name="zones"/> that every map of their mode loads; none when the index can't be read (built on the UI thread).</summary>
+    private static System.Collections.Generic.List<string> AlwaysLoadedOf(StockDb? db, System.Collections.Generic.List<string> zones)
+    {
+        if (db is null)
+            return new();
+        try
+        {
+            var set = db.AlwaysLoadedZones();
+            return zones.Where(set.Contains).ToList();
+        }
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or System.IO.IOException)
+        {
+            return new();
+        }
     }
 
     private static string ModeWords(string zone) =>
