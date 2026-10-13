@@ -248,7 +248,7 @@ public sealed class StockLibrary : IStockBackend, IDisposable
             var exe = new FileInfo(ExePath);
             lines.Add($"helper|{exe.Length}|{exe.LastWriteTimeUtc.Ticks}");
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             return null;
         }
@@ -264,7 +264,7 @@ public sealed class StockLibrary : IStockBackend, IDisposable
         {
             return File.Exists(path) && File.ReadAllText(path) == stamp;
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             return false;
         }
@@ -281,7 +281,7 @@ public sealed class StockLibrary : IStockBackend, IDisposable
             else
                 File.WriteAllText(path, stamp);
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // no stamp just means the next launch refreshes again
         }
