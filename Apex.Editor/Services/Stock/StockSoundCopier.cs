@@ -157,10 +157,11 @@ public static class StockSoundCopier
                 cancel.ThrowIfCancellationRequested();
                 progress?.Invoke(new StockProgress($"{plan.FileName(variant)}" + (variant > 0 ? " (reading the zone)" : ""), done, plan.Variants.Count));
                 var path = plan.FullPath(variant);
+                // Problems() saw no file here, so whatever is at the path after a failure is this copy's half-written file.
+                files.Add(path);
                 var export = await backend.SoundExportAsync(plan.Alias, plan.Zone, variant, "flac", path, cancel).ConfigureAwait(false);
                 if (!File.Exists(path))
                     throw new StockSoundCopyException($"The helper did not write {plan.FileName(variant)}.");
-                files.Add(path);
                 bytes += export.Bytes > 0 ? export.Bytes : new FileInfo(path).Length;
                 done++;
             }
