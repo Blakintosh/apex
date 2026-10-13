@@ -15,7 +15,7 @@
       ],
       "carry_contract": 1,
       "note": null,
-      "path": "I:\\SteamLibrary\\steamapps\\common\\Call of Duty Black Ops III\\bin\\bb-linker\\bb-linker.exe",
+      "path": "I:\\SteamLibrary\\steamapps\\common\\Call of Duty Black Ops III\\bin\\dragon.exe",
       "present": true,
       "source": "probe",
       "stock_db_schema": [
@@ -83,9 +83,9 @@
       "warnings": []
     },
     "use_directly": {
-      "fix": "Turn on \"Use Dragon (bb-linker)\" in Blackbird's settings",
+      "fix": "Turn on \"Link with Dragon\" in Blackbird's settings",
       "ok": false,
-      "reason": "Blackbird's settings have Use Dragon (bb-linker) turned off.",
+      "reason": "Blackbird's settings have Link with Dragon turned off.",
       "warnings": []
     }
   },

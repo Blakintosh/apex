@@ -18,7 +18,7 @@ namespace Apex.Shots;
 /// <summary>
 /// Dragon-gated auto LOD previews: the LOD slots as the linker reads them, the hybrid cache key and file name, the
 /// component registry gate (none / stocklib only / Dragon only / both, stale and capability-less entries), the
-/// locator's hybrid lookup (never a stock or stale file), and the <c>bb-linker -xmodel-lods</c> contract against fake
+/// locator's hybrid lookup (never a stock or stale file), and the <c>dragon -xmodel-lods</c> contract against fake
 /// Dragons written as .cmd scripts (answer, error, wrong algorithm, cancel). With the install present, APE's own autogen
 /// caches of a shipped model load for the no-Dragon path and a "Dragon" copy of one is found through its report. The
 /// registry is a temp <c>LOCALAPPDATA</c>; the install is only read.
@@ -263,7 +263,7 @@ public partial class Program
         WriteComponent(install, "dragon", stale);
         Check("auto lod: an entry whose exe changed size since Dragon wrote it is ignored", AutoLodPreview.Find(install) is null);
         stale = DragonEntry(exe, new[] { "auto-lod" }, new { algo = "hybrid-1" });
-        stale["path"] = Path.Combine(temp, "gone", "bb-linker.exe");
+        stale["path"] = Path.Combine(temp, "gone", "dragon.exe");
         WriteComponent(install, "dragon", stale);
         Check("auto lod: an entry whose Dragon is gone is ignored", AutoLodPreview.Find(install) is null);
         File.WriteAllText(Path.Combine(ComponentRegistry.InstallFolder(install), "dragon.json"), "{ not json");
@@ -348,12 +348,12 @@ public partial class Program
         Check("auto lod: after the source changes, the reported file no longer answers", locator.FindAutogenXMesh(bin, p, 12, hybrid) is null);
     }
 
-    /// <summary>A fake bb-linker: a .cmd whose body is <paramref name="body"/> (it writes its arguments to args.txt first).</summary>
+    /// <summary>A fake Dragon: a .cmd whose body is <paramref name="body"/> (it writes its arguments to args.txt first).</summary>
     private static string WriteFakeDragon(string temp, string name, string body)
     {
         var dir = Path.Combine(temp, "fake-dragon", name);
         Directory.CreateDirectory(dir);
-        var exe = Path.Combine(dir, "bb-linker.cmd");
+        var exe = Path.Combine(dir, "dragon.cmd");
         File.WriteAllText(exe, "@echo off\r\necho %*> \"%~dp0args.txt\"\r\n" + body + "\r\n");
         return exe;
     }
@@ -463,7 +463,7 @@ public partial class Program
         {
             AutoLodPreview.Timeout = saved;
         }
-        result = AutoLodPreview.GenerateAsync(new DragonAutoLod(Path.Combine(temp, "no", "bb-linker.exe"), "", hybrid), root, request with { Key = "absent" }, CancellationToken.None).GetAwaiter().GetResult();
+        result = AutoLodPreview.GenerateAsync(new DragonAutoLod(Path.Combine(temp, "no", "dragon.exe"), "", hybrid), root, request with { Key = "absent" }, CancellationToken.None).GetAwaiter().GetResult();
         Check($"auto lod: a Dragon that can't start is a failure, not a crash ({result.Error})", !result.Ok);
     }
 

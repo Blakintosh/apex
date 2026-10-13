@@ -111,7 +111,7 @@ public static class CacheKeys
 /// An auto LOD decimator other than APE's, named as Dragon's <c>auto-lod</c> capability names it (<c>"hybrid-1"</c>).
 /// Its caches are keyed with <see cref="Tag"/> and carry <see cref="Marker"/> in the file name
 /// (<c>pct25_lodh1_&lt;hash&gt;.lz4</c>), so a stock cache and a hybrid one can never be taken for each other
-/// (bb-linker docs/lod-decimator-eval.md §6).
+/// (Dragon docs/lod-decimator-eval.md §6).
 /// </summary>
 public sealed record AutoLodAlgo
 {

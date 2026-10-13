@@ -15,7 +15,7 @@
       ],
       "carry_contract": 1,
       "note": null,
-      "path": "I:\\SteamLibrary\\steamapps\\common\\Call of Duty Black Ops III\\bin\\bb-linker\\bb-linker.exe",
+      "path": "I:\\SteamLibrary\\steamapps\\common\\Call of Duty Black Ops III\\bin\\dragon.exe",
       "present": true,
       "source": "probe",
       "stock_db_schema": [
@@ -85,7 +85,7 @@
     "use_directly": {
       "fix": null,
       "ok": true,
-      "reason": "Dragon 0.1.0 carries stock assets (Blackbird has not written blackbird.json yet; going by its settings (Use Dragon is on, the default) and the Dragon at I:\\SteamLibrary\\steamapps\\common\\Call of Duty Black Ops III\\bin\\bb-linker\\bb-linker.exe).",
+      "reason": "Dragon 0.1.0 carries stock assets (Blackbird has not written blackbird.json yet; going by its settings (Use Dragon is on, the default) and the Dragon at I:\\SteamLibrary\\steamapps\\common\\Call of Duty Black Ops III\\bin\\dragon.exe).",
       "warnings": []
     }
   },

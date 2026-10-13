@@ -179,7 +179,7 @@ public sealed record RegisteredComponent(string Id, string Version, string Path,
 public sealed record DragonAutoLod(string Exe, string Version, AutoLodAlgo Algo);
 
 /// <summary>
-/// Dragon (bb-linker), as its registry entry <c>dragon.json</c> describes it. Trusted only when its <c>path</c> exists and,
+/// Dragon, as its registry entry <c>dragon.json</c> describes it. Trusted only when its <c>path</c> exists and,
 /// when the entry gives them, <c>exe_size</c> / <c>exe_mtime</c> (unix seconds) match the file: an entry left by a
 /// Dragon that was replaced or removed since its last link is ignored, as if Dragon were not installed.
 /// </summary>

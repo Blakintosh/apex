@@ -82,7 +82,7 @@ public sealed record DragonLodResult(string Algo, IReadOnlyList<DragonLod> Lods,
 /// <summary>
 /// Auto LOD previews through Dragon. Apex never decimates: when the install's Dragon offers <c>auto-lod</c>
 /// (<see cref="DragonComponent.AutoLod"/>) and an xmodel's auto LODs have no cache made by Dragon's algorithm, Dragon is
-/// asked to make them (<c>bb-linker -xmodel-lods &lt;name&gt; -root &lt;BO3&gt; -json</c>) and the preview loads its caches
+/// asked to make them (<c>dragon -xmodel-lods &lt;name&gt; -root &lt;BO3&gt; -json</c>) and the preview loads its caches
 /// like any other (<see cref="ModelCacheLocator.FindAutogenXMesh"/>). Without Dragon nothing here runs and the preview
 /// reads APE's own autogen caches, as before.
 /// </summary>

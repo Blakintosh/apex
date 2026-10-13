@@ -5,7 +5,7 @@ using Apex.Editor.Models;
 namespace Apex.Shots;
 
 /// <summary>
-/// The mock xmodel schema's keys against the ones the linker reads (bb-linker src/conv/xmodel/plan.rs, build.rs). The
+/// The mock xmodel schema's keys against the ones the linker reads (Dragon src/conv/xmodel/plan.rs, build.rs). The
 /// GDT lookup is case-sensitive, so each key is compared exactly.
 /// </summary>
 public partial class Program

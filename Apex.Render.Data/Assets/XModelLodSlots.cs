@@ -3,7 +3,7 @@ using System.Globalization;
 namespace Apex.Render.Data.Assets;
 
 /// <summary>
-/// One LOD of an xmodel as the linker builds it (bb-linker <c>src/conv/xmodel/plan.rs::lod_list</c>): an authored LOD
+/// One LOD of an xmodel as the linker builds it (Dragon <c>src/conv/xmodel/plan.rs::lod_list</c>): an authored LOD
 /// reads its own file at 100%; an auto-generated one reads the previous LOD's file, decimated to <see cref="Percent"/>.
 /// </summary>
 /// <param name="Index">LOD index (0 = the high LOD).</param>
