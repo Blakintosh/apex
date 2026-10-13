@@ -87,8 +87,9 @@ public sealed class StockLibrary : IStockBackend, IDisposable
 
     public StockLibrary(string? bo3Root, string? configuredExe = null, string? dbPath = null)
     {
-        _install = bo3Root;
-        DbPath = dbPath ?? (bo3Root is null ? null : StockDb.DefaultPath(bo3Root));
+        // The real path, as the helper, Dragon and Blackbird resolve it: every call names the same install and stock.db.
+        _install = bo3Root is null ? null : StockDb.Canonical(bo3Root);
+        DbPath = dbPath ?? (_install is null ? null : StockDb.DefaultPath(_install));
         ExePath = Locate(bo3Root, configuredExe);
         Db = DbPath is not null && File.Exists(DbPath) ? new StockDb(DbPath) : null;
         State = bo3Root is null && Db is null ? StockState.Unavailable
