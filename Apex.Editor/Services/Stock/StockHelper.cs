@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -13,7 +14,11 @@ namespace Apex.Editor.Services.Stock;
 /// <summary>The helper answered a request with an error, or went away before it answered.</summary>
 public sealed class StockHelperException : Exception
 {
-    public StockHelperException(string message) : base(message) { }
+    public StockHelperException(string message, string? manifest = null) : base(message) => Manifest = manifest;
+
+    /// <summary>The manifest of what a failed <c>extract</c> had already written (<c>error.data.manifest</c>): <c>undo</c>
+    /// with it takes that back. Null when the helper wrote nothing or doesn't say.</summary>
+    public string? Manifest { get; }
 }
 
 /// <summary>
@@ -27,6 +32,7 @@ public sealed class StockHelper : IDisposable
     {
         public readonly TaskCompletionSource<JsonElement> Done = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Action<JsonElement>? OnEvent;
+        public string Method = "";
     }
 
     private readonly Process _process;
@@ -167,7 +173,11 @@ public sealed class StockHelper : IDisposable
         }
         _pending.TryRemove(id, out _);
         if (message.TryGetProperty("error", out var error))
-            pending.Done.TrySetException(new StockHelperException(error.TryGetProperty("message", out var m) ? m.GetString() ?? "error" : error.ToString()));
+            pending.Done.TrySetException(new StockHelperException(
+                error.ValueKind == JsonValueKind.Object && error.TryGetProperty("message", out var m) ? m.GetString() ?? "error" : error.ToString(),
+                error.ValueKind == JsonValueKind.Object && error.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object
+                && data.TryGetProperty("manifest", out var manifest) && manifest.ValueKind == JsonValueKind.String && manifest.GetString() is { Length: > 0 } path
+                    ? path : null));
         else
             pending.Done.TrySetResult(message.TryGetProperty("result", out var result) ? result : default);
     }
@@ -182,7 +192,7 @@ public sealed class StockHelper : IDisposable
         if (_disposed)
             throw new StockHelperException("The stock helper is closed.");
         var id = Interlocked.Increment(ref _nextId);
-        var pending = new Pending { OnEvent = onEvent };
+        var pending = new Pending { OnEvent = onEvent, Method = method };
         _pending[id] = pending;
         var request = new Dictionary<string, object?> { ["id"] = id, ["method"] = method };
         if (args is { Count: > 0 })
@@ -204,10 +214,22 @@ public sealed class StockHelper : IDisposable
         return await pending.Done.Task.ConfigureAwait(false);
     }
 
+    /// <summary>Methods that write into the install: the helper must be allowed to finish them.</summary>
+    private static readonly HashSet<string> WritingMethods = new(StringComparer.Ordinal) { "extract", "undo", "sound_export" };
+
+    /// <summary>A request that writes files (a clone, its undo, a sound export) is waiting for its answer.</summary>
+    public bool IsWriting => !_disposed && _pending.Values.Any(p => WritingMethods.Contains(p.Method));
+
+    /// <summary>
+    /// Asks the helper to shut down and closes its input, without waiting on the calling (UI) thread. A helper with no
+    /// writes in flight gets a grace period off-thread, then is killed; one that is writing is never killed, so a clone
+    /// or undo isn't cut off part way: it finishes, sees its input closed and exits.
+    /// </summary>
     public void Dispose()
     {
         if (_disposed)
             return;
+        bool writing = IsWriting;
         _disposed = true;
         try
         {
@@ -220,15 +242,26 @@ public sealed class StockHelper : IDisposable
         catch (Exception ex) when (ex is IOException or InvalidOperationException)
         {
         }
-        try
+        var process = _process;
+        _ = Task.Run(() =>
         {
-            // A refresh still running finishes first; Apex closing does not wait for it.
-            if (!_process.WaitForExit(1500))
-                _process.Kill(entireProcessTree: true);
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
-        {
-        }
-        _process.Dispose();
+            try
+            {
+                if (writing)
+                    process.WaitForExit();
+                else if (!process.WaitForExit(ShutdownGrace))
+                    process.Kill(entireProcessTree: true);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+            {
+            }
+            finally
+            {
+                process.Dispose();
+            }
+        });
     }
+
+    /// <summary>How long an idle helper gets to exit after <see cref="Dispose"/> (its shutdown takes about 2.5 s).</summary>
+    public static TimeSpan ShutdownGrace { get; set; } = TimeSpan.FromSeconds(10);
 }

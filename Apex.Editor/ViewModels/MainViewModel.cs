@@ -2754,9 +2754,21 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// the session is kept on disk (the journal gets the last edits now). Otherwise it puts up the
     /// discard confirmation and the caller cancels the close.
     /// </summary>
+    private bool _closeDuringStockWrite;
+
     public bool RequestClose(Action close)
     {
         FlushJournalNow();
+        if (!AllowClose && !_closeDuringStockWrite && Stock.IsWriting)
+        {
+            AskConfirm(
+                "Stock files are still being written",
+                "A copy from the Stock Library hasn't finished. If you close now, the helper finishes it in the background, "
+                + "but Apex can't show the result or offer Undo for it.",
+                "Close anyway",
+                () => { _closeDuringStockWrite = true; close(); });
+            return false;
+        }
         if (AllowClose || SessionEditCount == 0 || IsSessionKept)
             return true;
         AskConfirm(

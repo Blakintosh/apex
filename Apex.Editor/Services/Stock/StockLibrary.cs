@@ -124,6 +124,16 @@ public sealed class StockLibrary : IStockBackend, IDisposable
 
     public bool IsRefreshing => Volatile.Read(ref _refreshing) != 0;
 
+    /// <summary>The helper is writing into the install (a clone, an undo, a sound copy): closing Apex should wait or ask.</summary>
+    public bool IsWriting
+    {
+        get
+        {
+            lock (_gate)
+                return _helper?.IsWriting == true;
+        }
+    }
+
     /// <summary>Anything about the library changed (state, progress, the index): raised on a background thread.</summary>
     public event Action? Changed;
 
