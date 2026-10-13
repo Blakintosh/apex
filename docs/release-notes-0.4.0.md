@@ -9,5 +9,5 @@
 - **LOD fields.** The xmodel LOD settings now use the keys the linker reads. Each LOD has Auto-Generate, its percent
   and Force Rigid, and there are fields for the auto-generate priorities and the LOD bias.
 - **Auto LODs in the preview.** Auto-generated LODs now show in the preview, and the info line gives each LOD's face
-  count. With Dragon installed, the preview shows Dragon's LODs, the ones your map gets. If Dragon hasn't made them
-  yet, it makes them while the preview says "Generating LODs…".
+  count. Below 40,000 faces they are the LODs Dragon builds too. For larger models Dragon decimates differently; the
+  preview will show its LODs once Dragon writes them in a form the preview reads.

@@ -413,6 +413,8 @@ public partial class Program
         result = AutoLodPreview.GenerateAsync(dragon with { Exe = linkerFormat }, root, request with { Key = "linker-format" }, CancellationToken.None).GetAwaiter().GetResult();
         Check($"auto lod: caches in the linker's format (what Dragon writes today) are refused, so the preview keeps APE's ({result.Error})",
             !result.Ok && result.Error!.Contains("linker's cache format"));
+        Check("auto lod: ... and that Dragon isn't asked again this session", AutoLodPreview.UnreadableDragon == linkerFormat);
+        AutoLodPreview.UnreadableDragon = null;
 
         var fail = WriteFakeDragon(temp, "fail", "echo {\"error\":\"xmodel 'lodtest' not found in the GDTs\"}\r\nexit /b 3");
         result = AutoLodPreview.GenerateAsync(dragon with { Exe = fail }, root, request with { Key = "fail" }, CancellationToken.None).GetAwaiter().GetResult();

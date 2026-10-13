@@ -97,8 +97,13 @@ public static class AutoLodPreview
     /// <summary>Replaces the registry lookup (checks); null: <see cref="DragonComponent.AutoLod"/>.</summary>
     public static Func<string?, DragonAutoLod?>? Locate { get; set; }
 
-    /// <summary>Dragon's auto LOD for the install, or null.</summary>
-    public static DragonAutoLod? Find(string? installPath) => (Locate ?? DragonComponent.AutoLod)(installPath);
+    /// <summary>Dragon's auto LOD for the install, or null. Null too for a Dragon whose caches turned out unreadable to the
+    /// preview this session (<see cref="UnreadableDragon"/>): the preview stays on APE's caches without asking again.</summary>
+    public static DragonAutoLod? Find(string? installPath) =>
+        (Locate ?? DragonComponent.AutoLod)(installPath) is { } dragon && !string.Equals(dragon.Exe, UnreadableDragon, StringComparison.OrdinalIgnoreCase) ? dragon : null;
+
+    /// <summary>The Dragon whose caches were in a format the preview can't read (the linker's <c>xmesh\v6</c>); null while none was.</summary>
+    public static string? UnreadableDragon { get; set; }
 
     /// <summary>What one model needs from Dragon: its auto LOD slots and their inputs, keyed for the session memo.</summary>
     public sealed record Request(string XModel, string Key, IReadOnlyList<(XModelLodSlot Slot, string SourceBin)> Missing, XModelLodParameters Parameters);
@@ -173,7 +178,11 @@ public static class AutoLodPreview
     private static readonly ConcurrentDictionary<string, Lazy<Task<DragonLodResult>>> Runs = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Forgets remembered runs (checks).</summary>
-    public static void Reset() => Runs.Clear();
+    public static void Reset()
+    {
+        Runs.Clear();
+        UnreadableDragon = null;
+    }
 
     /// <summary>
     /// Asks Dragon for the model's LODs (once per <see cref="Request.Key"/>; concurrent callers share the run), then
@@ -221,7 +230,10 @@ public static class AutoLodPreview
                 return result with { Error = $"Dragon did not write LOD {slot.Index}." };
             // Dragon writes the linker's cache (xmesh\v6); the preview reads ToolsGfx xmeshes (v39)
             if (!IsPreviewXMesh(lod.Cache))
+            {
+                UnreadableDragon = dragon.Exe; // don't run it again for other models this session: each run is seconds of work
                 return result with { Error = $"Dragon's LOD {slot.Index} is in the linker's cache format, which the preview can't read yet." };
+            }
             ModelCacheLocator.RememberAutoLod(bin, request.Parameters, slot.Percent, dragon.Algo, lod.Cache);
         }
         return result;
