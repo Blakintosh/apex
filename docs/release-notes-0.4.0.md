@@ -11,4 +11,4 @@
 - **Auto LODs in the preview.** Auto-generated LODs now show in the preview, and the info line gives each LOD's face
   count. Below 40,000 faces they are the LODs Dragon builds too. For larger models Dragon decimates differently; the
   preview will show its LODs once Dragon writes them in a form the preview reads.
-- **Coming soon.** Stock Library and Dragon are coming soon.
+- **Stock Library and Dragon.** Both are released alongside this version: [Stock Library](https://github.com/Blakintosh/stocklib-releases/releases) and [Dragon](https://github.com/Blakintosh/dragon-releases/releases). Apex works without either.
