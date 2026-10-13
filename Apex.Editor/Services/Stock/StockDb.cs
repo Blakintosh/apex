@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Apex.Editor.Services.Components;
 using Microsoft.Data.Sqlite;
 
 namespace Apex.Editor.Services.Stock;
@@ -52,77 +53,23 @@ public sealed class StockDb
 
     public string Path { get; }
 
-    /// <summary>The default database of an install: <c>%LOCALAPPDATA%\BO3ModTools\stock\&lt;install hash&gt;\stock.db</c>.</summary>
+    /// <summary>The default database of an install: <c>%LOCALAPPDATA%\BO3ModTools\stock\&lt;install hash&gt;\stock.db</c>
+    /// (<c>BO3MODTOOLS_STOCK_DIR</c> replaces the <c>stock</c> folder).</summary>
     public static string DefaultPath(string installPath)
     {
         var local = Environment.GetEnvironmentVariable("BO3MODTOOLS_STOCK_DIR");
-        var root = local is { Length: > 0 }
-            ? local
-            : System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BO3ModTools", "stock");
+        var root = local is { Length: > 0 } ? local : System.IO.Path.Combine(InstallPath.ModToolsData, "stock");
         return System.IO.Path.Combine(root, InstallHash(installPath), "stock.db");
     }
 
-    /// <summary>
-    /// FNV-1a 64 (16 hex digits) of the install's canonical path (<see cref="Canonical"/>), lower-cased, forward slashes
-    /// as backslashes, without a trailing backslash: the folder name stocklib (<c>src\db.rs</c>), Dragon
-    /// (<c>src\stock.rs</c>), Blackbird and the Radiant plugin use, so a junction, a <c>subst</c> drive or an 8.3 name
-    /// reaches the same <c>stock.db</c> and registry entries as the real path.
-    /// </summary>
-    public static string InstallHash(string installPath) => HashCanonical(Canonical(installPath));
+    /// <inheritdoc cref="InstallPath.Hash"/>
+    public static string InstallHash(string installPath) => InstallPath.Hash(installPath);
 
-    /// <summary>The hash of a path that is already canonical (no file system access).</summary>
-    public static string HashCanonical(string canonical)
-    {
-        var text = canonical.ToLowerInvariant().Replace('/', '\\').TrimEnd('\\');
-        var hash = 0xcbf29ce484222325UL;
-        foreach (var b in Encoding.UTF8.GetBytes(text))
-        {
-            hash ^= b;
-            hash *= 0x100000001b3UL;
-        }
-        return hash.ToString("x16");
-    }
+    /// <inheritdoc cref="InstallPath.HashCanonical"/>
+    public static string HashCanonical(string canonical) => InstallPath.HashCanonical(canonical);
 
-    /// <summary>
-    /// The install path as stocklib and Dragon store and hash it (Rust <c>std::fs::canonicalize</c>): the final path Windows
-    /// resolves the folder to (junctions, symbolic links and <c>subst</c> drives followed, 8.3 names expanded, the real
-    /// case), without the <c>\\?\</c> prefix. A folder that can't be resolved (missing, no access) is used as given, made
-    /// absolute, like Dragon and Blackbird do. A UNC install keeps Rust's <c>UNC\server\share</c> form.
-    /// </summary>
-    public static string Canonical(string installPath)
-    {
-        string full;
-        try
-        {
-            full = System.IO.Path.GetFullPath(installPath);
-        }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException or System.Security.SecurityException)
-        {
-            return installPath;
-        }
-        var resolved = FinalPath(full) ?? full;
-        return resolved.StartsWith(@"\\?\", StringComparison.Ordinal) ? resolved[4..] : resolved;
-    }
-
-    private static string? FinalPath(string folder)
-    {
-        if (!OperatingSystem.IsWindows() || !Directory.Exists(folder))
-            return null;
-        using var handle = CreateFile(folder, 0, 7 /* share read, write, delete */, IntPtr.Zero, 3 /* OPEN_EXISTING */,
-            0x02000000 /* FILE_FLAG_BACKUP_SEMANTICS: a folder */, IntPtr.Zero);
-        if (handle.IsInvalid)
-            return null;
-        var text = new StringBuilder(1024);
-        var length = GetFinalPathNameByHandle(handle, text, text.Capacity, 0 /* VOLUME_NAME_DOS */);
-        return length == 0 || length >= text.Capacity ? null : text.ToString();
-    }
-
-    [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
-    private static extern Microsoft.Win32.SafeHandles.SafeFileHandle CreateFile(string name, uint access, uint share, IntPtr security, uint disposition, uint flags, IntPtr template);
-
-    [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
-    private static extern uint GetFinalPathNameByHandle(Microsoft.Win32.SafeHandles.SafeFileHandle handle, StringBuilder path, int size, uint flags);
-
+    /// <inheritdoc cref="InstallPath.Canonical"/>
+    public static string Canonical(string installPath) => InstallPath.Canonical(installPath);
     public bool Exists => File.Exists(Path);
 
     private SqliteConnection Open()
