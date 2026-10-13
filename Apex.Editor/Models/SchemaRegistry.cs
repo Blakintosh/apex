@@ -195,7 +195,12 @@ public static class SchemaRegistry
     {
         TypeName = "xmodel",
         GdfName = "xmodel.gdf",
-        Properties = new List<PropertyDef>
+        Properties = BuildXModelProperties(),
+    };
+
+    private static List<PropertyDef> BuildXModelProperties()
+    {
+        var props = new List<PropertyDef>
         {
             new("filename", "Source File", "Source", PropertyKind.Text,
                 "Path to the exported model file, relative to model_export."),
@@ -206,21 +211,76 @@ public static class SchemaRegistry
             new("physicsPreset", "Physics Preset", "Collision", PropertyKind.Choice,
                 "Physics preset used for dynamic simulation.")
                 { Choices = new[] { "default", "none", "wood", "metal", "glass", "cloth", "rubble" }, Default = "default" },
-            new("bulletCollisionLOD", "Bullet Collision", "Collision", PropertyKind.Choice,
+            new("BulletCollisionLOD", "Bullet Collision", "Collision", PropertyKind.Choice,
                 "LOD used for bullet collision tests.")
-                { Choices = new[] { "None", "High", "Medium", "Low" }, Default = "High" },
+                { Choices = new[] { "None", "High", "Medium", "Low", "Lowest", "LOD4", "LOD5", "LOD6", "LOD7", "Custom" }, Default = "None" },
             new("playerCollision", "Player Collision", "Collision", PropertyKind.Toggle,
                 "Players collide with this model.") { Default = "1" },
             new("castsShadow", "Casts Shadow", "Collision", PropertyKind.Toggle,
                 "Model casts dynamic shadows.") { Default = "1" },
-            new("lodMedium", "Medium LOD", "LODs", PropertyKind.Text,
-                "Exported model used for the medium level of detail."),
-            new("lodLow", "Low LOD", "LODs", PropertyKind.Text,
-                "Exported model used for the low level of detail."),
-            new("lodBias", "LOD Bias", "LODs", PropertyKind.Number,
-                "Distance bias applied when selecting LODs.") { Min = -10, Max = 10, Step = 0.1, Default = "0" },
-        },
-    };
+        };
+        props.AddRange(BuildXModelLods());
+        return props;
+    }
+
+    /// <summary>The xmodel's LOD slots as the linker reads them (case-sensitive GDT keys), then the shared LOD settings.</summary>
+    private static IEnumerable<PropertyDef> BuildXModelLods()
+    {
+        // file key, force-rigid key, autogen key, autogen percent key, label, subgroup
+        (string File, string Rigid, string Auto, string Pct, string Label)[] slots =
+        {
+            ("mediumLod", "forceMediumLodRigid", "autogenMediumLod", "autogenMediumLodPercent", "Medium"),
+            ("lowLod", "forceLowLodRigid", "autogenLowLod", "autogenLowLodPercent", "Low"),
+            ("lowestLod", "forceLowestLodRigid", "autogenLowestLod", "autogenLowestLodPercent", "Lowest"),
+            ("lod4File", "forceLod4Rigid", "autogenLod4", "autogenLod4Percent", "LOD 4"),
+            ("lod5File", "forceLod5Rigid", "autogenLod5", "autogenLod5Percent", "LOD 5"),
+            ("lod6File", "forceLod6Rigid", "autogenLod6", "autogenLod6Percent", "LOD 6"),
+            ("lod7File", "forceLod7Rigid", "autogenLod7", "autogenLod7Percent", "LOD 7"),
+        };
+        foreach (var (file, rigid, auto, pct, label) in slots)
+        {
+            var sub = label + " LOD";
+            yield return new(auto, "Auto-Generate", "LODs", PropertyKind.Toggle,
+                $"Generate the {label.ToLowerInvariant()} LOD from the previous LOD instead of using a model file.")
+                { Subgroup = sub, Default = "0" };
+            yield return new(pct, "Auto-Generate Percent", "LODs", PropertyKind.Number,
+                $"Percentage of the previous LOD's faces kept in the generated {label.ToLowerInvariant()} LOD.")
+                { Subgroup = sub, Min = 0, Max = 100, Step = 1, IsInteger = true, Default = "90" };
+            yield return new(file, "Source File", "LODs", PropertyKind.Text,
+                $"Exported model used for the {label.ToLowerInvariant()} level of detail.")
+                { Subgroup = sub, FileKind = PropertyFileKind.Model, RelativeRoot = "model_export/" };
+            yield return new(rigid, "Force Rigid", "LODs", PropertyKind.Toggle,
+                $"Treat the {label.ToLowerInvariant()} LOD as a rigid (unskinned) model.")
+                { Subgroup = sub, Default = "0" };
+        }
+        yield return new("dropLOD", "Drop LOD", "LODs", PropertyKind.Choice,
+            "The LOD from which the model stops being drawn.")
+            { Subgroup = "Distance", Choices = new[] { "None", "Medium", "Low", "Lowest", "LOD4", "LOD5", "LOD6", "LOD7" }, Default = "None" };
+        yield return new("ShadowLOD", "Shadow LOD", "LODs", PropertyKind.Choice,
+            "The LOD from which the model stops casting shadows.")
+            { Subgroup = "Distance", Choices = new[] { "None", "Medium", "Low", "Lowest", "LOD4", "LOD5", "LOD6", "LOD7" }, Default = "None" };
+        yield return new("LODBiasPercent", "LOD Bias", "LODs", PropertyKind.Number,
+            "Distance bias applied when selecting LODs (scales switch distances by 2^-bias).")
+            { Subgroup = "Distance", Min = -10, Max = 10, Step = 0.1, Default = "0" };
+        yield return new("LODBiasOffsetCP", "LOD Bias Offset (Campaign)", "LODs", PropertyKind.Number,
+            "Extra LOD bias in campaign.") { Subgroup = "Distance", Min = -10, Max = 10, Step = 0.1, Default = "0" };
+        yield return new("LODBiasOffsetMP", "LOD Bias Offset (Multiplayer)", "LODs", PropertyKind.Number,
+            "Extra LOD bias in multiplayer.") { Subgroup = "Distance", Min = -10, Max = 10, Step = 0.1, Default = "0" };
+        yield return new("customAutogenParams", "Custom Auto-Generate Priorities", "LODs", PropertyKind.Toggle,
+            "Use the priorities below when generating LODs instead of the defaults.") { Subgroup = "Auto-Generate Priorities", Default = "0" };
+        yield return new("lodPositionPriority", "Position Priority", "LODs", PropertyKind.Number,
+            "How strongly auto-generated LODs preserve vertex positions.")
+            { Subgroup = "Auto-Generate Priorities", Min = 0, Max = 100, Step = 0.01, Default = "32" };
+        yield return new("lodNormalPriority", "Normal Priority", "LODs", PropertyKind.Number,
+            "How strongly auto-generated LODs preserve normals.")
+            { Subgroup = "Auto-Generate Priorities", Min = 0, Max = 100, Step = 0.001, Default = "0.03125" };
+        yield return new("LodUvPriority", "UV Priority", "LODs", PropertyKind.Number,
+            "How strongly auto-generated LODs preserve UVs.")
+            { Subgroup = "Auto-Generate Priorities", Min = 0, Max = 100, Step = 0.001, Default = "0.0625" };
+        yield return new("LodColorPriority", "Color Priority", "LODs", PropertyKind.Number,
+            "How strongly auto-generated LODs preserve vertex colours.")
+            { Subgroup = "Auto-Generate Priorities", Min = 0, Max = 100, Step = 0.001, Default = "0.03125" };
+    }
 
     private static AssetSchema BuildMaterial() => new()
     {
