@@ -31,9 +31,14 @@ public partial class Program
             auto.All(k => P(k + "Percent") is { Kind: PropertyKind.Number, Min: 0, Max: 100 }));
 
         Check("xmodel schema: customAutogenParams toggle", P("customAutogenParams")?.Kind == PropertyKind.Toggle);
-        Check("xmodel schema: priority keys and defaults (32, 1/32, 1/16, 1/32)",
-            P("lodPositionPriority")?.Default == "32" && P("lodNormalPriority")?.Default == "0.03125"
-            && P("LodUvPriority")?.Default == "0.0625" && P("LodColorPriority")?.Default == "0.03125");
+        // defaults as xmodel.gdf has them (gdt.db's xmodel table): what an entry holds when the key is not written
+        Check("xmodel schema: priority keys and the deffile's defaults (12, 1.54, 3.5, 0.008)",
+            P("lodPositionPriority")?.Default == "12" && P("lodNormalPriority")?.Default == "1.54"
+            && P("LodUvPriority")?.Default == "3.5" && P("LodColorPriority")?.Default == "0.008");
+        Check("xmodel schema: autogen percents default as the deffile does (50, 25, then 13)",
+            P("autogenMediumLodPercent")?.Default == "50" && P("autogenLowLodPercent")?.Default == "25"
+            && new[] { "autogenLowestLodPercent", "autogenLod4Percent", "autogenLod5Percent", "autogenLod6Percent", "autogenLod7Percent" }.All(k => P(k)?.Default == "13"));
+        Check("xmodel schema: dropLOD and ShadowLOD default to Auto", P("dropLOD")?.Default == "Auto" && P("ShadowLOD")?.Default == "Auto");
         Check("xmodel schema: bias keys", new[] { "LODBiasPercent", "LODBiasOffsetCP", "LODBiasOffsetMP" }.All(k => P(k)?.Kind == PropertyKind.Number));
         Check("xmodel schema: dropLOD and ShadowLOD list the 7 lower slots",
             new[] { "dropLOD", "ShadowLOD" }.All(k => P(k) is { Kind: PropertyKind.Choice } d
