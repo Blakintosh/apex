@@ -6,7 +6,7 @@
       "entry": null,
       "entry_stale": false,
       "settings_path": "C:\\Users\\black\\AppData\\Roaming\\Blackbird\\settings.json",
-      "settings_use_bb_linker": true,
+      "settings_use_dragon": true,
       "source": "settings"
     },
     "dragon": {

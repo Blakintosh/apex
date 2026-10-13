@@ -6,7 +6,7 @@
       "entry": null,
       "entry_stale": false,
       "settings_path": "C:\\Users\\black\\AppData\\Local\\Temp/fakeappdata\\Blackbird\\settings.json",
-      "settings_use_bb_linker": false,
+      "settings_use_dragon": false,
       "source": "settings"
     },
     "dragon": {
@@ -83,7 +83,7 @@
       "warnings": []
     },
     "use_directly": {
-      "fix": "Turn on \"Link with Dragon\" in Blackbird's settings",
+      "fix": "Turn on Tools > Link with Dragon in Blackbird",
       "ok": false,
       "reason": "Blackbird's settings have Link with Dragon turned off.",
       "warnings": []
