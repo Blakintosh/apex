@@ -25,6 +25,15 @@ public partial class Program
             Parses("ASSET://mtl_wall.material/", "mtl_wall", "material") && Parses("asset://my%20asset.material", "my asset", "material"));
         Check("links: a link without a '.' names any type",
             Parses("asset://wpn_smg_riot", "wpn_smg_riot", ""));
+        var cloneLink = AssetLink.Parse("asset://p7_zm_zod_master_switch.xmodel?stock=clone&map=zm_repl");
+        Check("links: ?stock=clone&map=<map> asks for the stock asset's Create local copy dialog on that map",
+            cloneLink is { Name: "p7_zm_zod_master_switch", Type: "xmodel", IsStockClone: true, Map: "zm_repl" }
+            && AssetLink.Parse("asset://a.xmodel?map=mods%2Fzm_x&stock=CLONE") is { IsStockClone: true, Map: "mods/zm_x" }
+            && AssetLink.Parse("asset://a.xmodel?stock=nonsense") is { IsStockClone: false, Map: "" }
+            && AssetLink.Parse("asset://a.xmodel") is { IsStockClone: false });
+        Check("links: a link's query is not part of the name, and a link prints as it was written",
+            AssetLink.Parse("asset://my%20asset.material?stock=clone") is { Name: "my asset", Type: "material" }
+            && cloneLink?.ToString() == "asset://p7_zm_zod_master_switch.xmodel?stock=clone&map=zm_repl");
         Check("links: no name, another scheme or a path is no link",
             AssetLink.Parse("asset://") is null && AssetLink.Parse("asset://.material") is null && AssetLink.Parse("https://x.y") is null
             && AssetLink.Parse("asset://a/b.xmodel") is null && AssetLink.Parse(null) is null

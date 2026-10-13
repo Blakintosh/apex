@@ -29,6 +29,8 @@ public sealed partial class MainViewModel
         // Until an install is found only Locate… applies: every command is off, keys and palette included.
         var r = new CommandRegistry { Suspended = () => IsInstallMissing };
         bool Tab() => ActiveTab is not null;
+        // A stock asset is shown read-only: only the commands that read it apply (Create local copy is its own button).
+        bool Editable() => ActiveTab is { IsStock: false };
         // An xanim's properties are a panel of its own with no Set tab: the view isn't offered there.
         bool SetView() => ActiveTab is { IsAnim: false };
 
@@ -45,20 +47,20 @@ public sealed partial class MainViewModel
         r.Bind(K.NewGdt, NewGdt);
         r.Bind(K.SaveAll, SaveActive);
         r.Bind(K.RestorePrevious, RestorePrevious, CanRestorePrevious);
-        r.Bind(K.Compare, OpenCompare, Tab);
-        r.Bind(K.Rename, OpenRename, Tab);
-        r.Bind(K.Duplicate, DuplicateActive, Tab);
-        r.Bind(K.DuplicateTo, () => DuplicateTo(new[] { ActiveTab!.Record }), Tab);
-        r.Bind(K.MoveTo, () => MoveTo(new[] { ActiveTab!.Record }), Tab);
-        r.Bind(K.Derive, () => DeriveAsset(ActiveTab!.Record), Tab);
+        r.Bind(K.Compare, OpenCompare, Editable);
+        r.Bind(K.Rename, OpenRename, Editable);
+        r.Bind(K.Duplicate, DuplicateActive, Editable);
+        r.Bind(K.DuplicateTo, () => DuplicateTo(new[] { ActiveTab!.Record }), Editable);
+        r.Bind(K.MoveTo, () => MoveTo(new[] { ActiveTab!.Record }), Editable);
+        r.Bind(K.Derive, () => DeriveAsset(ActiveTab!.Record), Editable);
         r.Bind(K.Underive, () => UnderiveAsset(ActiveTab!.Record), () => ActiveTab is { HasParent: true, IsParentMissing: false });
         r.Bind(K.ChangeWeaponClass, () => OpenChangeWeaponClass(ActiveTab!.Record), () => CanChangeWeaponClass(ActiveTab?.Record));
-        r.Bind(K.CopyAssets, () => CopyAssets(new[] { ActiveTab!.Record }), Tab);
-        r.Bind(K.CutAssets, () => CutAssets(new[] { ActiveTab!.Record }), Tab);
+        r.Bind(K.CopyAssets, () => CopyAssets(new[] { ActiveTab!.Record }), Editable);
+        r.Bind(K.CutAssets, () => CutAssets(new[] { ActiveTab!.Record }), Editable);
         r.Bind(K.PasteAssets, PasteFromPalette, () => CanPasteAssets);
-        r.Bind(K.Delete, DeleteActive, Tab);
-        r.Bind(K.Pin, TogglePinActive, Tab, () => IsActivePinned);
-        r.Bind(K.Reveal, RevealActiveInTree, Tab);
+        r.Bind(K.Delete, DeleteActive, Editable);
+        r.Bind(K.Pin, TogglePinActive, Editable, () => IsActivePinned);
+        r.Bind(K.Reveal, RevealActiveInTree, Editable);
         r.Bind(K.CopyName, () => Shell?.CopyText(ActiveTab!.Name), Tab);
         r.Bind(K.GoToParent, GoToParent, () => ActiveTab is { HasParent: true, IsParentMissing: false });
         r.Bind(K.GoToReference, () => FocusedReference()?.GoToCommand.Execute(null), () => FocusedReference() is { CanGoTo: true });
@@ -74,7 +76,7 @@ public sealed partial class MainViewModel
         // Editor views
         r.Bind(K.ShowAllProperties, () => ActiveTab!.View = EditorView.All, Tab, () => ActiveTab?.View == EditorView.All);
         r.Bind(K.ShowSetProperties, () => ActiveTab!.View = EditorView.Set, SetView, () => ActiveTab?.View == EditorView.Set);
-        r.Bind(K.AddProperty, () => { ActiveTab!.View = EditorView.Set; Shell?.OpenAddProperty(); }, SetView);
+        r.Bind(K.AddProperty, () => { ActiveTab!.View = EditorView.Set; Shell?.OpenAddProperty(); }, () => SetView() && Editable());
         r.Bind(K.ShowChangedProperties, () => ActiveTab!.View = EditorView.Changed, Tab, () => ActiveTab?.View == EditorView.Changed);
         r.Bind(K.ShowProblemProperties, () => ActiveTab!.View = EditorView.Problems, Tab, () => ActiveTab?.View == EditorView.Problems);
         r.Bind(K.ShowOverrides, () => ActiveTab!.View = EditorView.Overrides, () => ActiveTab?.HasParent == true,
@@ -112,6 +114,8 @@ public sealed partial class MainViewModel
         r.Bind(K.CheckForUpdates, CheckForUpdates);
         r.Bind(K.About, () => Shell?.ShowAbout());
         r.Bind(K.WhatsNew, ShowWhatsNew);
+        r.Bind(K.Components, ShowComponents);
+        r.Bind(K.StockSounds, ShowStockSounds, available: () => _env.IsAvailable || Stock.Backend is not null);
         r.Bind(K.SyncWithRadiant, () => SyncWithRadiant = !SyncWithRadiant, available: () => _env.IsAvailable, isChecked: () => SyncWithRadiant);
 
         // Explorer

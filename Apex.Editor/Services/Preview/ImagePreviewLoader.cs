@@ -109,7 +109,7 @@ public static class ImagePreviewLoader
     /// (aspect kept, each side rounded); throws when the file cannot be decoded.</summary>
     internal static Image<Rgba32> LoadScaled(string path, int maxDimension, out int sourceWidth, out int sourceHeight)
     {
-        var image = Image.Load<Rgba32>(path);
+        var image = path.EndsWith(".lz4", StringComparison.OrdinalIgnoreCase) ? LoadCacheLevel(path) : Image.Load<Rgba32>(path);
         sourceWidth = image.Width;
         sourceHeight = image.Height;
         int longest = Math.Max(image.Width, image.Height);
@@ -121,6 +121,16 @@ public static class ImagePreviewLoader
             image.Mutate(x => x.Resize(tw, th));
         }
         return image;
+    }
+
+    /// <summary>The largest level of a ToolsGfx image cache file (a stock image has no source file, only this) as RGBA8.</summary>
+    private static Image<Rgba32> LoadCacheLevel(string path)
+    {
+        var cached = Apex.Render.Data.Assets.ImageCache.LoadFile(path);
+        var level = cached.Faces[0][0];
+        var texels = Apex.Render.Data.Conversion.Images.BlockDecoder.Decode(cached.DxgiFormat, level.Width, level.Height, level.Data)
+                     ?? throw new NotSupportedException($"{Apex.Render.Data.Assets.DxgiFormats.Name(cached.DxgiFormat)} is not decoded");
+        return Image.LoadPixelData<Rgba32>(texels, level.Width, level.Height);
     }
 
     private static Decoded? Decode(string key, string path, int maxDimension, CancellationToken ct)

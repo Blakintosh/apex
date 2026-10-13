@@ -807,8 +807,13 @@ public partial class AssetBrowserView : UserControl
             e.Cancel = true;
             return;
         }
+        // A stock asset is read-only: it opens, its name copies, and Create local copy turns it into one that is not.
+        var stock = selected.Count > 0 && selected.Any(a => a.IsStock);
+        MenuCloneStock.IsVisible = stock && selected.Count == 1;
+        MenuUseStock.IsVisible = stock && selected.Count == 1 && Vm.StockUseOk;
         var one = selected.Count == 1;
-        var assets = selected.Count > 0;
+        var assets = selected.Count > 0 && !stock;
+        var oneLocal = one && !stock;
         MenuOpen.IsVisible = one;
         MenuToggle.IsVisible = group is not null;
         MenuToggle.Header = group is { IsExpanded: true } ? "Collapse" : "Expand";
@@ -824,8 +829,8 @@ public partial class AssetBrowserView : UserControl
         else
         {
             MenuPin.Header = _assetPinHeader;
-            MenuPin.IsVisible = one;
-            MenuPin.IsChecked = one && Vm.IsPinned(selected[0]);
+            MenuPin.IsVisible = oneLocal;
+            MenuPin.IsChecked = oneLocal && Vm.IsPinned(selected[0]);
         }
         MenuCopy.Header = group is not null || one ? CommandCatalog.Get(CommandCatalog.CopyName).Name : $"Copy {selected.Count} names";
         var pasteTarget = Vm.CanPasteAssets ? PasteTarget() : null;
@@ -834,20 +839,32 @@ public partial class AssetBrowserView : UserControl
         MenuCopyAssets.IsVisible = assets;
         MenuPasteAssets.IsVisible = pasteTarget is not null;
         MenuEditSeparator.IsVisible = assets;
-        MenuRename.IsVisible = one;
-        MenuDuplicate.IsVisible = one;
+        MenuRename.IsVisible = oneLocal;
+        MenuDuplicate.IsVisible = oneLocal;
         MenuDuplicateTo.IsVisible = assets;
         MenuMoveTo.IsVisible = assets;
-        MenuDerive.IsVisible = one && !selected[0].Type.Equals(Services.Gdt.GdtLoader.UnknownType, StringComparison.OrdinalIgnoreCase);
-        MenuUnderive.IsVisible = one && selected[0].Parent is not null;
-        MenuChangeClass.IsVisible = one && MainViewModel.CanChangeWeaponClass(selected[0]);
-        MenuDelete.IsVisible = one;
+        MenuDerive.IsVisible = oneLocal && !selected[0].Type.Equals(Services.Gdt.GdtLoader.UnknownType, StringComparison.OrdinalIgnoreCase);
+        MenuUnderive.IsVisible = oneLocal && selected[0].Parent is not null;
+        MenuChangeClass.IsVisible = oneLocal && MainViewModel.CanChangeWeaponClass(selected[0]);
+        MenuDelete.IsVisible = oneLocal;
         var sameType = selected.Select(a => a.Type).Distinct().Count() == 1;
-        MenuMultiSeparator.IsVisible = selected.Count >= 2;
-        MenuCompare.IsVisible = selected.Count >= 2 && sameType;
+        MenuMultiSeparator.IsVisible = selected.Count >= 2 && !stock;
+        MenuCompare.IsVisible = selected.Count >= 2 && sameType && !stock;
         MenuCompare.Header = $"Compare {selected.Count} assets";
         MenuTable.IsVisible = selected.Count >= 2 && assets;
         MenuTable.Header = $"Open {selected.Count} as table";
+    }
+
+    private void MenuUseStock_Click(object? sender, RoutedEventArgs e)
+    {
+        if (SelectedAssets() is [{ IsStock: true } asset] && Vm is { } vm)
+            vm.UseInMapOf(asset);
+    }
+
+    private void MenuCloneStock_Click(object? sender, RoutedEventArgs e)
+    {
+        if (SelectedAssets() is [{ IsStock: true } asset] && Vm is { } vm)
+            vm.CreateLocalCopyOf(asset);
     }
 
     private void MenuOpen_Click(object? sender, RoutedEventArgs e)

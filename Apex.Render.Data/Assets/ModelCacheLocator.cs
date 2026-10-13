@@ -40,14 +40,18 @@ public sealed record CacheLocation(string Path, CacheMatch Match, CacheHash? Exp
 /// </summary>
 public sealed class ModelCacheLocator
 {
-    public ModelCacheLocator(ToolsGfxInstall install, ApexToolsGfxCache? apexCache = null, CachePolicy? policy = null)
+    public ModelCacheLocator(ToolsGfxInstall install, ApexToolsGfxCache? apexCache = null, CachePolicy? policy = null, StockCache? stock = null)
     {
         Install = install;
         ApexCache = apexCache ?? ApexToolsGfxCache.Default;
         Policy = policy ?? CachePolicy.Default;
+        Stock = stock;
     }
 
     public ToolsGfxInstall Install { get; }
+
+    /// <summary>Stock-asset caches, searched by name after everything else (no source to hash).</summary>
+    public StockCache? Stock { get; }
 
     /// <summary>Apex's own cache (converted assets).</summary>
     public ApexToolsGfxCache ApexCache { get; }
@@ -98,7 +102,8 @@ public sealed class ModelCacheLocator
             if (converted is not null)
                 return converted;
         }
-        return Policy.UseApeCache ? Newest(dir, $"pct{percent}_*.lz4", expected) : null;
+        return (Policy.UseApeCache ? Newest(dir, $"pct{percent}_*.lz4", expected) : null)
+            ?? (Stock is null ? null : Newest(Path.Combine(Stock.XMeshCacheDir, name), $"pct{percent}_*.lz4", expected));
     }
 
     /// <summary>Locates the xbin (material list) cache: <c>xbins\v1\&lt;xmodelName&gt;\&lt;Sig(xmodel_bin)&gt;.lz4</c>.</summary>
@@ -119,7 +124,8 @@ public sealed class ModelCacheLocator
             if (converted is not null)
                 return converted;
         }
-        return Policy.UseApeCache ? Newest(dir, "*.lz4", expected) : null;
+        return (Policy.UseApeCache ? Newest(dir, "*.lz4", expected) : null)
+            ?? (Stock is null ? null : Newest(Path.Combine(Stock.XBinCacheDir, name), "*.lz4", expected));
     }
 
     /// <summary>

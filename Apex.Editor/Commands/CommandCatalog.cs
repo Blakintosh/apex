@@ -84,6 +84,8 @@ public static class CommandCatalog
     public const string SyncWithRadiant = "app.syncRadiant";
     public const string About = "app.about";
     public const string WhatsNew = "app.whatsNew";
+    public const string Components = "app.components";
+    public const string StockSounds = "app.stockSounds";
 
     // ── Explorer ──
     public const string SearchAssets = "explorer.search";
@@ -188,6 +190,8 @@ public static class CommandCatalog
         C(CheckForUpdates, "Check for updates", CatView, "↓") with { Keywords = "update updates new version release latest github download install" },
         C(SyncWithRadiant, "Sync changes with Radiant", CatView, "⇄") with { IsToggle = true, Keywords = "radiant ape live notify gdtdb database changes log other applications" },
         C(WhatsNew, "What's new", CatView, "✦") with { Keywords = "release notes changelog changes latest version updated" },
+        C(Components, "Components", CatView, "▦") with { Keywords = "stock library dragon blackbird radiant plugin ultrasound installed versions use directly" },
+        C(StockSounds, "Stock sounds", CatView, "♪") with { Keywords = "sound aliases audio banks listen play preview game shipped stock library soundalias copy" },
         C(About, "About Apex", CatView, "ⓘ") with { Keywords = "version info information release" },
 
         C(SearchAssets, "Search assets", CatExplorer, "⌕", "Ctrl+Shift+F") with { Keywords = "filter find" },

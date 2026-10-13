@@ -89,6 +89,8 @@ public sealed class GlyphIcon : Control, Avalonia.Rendering.ICustomHitTest
         ["arrow-up"] = "M12 19V5M6 11l6-6 6 6",
         ["arrow-right"] = "M5 12h14M13 6l6 6-6 6",
         ["warning"] = "M12 3l10 18H2zM12 10v5M12 18h.01",
+        ["lock"] = "M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4",
+        ["stock"] = "M12 3l8 5v8l-8 5-8-5V8z",
         ["arrow-down"] = "M12 5v14M6 13l6 6 6-6",
         ["pin"] = "M12 17v5M9 3h6l-1 7 3 3v2H7v-2l3-3z",
         ["lock"] = "M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4",

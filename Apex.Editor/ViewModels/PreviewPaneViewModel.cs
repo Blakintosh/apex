@@ -10,6 +10,7 @@ using Apex.Editor.Services.Gdt;
 using Apex.Editor.Services.Preview;
 using Apex.Editor.Services.Preview.Notetracks;
 using Apex.Editor.Services.Preview.ToolsGfx;
+using Apex.Editor.Services.Stock;
 using Apex.Render.Assets;
 using Apex.Render.Data.Animation;
 using Apex.Render.Data.Gdt;
@@ -75,6 +76,26 @@ public sealed class PreviewPaneViewModel : IDisposable
             // construct the GL viewport.
             "xmodel" when env.IsAvailable => new PreviewPaneViewModel(new ModelPreviewViewModel(record, env, resolve)),
             "xanim" when env.IsAvailable => new PreviewPaneViewModel(new AnimPreviewViewModel(record, env, resolve)),
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// The preview of a stock asset (model, material or image): the same content as a local asset's, loaded from the
+    /// caches the helper writes on the first view. Null for kinds that have no preview cache.
+    /// </summary>
+    public static PreviewPaneViewModel? CreateStock(
+        AssetRecord record,
+        GameEnvironment env,
+        StockPreviewSource source,
+        Func<string, string, AssetRecord?> resolve,
+        Action<string, string> navigateToRef)
+    {
+        return source.Kind switch
+        {
+            "image" => new PreviewPaneViewModel(new ImagePreviewViewModel(record, env, source)),
+            "material" => new PreviewPaneViewModel(new MaterialPreviewViewModel(record, env, resolve, navigateToRef, source)),
+            "xmodel" when env.IsAvailable => new PreviewPaneViewModel(new ModelPreviewViewModel(record, env, resolve, source)),
             _ => null,
         };
     }
@@ -246,10 +267,17 @@ public sealed partial class ImagePreviewViewModel : ObservableObject, IPreviewCo
     private ImageChannelMode _mode = ImageChannelMode.Rgba;
     private readonly DelayedLoading _loading;
 
-    public ImagePreviewViewModel(AssetRecord record, GameEnvironment env)
+    private readonly StockPreviewSource? _stock;
+
+    /// <summary>The overlay's words while a load runs ("Loading…", or that the first view reads the game's files).</summary>
+    [ObservableProperty]
+    private string _loadingText = "Loading…";
+
+    public ImagePreviewViewModel(AssetRecord record, GameEnvironment env, StockPreviewSource? stock = null)
     {
         _record = record;
         _env = env;
+        _stock = stock;
         _loading = new DelayedLoading(v => IsLoading = v);
         Modes = new ObservableCollection<ChannelModeOption>
         {
@@ -263,8 +291,15 @@ public sealed partial class ImagePreviewViewModel : ObservableObject, IPreviewCo
         Modes[0].IsActive = true;
     }
 
+    private bool _modeChosen;
+
+    /// <summary>A shipped normal map keeps x and y in red and green and gloss variance in blue: shown as stored it is noise, so a
+    /// stock normal map opens in the normal-Z view until the user picks a channel.</summary>
+    internal static bool IsNormalCache(string path) => path.Contains(@"\Texture_normal", StringComparison.OrdinalIgnoreCase);
+
     public void SetMode(ImageChannelMode mode)
     {
+        _modeChosen = true;
         var changed = _mode != mode;
         _mode = mode;
         // Always re-assert: the two-way IsChecked binding unchecks an active pill on re-click.
@@ -285,6 +320,11 @@ public sealed partial class ImagePreviewViewModel : ObservableObject, IPreviewCo
         _cts?.Cancel();
         var cts = _cts = new CancellationTokenSource();
 
+        if (_stock is not null)
+        {
+            await RefreshStockAsync(_stock, cts);
+            return;
+        }
         var raw = _record.Properties.GetValueOrDefault("baseImage", "");
         if (string.IsNullOrWhiteSpace(raw))
         {
@@ -335,6 +375,66 @@ public sealed partial class ImagePreviewViewModel : ObservableObject, IPreviewCo
         {
             if (cts.IsCancellationRequested)
                 return; // superseded: the newer load owns the pane
+            SetBitmap(null);
+            Info = null;
+            Error = PreviewFailure.Text;
+        }
+        finally
+        {
+            if (_cts == cts)
+                _loading.End();
+        }
+    }
+
+    /// <summary>A stock image has no source file: the helper writes its cache on the first view and that is what is decoded.</summary>
+    private async Task RefreshStockAsync(StockPreviewSource stock, CancellationTokenSource cts)
+    {
+        _loading.Begin();
+        try
+        {
+            LoadingText = stock.NeedsHelper ? StockPreviewSource.PreparingText : "Loading…";
+            if (await stock.EnsureAsync(cts.Token) is { } problem)
+            {
+                if (!cts.IsCancellationRequested)
+                    Fail(problem);
+                return;
+            }
+            var path = stock.ImageFile(stock.Name);
+            if (path is null)
+            {
+                Fail("This image can't be previewed: the helper made no cache of it (cube, volume and array images aren't cached).");
+                return;
+            }
+            if (!_modeChosen && IsNormalCache(path) && _mode != ImageChannelMode.NormalZ)
+            {
+                _mode = ImageChannelMode.NormalZ;
+                foreach (var m in Modes)
+                    m.IsActive = m.Mode == _mode;
+            }
+            var mode = _mode;
+            var loaded = await ImagePreviewLoader.LoadAsync(path, mode, ImagePreviewLoader.PreviewSize, cts.Token);
+            if (cts.IsCancellationRequested)
+            {
+                loaded?.Bitmap.Dispose();
+                return;
+            }
+            if (loaded is null)
+            {
+                Fail($"Could not decode {System.IO.Path.GetFileName(path)}.");
+                return;
+            }
+            SetBitmap(loaded.Bitmap);
+            Error = null;
+            var cached = Apex.Render.Data.Assets.ImageCache.LoadFile(path);
+            Info = $"{loaded.SourceWidth} × {loaded.SourceHeight}  ·  {Apex.Render.Data.Assets.DxgiFormats.Name(cached.DxgiFormat)}  ·  stock cache";
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex) when (PreviewFailure.Contain(ex, _record, cts))
+        {
+            if (cts.IsCancellationRequested)
+                return;
             SetBitmap(null);
             Info = null;
             Error = PreviewFailure.Text;
@@ -478,16 +578,24 @@ public sealed partial class MaterialPreviewViewModel : ObservableObject, IPrevie
     private bool _forceGl;
     private readonly DelayedLoading _loading;
 
+    private readonly StockPreviewSource? _stock;
+
+    /// <summary>The overlay's words while a load runs ("Loading…", or that the first view reads the game's files).</summary>
+    [ObservableProperty]
+    private string _loadingText = "Loading…";
+
     public MaterialPreviewViewModel(
         AssetRecord record,
         GameEnvironment env,
         Func<string, string, AssetRecord?> resolve,
-        Action<string, string> navigate)
+        Action<string, string> navigate,
+        StockPreviewSource? stock = null)
     {
         _record = record;
         _env = env;
         _resolve = resolve;
         _navigate = navigate;
+        _stock = stock;
         _loading = new DelayedLoading(v => IsLoading = v);
     }
 
@@ -521,13 +629,17 @@ public sealed partial class MaterialPreviewViewModel : ObservableObject, IPrevie
         _cts?.Cancel();
         var cts = _cts = new CancellationTokenSource();
 
-        var schema = SchemaRegistry.Get(_record.Type);
+        if (_stock is not null && !await PrepareStockAsync(_stock, cts))
+            return;
+        // A stock material's fields are in its cache manifest: the slots need not wait for the helper's field read.
+        IReadOnlyDictionary<string, string> props = _stock?.ManifestFields() ?? _record.Properties;
+        var schema = SchemaRegistry.Get(_record.Type) ?? (_stock is not null ? SchemaRegistry.Get("material") : null);
         var imageProps = schema?.Properties
             .Where(p => p.Kind == PropertyKind.AssetRef && p.RefType.Equals("image", StringComparison.OrdinalIgnoreCase))
             .ToList() ?? new List<PropertyDef>();
 
         var filled = imageProps
-            .Select(p => (Def: p, Value: _record.Properties.GetValueOrDefault(p.Key, "")))
+            .Select(p => (Def: p, Value: props.GetValueOrDefault(p.Key, "")))
             .Where(t => !string.IsNullOrWhiteSpace(t.Value))
             .OrderBy(t =>
             {
@@ -536,8 +648,8 @@ public sealed partial class MaterialPreviewViewModel : ObservableObject, IPrevie
             })
             .ToList();
 
-        var mtlType = _record.Properties.GetValueOrDefault("materialType", "");
-        var surface = _record.Properties.GetValueOrDefault("surfaceType", "");
+        var mtlType = props.GetValueOrDefault("materialType", "");
+        var surface = props.GetValueOrDefault("surfaceType", "");
         Summary = string.Join("  ·  ", new[] { mtlType, surface }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
         var lookup = _env.IsAvailable ? ToolsGfxPreviewService.BeginLoad(_resolve) : null;
@@ -606,6 +718,41 @@ public sealed partial class MaterialPreviewViewModel : ObservableObject, IPrevie
     }
 
     /// <summary>
+    /// A stock material: the helper writes its caches (and its images') on the first view, and the fields the slots come from
+    /// are read. False with the pane saying why when the preview can't be drawn.
+    /// </summary>
+    private async Task<bool> PrepareStockAsync(StockPreviewSource stock, CancellationTokenSource cts)
+    {
+        _loading.Begin();
+        try
+        {
+            LoadingText = stock.NeedsHelper ? StockPreviewSource.PreparingText : "Loading…";
+            var problem = await stock.EnsureAsync(cts.Token);
+            if (cts.IsCancellationRequested)
+                return false;
+            if (problem is not null)
+            {
+                Gfx.Clear();
+                Scene = null;
+                OnPropertyChanged(nameof(HasSphere));
+                Error = problem;
+                return false;
+            }
+            LoadingText = "Loading…";
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+        finally
+        {
+            if (_cts == cts)
+                _loading.End();
+        }
+    }
+
+    /// <summary>
     /// Brings <see cref="Slots"/> to <paramref name="filled"/> in place: slots whose image reference is unchanged keep
     /// their thumbnail; only new or changed references are decoded.
     /// </summary>
@@ -628,13 +775,51 @@ public sealed partial class MaterialPreviewViewModel : ObservableObject, IPrevie
             }
             var slot = new MaterialSlotViewModel(def.Key, def.Label, value, _resolve("image", value) is not null, _navigate);
             Slots.Insert(i, slot);
-            if (slot.CanOpen)
+            if (_stock?.ImageFile(value) is { } cached)
+            {
+                // A stock image opens nowhere (it is in no GDT), but its cache is thumbnail enough.
+                slot.Status = "stock image";
+                _ = LoadStockSlotAsync(slot, cached);
+            }
+            else if (slot.CanOpen)
                 _ = LoadSlotAsync(slot, value, lookup);
         }
         while (Slots.Count > filled.Count)
             Slots.RemoveAt(Slots.Count - 1);
         foreach (var dropped in kept.Values)
             dropped.Dispose();
+    }
+
+    private static async Task LoadStockSlotAsync(MaterialSlotViewModel slot, string cacheFile)
+    {
+        var ct = slot.Lifetime;
+        try
+        {
+            var loaded = await ImagePreviewLoader.LoadAsync(cacheFile, ImagePreviewViewModel.IsNormalCache(cacheFile) ? ImageChannelMode.NormalZ : ImageChannelMode.Rgba, ImagePreviewLoader.ThumbnailSize, ct);
+            if (ct.IsCancellationRequested)
+            {
+                loaded?.Bitmap.Dispose();
+                return;
+            }
+            if (loaded is null)
+            {
+                slot.Status = "can't decode";
+                return;
+            }
+            var old = slot.Thumbnail;
+            slot.Thumbnail = loaded.Bitmap;
+            old?.Dispose();
+            slot.Status = $"{loaded.SourceWidth}×{loaded.SourceHeight}";
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex) when (Services.CrashGuard.IsRecoverable(ex))
+        {
+            Services.CrashGuard.WriteLog(ex, $"stock texture slot {slot.ImageAssetName}");
+            if (!ct.IsCancellationRequested)
+                slot.Status = "can't load";
+        }
     }
 
     private async Task LoadSlotAsync(MaterialSlotViewModel slot, string imageAssetName, ApexGdtLookup? lookup)
@@ -761,11 +946,18 @@ public sealed partial class ModelPreviewViewModel : ObservableObject, IPreviewCo
     private bool _forceGl;
     private readonly DelayedLoading _loading;
 
-    public ModelPreviewViewModel(AssetRecord record, GameEnvironment env, Func<string, string, AssetRecord?> resolve)
+    private readonly StockPreviewSource? _stock;
+
+    /// <summary>The overlay's words while a load runs ("Loading…", or that the first view reads the game's files).</summary>
+    [ObservableProperty]
+    private string _loadingText = "Loading…";
+
+    public ModelPreviewViewModel(AssetRecord record, GameEnvironment env, Func<string, string, AssetRecord?> resolve, StockPreviewSource? stock = null)
     {
         _record = record;
         _env = env;
         _resolve = resolve;
+        _stock = stock;
         _loading = new DelayedLoading(v => IsLoading = v);
     }
 
@@ -792,7 +984,8 @@ public sealed partial class ModelPreviewViewModel : ObservableObject, IPreviewCo
         _cts?.Cancel();
         var cts = _cts = new CancellationTokenSource();
 
-        var raw = FindModelPath();
+        // A stock model has no export file: the helper's caches are all there is to draw (the GL fallback has nothing to read).
+        var raw = _stock is not null ? _stock.Name : FindModelPath();
         if (string.IsNullOrWhiteSpace(raw))
         {
             Scene = null;
@@ -806,6 +999,26 @@ public sealed partial class ModelPreviewViewModel : ObservableObject, IPreviewCo
         _loading.Begin();
         try
         {
+            if (_stock is not null)
+            {
+                LoadingText = _stock.NeedsHelper ? StockPreviewSource.PreparingText : "Loading…";
+                if (await _stock.EnsureAsync(cts.Token) is { } problem)
+                {
+                    if (cts.IsCancellationRequested)
+                        return;
+                    Scene = null;
+                    Gfx.Clear();
+                    Error = problem;
+                    Stats = null;
+                    return;
+                }
+                LoadingText = "Loading…";
+                if (_forceGl)
+                {
+                    Error = "This model needs the Direct3D preview, which isn't available here.";
+                    return;
+                }
+            }
             if (!_forceGl)
             {
                 var name = _record.Name;

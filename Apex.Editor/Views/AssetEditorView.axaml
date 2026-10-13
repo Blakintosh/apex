@@ -289,7 +289,20 @@
     <!-- ── Header: where it lives · glyph + name · what it's based on — Compare · ⋯ ──────── -->
     <!-- Back and forward (Alt+← / Alt+→) stay keys and palette commands: the header keeps to what this asset is. -->
     <DockPanel DockPanel.Dock="Top" Margin="24,18,16,14">
-      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top" Margin="0,18,0,0">
+      <!-- A stock asset: one way forward. Compare and the asset menu act on GDT assets. -->
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top" Margin="0,18,0,0" IsVisible="{Binding IsStock}">
+        <!-- Dragon carries stock assets here: naming the asset is the way forward, and a copy is for changing it. When it
+             doesn't, Create local copy stays the one action and the note under the banner says why. -->
+        <Button Name="UseInMapButton" Classes="accent" Command="{Binding Owner.UseInMapCommand, FallbackValue={x:Null}}"
+                IsVisible="{Binding Owner.StockUseOk, FallbackValue=False}" AutomationProperties.Name="Use in map">
+          <TextBlock Text="Use in map…"/>
+        </Button>
+        <Button Name="CreateLocalCopyButton" Classes.accent="{Binding !Owner.StockUseOk, FallbackValue=True}" Classes.outline="{Binding Owner.StockUseOk, FallbackValue=False}"
+                Command="{Binding Owner.CreateLocalCopyCommand, FallbackValue={x:Null}}" AutomationProperties.Name="Create local copy">
+          <TextBlock Text="Create local copy…"/>
+        </Button>
+      </StackPanel>
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top" Margin="0,18,0,0" IsVisible="{Binding !IsStock}">
         <Button Classes="line" Content="{c:Name asset.compare}" c:Cmd.Id="asset.compare"/>
         <Button Classes="icon line" Content="⋯" Width="28" Height="28" ToolTip.Tip="More actions"
                 AutomationProperties.Name="More actions">
@@ -326,16 +339,36 @@
       <StackPanel Name="HeaderTitle" Spacing="6" VerticalAlignment="Center" ClipToBounds="True" Margin="0,0,12,0">
         <!-- "zm_weapons.gdt / weapon": the GDT path is the part that trims. -->
         <TextBlock Name="ProvenanceText" Classes="faint" FontSize="{StaticResource FontSizeBase}" Text="{Binding Breadcrumb}"
-                   TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Provenance}"/>
+                   TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Provenance}" IsVisible="{Binding !IsStock}"/>
+        <!-- "Stock / zm_levelcommon.ff / weapon": where the game ships it. -->
+        <StackPanel Name="StockCrumbs" Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsStock}">
+          <TextBlock Classes="faint" FontSize="{StaticResource FontSizeBase}" FontStyle="Italic" Text="Stock"/>
+          <TextBlock Classes="faint" FontSize="{StaticResource FontSizeBase}" Text="/"/>
+          <TextBlock Name="StockCrumbZone" Classes="faint mono" FontSize="{StaticResource FontSizeSm}" VerticalAlignment="Center"
+                     Text="{Binding StockInfo.ZoneFile, FallbackValue=''}"/>
+          <TextBlock Classes="faint" FontSize="{StaticResource FontSizeBase}" Text="/"/>
+          <TextBlock Name="StockCrumbKind" Classes="faint" FontSize="{StaticResource FontSizeBase}" Text="{Binding StockInfo.Kind, FallbackValue=''}"/>
+        </StackPanel>
         <DockPanel>
           <controls:GlyphIcon DockPanel.Dock="Left" Glyph="{Binding Glyph}" Size="16" Foreground="{Binding TypeBrush}"
                               VerticalAlignment="Center" Margin="0,0,10,0"/>
-          <SelectableTextBlock Name="AssetTitle" Text="{Binding Name}" FontSize="19" FontWeight="SemiBold"
-                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                               ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}"/>
+          <controls:NameFirstPanel Spacing="12">
+            <SelectableTextBlock Name="AssetTitle" Text="{Binding Name}" FontSize="19" FontWeight="SemiBold"
+                                 Classes.stock="{Binding IsStock}"
+                                 VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                 ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}"/>
+            <Border Name="ReadOnlyTag" Classes="readonlytag" IsVisible="{Binding IsStock}" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" Spacing="5">
+                <controls:GlyphIcon Glyph="lock" Size="11" VerticalAlignment="Center"/>
+                <TextBlock Text="read-only" FontSize="{StaticResource FontSizeXs}" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Border>
+          </controls:NameFirstPanel>
         </DockPanel>
         <!-- "Based on wpn_ar_havoc · 6 overrides · opened from fx_muzzle_flash_05" -->
-        <StackPanel Orientation="Horizontal" Spacing="6" MinHeight="18">
+        <TextBlock Name="StockInfoLine" Classes="dim" FontSize="{StaticResource FontSizeBase}" MinHeight="18" TextTrimming="CharacterEllipsis"
+                   IsVisible="{Binding IsStock}" Text="{Binding StockInfo.Info, FallbackValue=''}" ToolTip.Tip="{Binding StockInfo.Info, FallbackValue=''}"/>
+        <StackPanel Orientation="Horizontal" Spacing="6" MinHeight="18" IsVisible="{Binding !IsStock}">
           <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasParent}">
             <TextBlock Classes="dim" FontSize="{StaticResource FontSizeBase}" Text="Based on" VerticalAlignment="Center"/>
             <Button Classes="link teal" c:Cmd.Id="asset.goToParent" IsVisible="{Binding !IsParentMissing}" MinHeight="18">
@@ -356,6 +389,19 @@
         </StackPanel>
       </StackPanel>
     </DockPanel>
+
+    <!-- What stock means for this asset, and what to do about it. -->
+    <Border DockPanel.Dock="Top" Name="StockBanner" Classes="stockbanner" Margin="24,0,16,12" IsVisible="{Binding IsStock}">
+      <DockPanel>
+        <controls:GlyphIcon DockPanel.Dock="Left" Glyph="stock" Size="18" Foreground="{DynamicResource AccentTextBrush}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+        <TextBlock Name="StockBannerText" Foreground="{DynamicResource TextSoftBrush}" FontSize="{StaticResource FontSizeBase}" TextWrapping="Wrap" VerticalAlignment="Center"
+                   Text="{Binding StockInfo.Banner, FallbackValue=''}"/>
+      </DockPanel>
+    </Border>
+    <!-- Why this asset can't just be named in a map yet, and what fixes it (the helper's use_directly verdict). One line. -->
+    <TextBlock DockPanel.Dock="Top" Name="StockUseNote" Classes="faint" FontSize="{StaticResource FontSizeSm}" Margin="24,-4,16,10" TextTrimming="CharacterEllipsis"
+               IsVisible="{Binding Owner.HasStockUseNote, FallbackValue=False}" Text="{Binding Owner.StockUseNote, FallbackValue=''}"
+               ToolTip.Tip="{Binding Owner.StockUseNote, FallbackValue=''}"/>
 
     <Panel>
     <!-- ── An xanim: its preview, the notetracks dock under it (the splitter resizes it, a double-click folds it to the

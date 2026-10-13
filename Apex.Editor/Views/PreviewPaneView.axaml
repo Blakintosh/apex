@@ -95,7 +95,7 @@
                                IsVisible="{Binding ShowError}"
                                HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap"
                                TextAlignment="Center" MaxWidth="420"/>
-                    <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="Loading…" IsVisible="{Binding IsLoading}"
+                    <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding LoadingText}" IsVisible="{Binding IsLoading}"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                   </Panel>
                 </Border>
@@ -171,7 +171,7 @@
                     <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Bottom" Margin="10">
                       <StackPanel Spacing="4" HorizontalAlignment="Left" VerticalAlignment="Bottom">
                         <Border Classes="overlay" HorizontalAlignment="Left" IsVisible="{Binding IsLoading}">
-                          <TextBlock FontSize="{StaticResource FontSizeXs}" Text="Loading…"/>
+                          <TextBlock FontSize="{StaticResource FontSizeXs}" Text="{Binding LoadingText}"/>
                         </Border>
                         <Border Classes="overlay" HorizontalAlignment="Left" ToolTip.Tip="{Binding Gfx.FallbackDetail}"
                                 IsVisible="{Binding Gfx.FallbackStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
@@ -222,7 +222,7 @@
                   <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Bottom" Margin="10">
                     <StackPanel Spacing="4" HorizontalAlignment="Left" VerticalAlignment="Bottom">
                       <Border Classes="overlay" HorizontalAlignment="Left" IsVisible="{Binding IsLoading}">
-                        <TextBlock FontSize="{StaticResource FontSizeXs}" Text="Loading…"/>
+                        <TextBlock FontSize="{StaticResource FontSizeXs}" Text="{Binding LoadingText}"/>
                       </Border>
                       <Border Classes="overlay" HorizontalAlignment="Left" ToolTip.Tip="{Binding Gfx.FallbackDetail}"
                               IsVisible="{Binding Gfx.FallbackStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">

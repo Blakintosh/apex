@@ -1,0 +1,2253 @@
+{
+ "blockers": [
+  {
+   "class": "copy",
+   "id": 0,
+   "name": "p7_zm_zod_master_switch",
+   "type": "XMODEL"
+  }
+ ],
+ "counts": {
+  "copy": 30,
+  "embedded": 8,
+  "local": 26,
+  "rebuilt": 7
+ },
+ "nodes": [
+  {
+   "class": "copy",
+   "facts": {
+    "lods": [
+     "p7_zm_zod_master_switch_lod07ee1d667",
+     "p7_zm_zod_master_switch_lod1a453ebc5",
+     "p7_zm_zod_master_switch_lod268830c8b",
+     "p7_zm_zod_master_switch_lod3bcade150",
+     "p7_zm_zod_master_switch_lod41075e8e8",
+     "p7_zm_zod_master_switch_lod5fff0d80",
+     "p7_zm_zod_master_switch_lod61455e3b5",
+     "p7_zm_zod_master_switch_lod7d1e04646"
+    ]
+   },
+   "id": 0,
+   "name": "p7_zm_zod_master_switch",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "p7_zm_zod_master_switch",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "the asset being cloned",
+   "type": "XMODEL",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "embedded",
+   "facts": {
+    "stream_key": "ee0186b96d8c1aef",
+    "surfaces": 6
+   },
+   "id": 1,
+   "name": "p7_zm_zod_master_switch_lod7d1e04646",
+   "reason": "an LOD mesh: written as part of the model's export",
+   "type": "XMODELMESH",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "embedded",
+   "facts": {
+    "stream_key": "f4fddf1eababe0a0",
+    "surfaces": 8
+   },
+   "id": 2,
+   "name": "p7_zm_zod_master_switch_lod61455e3b5",
+   "reason": "an LOD mesh: written as part of the model's export",
+   "type": "XMODELMESH",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "embedded",
+   "facts": {
+    "stream_key": "f4c5437c0488ce60",
+    "surfaces": 10
+   },
+   "id": 3,
+   "name": "p7_zm_zod_master_switch_lod5fff0d80",
+   "reason": "an LOD mesh: written as part of the model's export",
+   "type": "XMODELMESH",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "embedded",
+   "facts": {
+    "stream_key": "e47800f03d52e675",
+    "surfaces": 10
+   },
+   "id": 4,
+   "name": "p7_zm_zod_master_switch_lod41075e8e8",
+   "reason": "an LOD mesh: written as part of the model's export",
+   "type": "XMODELMESH",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "embedded",
+   "facts": {
+    "stream_key": "ec19873840614cb8",
+    "surfaces": 12
+   },
+   "id": 5,
+   "name": "p7_zm_zod_master_switch_lod3bcade150",
+   "reason": "an LOD mesh: written as part of the model's export",
+   "type": "XMODELMESH",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "embedded",
+   "facts": {
+    "stream_key": "f9c51bc625e262bd",
+    "surfaces": 14
+   },
+   "id": 6,
+   "name": "p7_zm_zod_master_switch_lod268830c8b",
+   "reason": "an LOD mesh: written as part of the model's export",
+   "type": "XMODELMESH",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "embedded",
+   "facts": {
+    "stream_key": "f87ce3f3ee5cd0c5",
+    "surfaces": 14
+   },
+   "id": 7,
+   "name": "p7_zm_zod_master_switch_lod1a453ebc5",
+   "reason": "an LOD mesh: written as part of the model's export",
+   "type": "XMODELMESH",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "embedded",
+   "facts": {
+    "stream_key": "e93c3ac8b5a3ca53",
+    "surfaces": 14
+   },
+   "id": 8,
+   "name": "p7_zm_zod_master_switch_lod07ee1d667",
+   "reason": "an LOD mesh: written as part of the model's export",
+   "type": "XMODELMESH",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 9,
+   "name": "mc/mtl_p7_zm_zod_master_switch_screws",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "mc/mtl_p7_zm_zod_master_switch_screws",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a model's material",
+   "type": "MATERIAL",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 10,
+   "name": "mc/mtl_p7_zm_zod_master_switch_glass",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "mc/mtl_p7_zm_zod_master_switch_glass",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a model's material",
+   "type": "MATERIAL",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 11,
+   "name": "mc/mtl_p7_zm_zod_master_switch_decal",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "mc/mtl_p7_zm_zod_master_switch_decal",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a model's material",
+   "type": "MATERIAL",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 12,
+   "name": "mc/mtl_p7_zm_zod_master_switch_light",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "mc/mtl_p7_zm_zod_master_switch_light",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a model's material",
+   "type": "MATERIAL",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 13,
+   "name": "mc/mtl_p7_zm_zod_master_switch_metal_01",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "mc/mtl_p7_zm_zod_master_switch_metal_01",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a model's material",
+   "type": "MATERIAL",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 14,
+   "name": "mc/mtl_p7_zm_zod_master_switch_metal_02",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "mc/mtl_p7_zm_zod_master_switch_metal_02",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a model's material",
+   "type": "MATERIAL",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 15,
+   "name": "mc/mtl_p7_zm_zod_master_switch_black_line",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "mc/mtl_p7_zm_zod_master_switch_black_line",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a model's material",
+   "type": "MATERIAL",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 16,
+   "name": "mc/mtl_p7_zm_zod_master_switch_red_line",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "mc/mtl_p7_zm_zod_master_switch_red_line",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a model's material",
+   "type": "MATERIAL",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 17,
+   "name": "mc/mtl_p7_zm_zod_master_switch_green_line",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "mc/mtl_p7_zm_zod_master_switch_green_line",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a model's material",
+   "type": "MATERIAL",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 18,
+   "name": "mc/mtl_p7_zm_zod_master_switch_plastic_01",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "mc/mtl_p7_zm_zod_master_switch_plastic_01",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a model's material",
+   "type": "MATERIAL",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 19,
+   "name": "mc/mtl_p7_zm_zod_master_switch_metal_03",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "mc/mtl_p7_zm_zod_master_switch_metal_03",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a model's material",
+   "type": "MATERIAL",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 20,
+   "name": "mc/mtl_p7_zm_zod_master_switch_plastic_02",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "mc/mtl_p7_zm_zod_master_switch_plastic_02",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a model's material",
+   "type": "MATERIAL",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 21,
+   "name": "mc/mtl_p7_zm_zod_master_switch_metal_04",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "mc/mtl_p7_zm_zod_master_switch_metal_04",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a model's material",
+   "type": "MATERIAL",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "id": 22,
+   "name": "mc/mtl_p7_zm_zod_master_switch_metal_05",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "mc/mtl_p7_zm_zod_master_switch_metal_05",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a model's material",
+   "type": "MATERIAL",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "rebuilt",
+   "id": 23,
+   "name": "mc/lit_alphatest_advanced#e6142445",
+   "reason": "the linker builds techsets from the material",
+   "type": "TECHNIQUE_SET",
+   "zones": [
+    "core_common"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 24,
+   "name": "$white_ao",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_pre_gfx",
+   "zones": [
+    "core_pre_gfx",
+    "cp_doa_bo3_patch",
+    "en_core_common",
+    "en_cp_mi_cairo_aquifer_patch",
+    "en_cp_mi_cairo_ramses2_patch",
+    "en_cp_mi_cairo_ramses_patch"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 25,
+   "name": "$white_reveal",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_pre_gfx",
+   "zones": [
+    "core_pre_gfx",
+    "cp_doa_bo3_patch",
+    "en_core_common",
+    "en_cp_mi_cairo_aquifer_patch",
+    "en_cp_mi_cairo_infection_patch",
+    "en_cp_mi_cairo_lotus2_patch",
+    "en_cp_mi_cairo_lotus_patch",
+    "en_cp_mi_cairo_ramses2_patch",
+    "en_cp_mi_cairo_ramses_patch",
+    "en_cp_mi_eth_prologue_patch",
+    "en_cp_mi_sing_biodomes_patch",
+    "en_cp_mi_sing_vengeance_patch",
+    "en_cp_mi_zurich_coalescence_patch",
+    "en_cp_mi_zurich_newworld_patch",
+    "en_cp_sh_cairo_patch",
+    "en_cp_sh_mobile_patch",
+    "en_cp_sh_singapore_patch",
+    "zm_zod_patch"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 26,
+   "name": "$gray_32_one_channel",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_pre_gfx",
+   "zones": [
+    "core_patch",
+    "core_pre_gfx",
+    "en_core_common",
+    "en_cp_mi_cairo_aquifer_patch",
+    "en_cp_mi_cairo_infection_patch",
+    "en_cp_mi_cairo_lotus2_patch",
+    "en_cp_mi_cairo_lotus_patch",
+    "en_cp_mi_cairo_ramses2_patch",
+    "en_cp_mi_cairo_ramses_patch",
+    "en_cp_mi_eth_prologue_patch",
+    "en_cp_mi_sing_biodomes_patch",
+    "en_cp_mi_sing_vengeance_patch",
+    "en_cp_mi_zurich_coalescence_patch",
+    "en_cp_mi_zurich_newworld_patch",
+    "en_cp_sh_cairo_patch",
+    "en_cp_sh_mobile_patch",
+    "en_cp_sh_singapore_patch"
+   ]
+  },
+  {
+   "class": "copy",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 98,
+    "height": 256,
+    "levels": 7,
+    "map_type": 1,
+    "parts": [
+     "0b8b6821f1f2e00d",
+     "20f74656ed5a85a1",
+     "54e1ba3a2d6bf73b"
+    ],
+    "semantic": 4,
+    "streamed": true,
+    "width": 256
+   },
+   "id": 27,
+   "name": "i_mtl_p7_zm_zod_power_box_set_decal_n",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "i_mtl_p7_zm_zod_power_box_set_decal_n",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a material texture with no GDT entry",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 80,
+    "height": 512,
+    "levels": 10,
+    "map_type": 1,
+    "parts": [
+     "135ba1f2d7410591",
+     "3f5cdb88d55b615e",
+     "45b260c055474611"
+    ],
+    "semantic": 7,
+    "streamed": true,
+    "width": 512
+   },
+   "id": 28,
+   "name": "i_mtl_p7_zm_zod_power_box_set_decal_g",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "i_mtl_p7_zm_zod_power_box_set_decal_g",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a material texture with no GDT entry",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 99,
+    "height": 256,
+    "levels": 7,
+    "map_type": 1,
+    "parts": [
+     "0f5484f3f081b29f",
+     "2061f14c6c2305c1",
+     "5ac21b4b4e1dc99b"
+    ],
+    "semantic": 2,
+    "streamed": true,
+    "width": 256
+   },
+   "id": 29,
+   "name": "i_mtl_p7_zm_zod_power_box_set_decal_c",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "i_mtl_p7_zm_zod_power_box_set_decal_c",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a material texture with no GDT entry",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 80,
+    "height": 512,
+    "levels": 10,
+    "map_type": 1,
+    "parts": [
+     "0771a79a9cbbdbb7",
+     "2a2fb9dd1e2cbadf",
+     "54761cf4d4184c59"
+    ],
+    "semantic": 5,
+    "streamed": true,
+    "width": 512
+   },
+   "id": 30,
+   "name": "i_mtl_p7_zm_zod_power_box_set_decal_s",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "i_mtl_p7_zm_zod_power_box_set_decal_s",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a material texture with no GDT entry",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "rebuilt",
+   "id": 31,
+   "name": "mc/glass_backlit#e6142445",
+   "reason": "the linker builds techsets from the material",
+   "type": "TECHNIQUE_SET",
+   "zones": [
+    "core_frontend_patch",
+    "cp_common",
+    "en_cp_mi_cairo_lotus",
+    "mp_aerospace",
+    "mp_apartments",
+    "mp_arena",
+    "mp_banzai",
+    "mp_biodome",
+    "mp_city",
+    "mp_conduit",
+    "mp_cryogen",
+    "mp_infection",
+    "mp_kung_fu",
+    "mp_metro",
+    "mp_miniature",
+    "mp_sector",
+    "mp_skyjacked",
+    "mp_stronghold",
+    "mp_veiled",
+    "mp_waterpark",
+    "mp_western",
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 32,
+   "name": "$identitynormalmap",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_pre_gfx",
+   "zones": [
+    "core_patch",
+    "core_pre_gfx",
+    "en_core_specialists",
+    "en_mp_crucible",
+    "en_zm_genesis",
+    "en_zm_island",
+    "en_zm_stalingrad",
+    "en_zm_sumpf",
+    "en_zm_theater",
+    "en_zm_tomb"
+   ]
+  },
+  {
+   "class": "copy",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 80,
+    "height": 512,
+    "levels": 10,
+    "map_type": 1,
+    "parts": [
+     "1842c13d9c93dced",
+     "3229c5d2c5af64a1",
+     "55ca645b7787901e"
+    ],
+    "semantic": 7,
+    "streamed": true,
+    "width": 512
+   },
+   "id": 33,
+   "name": "i_mtl_p7_zm_zod_power_box_set_glass_g",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "i_mtl_p7_zm_zod_power_box_set_glass_g",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a material texture with no GDT entry",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_castle",
+    "zm_genesis",
+    "zm_island",
+    "zm_moon",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 99,
+    "height": 512,
+    "levels": 8,
+    "map_type": 1,
+    "parts": [
+     "124211babbc212ec",
+     "31d9a5de356aa28e",
+     "5a0bbbc31afa317f",
+     "6432a1e01bc1fd7c"
+    ],
+    "semantic": 2,
+    "streamed": true,
+    "width": 512
+   },
+   "id": 34,
+   "name": "i_mtl_p7_zm_zod_power_box_set_glass_c",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "i_mtl_p7_zm_zod_power_box_set_glass_c",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a material texture with no GDT entry",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_island",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "rebuilt",
+   "id": 35,
+   "name": "mc/lit_decal#e6142445",
+   "reason": "the linker builds techsets from the material",
+   "type": "TECHNIQUE_SET",
+   "zones": [
+    "core_common",
+    "cp_doa_bo3_patch",
+    "en_cp_mi_cairo_lotus",
+    "en_mp_crucible"
+   ]
+  },
+  {
+   "class": "copy",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 98,
+    "height": 256,
+    "levels": 7,
+    "map_type": 1,
+    "parts": [
+     "12d44885c5d2f288",
+     "3564ea79dae985c5",
+     "46d31068a0a9d386"
+    ],
+    "semantic": 4,
+    "streamed": true,
+    "width": 256
+   },
+   "id": 36,
+   "name": "i_mtl_p7_zm_zod_master_switch_set_decal_n",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "i_mtl_p7_zm_zod_master_switch_set_decal_n",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a material texture with no GDT entry",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 99,
+    "height": 256,
+    "levels": 7,
+    "map_type": 1,
+    "parts": [
+     "0b38528abbacdb3b",
+     "27fc997804c9376c",
+     "5dd72bab307a40de"
+    ],
+    "semantic": 2,
+    "streamed": true,
+    "width": 256
+   },
+   "id": 37,
+   "name": "i_mtl_p7_zm_zod_master_switch_set_decal_c",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "i_mtl_p7_zm_zod_master_switch_set_decal_c",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a material texture with no GDT entry",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "rebuilt",
+   "id": 38,
+   "name": "mc/lit_emissive_scroll#e6142445",
+   "reason": "the linker builds techsets from the material",
+   "type": "TECHNIQUE_SET",
+   "zones": [
+    "core_common",
+    "en_cp_mi_cairo_lotus"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 39,
+   "name": "$camo_base_gloss",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_ui",
+   "zones": [
+    "core_ui",
+    "cp_doa_bo3_patch",
+    "en_cp_mi_cairo_lotus",
+    "en_cp_mi_cairo_lotus2",
+    "en_zm_genesis",
+    "en_zm_stalingrad"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 40,
+   "name": "$white_diffuse",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_pre_gfx",
+   "zones": [
+    "core_pre_gfx",
+    "cp_doa_bo3_patch",
+    "en_cp_mi_cairo_lotus",
+    "en_cp_mi_cairo_lotus2",
+    "en_mp_crucible",
+    "en_mp_nuketown_x",
+    "en_zm_stalingrad",
+    "en_zm_theater"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\genericfilters.gdt",
+    "gdf": "image"
+   },
+   "id": 41,
+   "name": "i_generic_lookup",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\genericfilters.gdt)",
+   "type": "IMAGE",
+   "zone": "core_common",
+   "zones": [
+    "core_common",
+    "cp_doa_bo3_patch",
+    "en_core_specialists",
+    "en_cp_mi_cairo_lotus",
+    "en_cp_mi_cairo_lotus2"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 42,
+   "name": "$normal",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_pre_gfx",
+   "zones": [
+    "core_pre_gfx",
+    "cp_doa_bo3_patch",
+    "cp_mi_cairo_lotus3_patch",
+    "cp_mi_cairo_lotus_patch",
+    "cp_mi_cairo_ramses2_patch",
+    "cp_mi_sing_blackstation_patch",
+    "cp_sh_cairo_patch",
+    "cp_sh_mobile_patch",
+    "cp_sh_singapore_patch",
+    "en_cp_mi_cairo_lotus",
+    "en_cp_mi_cairo_lotus2",
+    "en_cp_mi_cairo_ramses",
+    "en_cp_mi_zurich_coalescence",
+    "en_mp_nuketown_x",
+    "en_zm_stalingrad",
+    "en_zm_tomb",
+    "zm_zod_patch"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 43,
+   "name": "$camo_base_mask",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_ui",
+   "zones": [
+    "core_ui",
+    "cp_doa_bo3_patch",
+    "en_cp_mi_cairo_lotus",
+    "en_cp_mi_cairo_lotus2",
+    "en_zm_genesis",
+    "en_zm_stalingrad"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 44,
+   "name": "$camo_base_normal",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_ui",
+   "zones": [
+    "core_ui",
+    "cp_doa_bo3_patch",
+    "en_cp_mi_cairo_lotus",
+    "en_cp_mi_cairo_lotus2",
+    "en_zm_genesis",
+    "en_zm_stalingrad"
+   ]
+  },
+  {
+   "class": "rebuilt",
+   "id": 45,
+   "name": "mc/lit_micro_tile_blend_advanced#e6142445",
+   "reason": "the linker builds techsets from the material",
+   "type": "TECHNIQUE_SET",
+   "zones": [
+    "core_frontend_patch",
+    "cp_common",
+    "cp_doa_bo3_patch",
+    "en_cp_mi_cairo_lotus",
+    "en_zm_theater",
+    "mp_patch",
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 80,
+    "height": 512,
+    "levels": 10,
+    "map_type": 1,
+    "parts": [
+     "0b7d434d5f590bc4",
+     "2a5a08333ef3f886",
+     "4061ccdac42f134e"
+    ],
+    "semantic": 9,
+    "streamed": true,
+    "width": 512
+   },
+   "id": 46,
+   "name": "i_mtl_p7_zm_zod_master_switch_set_01_m",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "i_mtl_p7_zm_zod_master_switch_set_01_m",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a material texture with no GDT entry",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 47,
+   "name": "$occlusion",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_common",
+   "zones": [
+    "core_common",
+    "cp_doa_bo3_patch",
+    "en_core_common",
+    "en_cp_mi_cairo_aquifer_patch",
+    "en_cp_mi_cairo_ramses2_patch",
+    "en_cp_mi_cairo_ramses_patch"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 48,
+   "name": "$spec_simple",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_common",
+   "zones": [
+    "core_common",
+    "en_cp_mi_cairo_lotus"
+   ]
+  },
+  {
+   "class": "local",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 98,
+    "height": 512,
+    "levels": 8,
+    "map_type": 1,
+    "parts": [
+     "1f7e0093b286b078",
+     "27e7d07f0079f3da",
+     "54be12084d9e743d",
+     "7c088b8ef7a17ac6"
+    ],
+    "semantic": 4,
+    "streamed": true,
+    "width": 512
+   },
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\t7_micro_materials.gdt",
+    "gdf": "image"
+   },
+   "id": 49,
+   "name": "i_t7_micro_metal_painted_02_n",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\t7_micro_materials.gdt)",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "core_frontend_patch",
+    "cp_doa_bo3",
+    "cp_mi_cairo_aquifer",
+    "cp_mi_cairo_infection",
+    "cp_mi_cairo_infection3",
+    "cp_mi_cairo_lotus3",
+    "cp_mi_eth_prologue",
+    "cp_mi_sing_blackstation",
+    "cp_mi_sing_sgen",
+    "cp_mi_sing_vengeance",
+    "cp_mi_zurich_coalescence",
+    "cp_mi_zurich_newworld",
+    "cp_mrg_cairo_lotus",
+    "cp_mrg_cairo_ramses",
+    "cp_mrg_sing_biodomes",
+    "cp_sh_cairo",
+    "cp_sh_mobile",
+    "cp_sh_singapore",
+    "mp_aerospace",
+    "mp_arena",
+    "mp_banzai",
+    "mp_biodome",
+    "mp_chinatown",
+    "mp_city",
+    "mp_conduit",
+    "mp_crucible",
+    "mp_cryogen",
+    "mp_ethiopia",
+    "mp_havoc",
+    "mp_infection",
+    "mp_kung_fu",
+    "mp_metro",
+    "mp_nuketown_x",
+    "mp_redwood",
+    "mp_redwood_ice",
+    "mp_rise",
+    "mp_rome",
+    "mp_sector",
+    "mp_shrine",
+    "mp_skyjacked",
+    "mp_spire",
+    "mp_stronghold",
+    "mp_veiled",
+    "mp_veiled_heyday",
+    "mp_waterpark",
+    "mp_western",
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 98,
+    "height": 512,
+    "levels": 8,
+    "map_type": 1,
+    "parts": [
+     "01a5ea1f6b0a97f2",
+     "2928b5ea84ef82dc",
+     "441cdc3fbe192dbe",
+     "6dd9847ef8c75d86"
+    ],
+    "semantic": 4,
+    "streamed": true,
+    "width": 512
+   },
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\t7_micro_materials.gdt",
+    "gdf": "image"
+   },
+   "id": 50,
+   "name": "i_t7_micro_metal_rust_01_n",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\t7_micro_materials.gdt)",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "core_frontend_patch",
+    "cp_doa_bo3",
+    "cp_mi_cairo_aquifer",
+    "cp_mi_cairo_infection",
+    "cp_mi_cairo_infection2",
+    "cp_mi_cairo_infection3",
+    "cp_mi_cairo_lotus3",
+    "cp_mi_eth_prologue",
+    "cp_mi_sing_blackstation",
+    "cp_mi_sing_sgen",
+    "cp_mi_sing_vengeance",
+    "cp_mi_zurich_coalescence",
+    "cp_mi_zurich_newworld",
+    "cp_mrg_cairo_lotus",
+    "cp_mrg_cairo_ramses",
+    "cp_mrg_sing_biodomes",
+    "cp_sh_cairo",
+    "cp_sh_mobile",
+    "cp_sh_singapore",
+    "mp_aerospace",
+    "mp_apartments",
+    "mp_arena",
+    "mp_banzai",
+    "mp_biodome",
+    "mp_chinatown",
+    "mp_city",
+    "mp_conduit",
+    "mp_crucible",
+    "mp_cryogen",
+    "mp_ethiopia",
+    "mp_havoc",
+    "mp_infection",
+    "mp_kung_fu",
+    "mp_metro",
+    "mp_miniature",
+    "mp_nuketown_x",
+    "mp_redwood",
+    "mp_redwood_ice",
+    "mp_rise",
+    "mp_rome",
+    "mp_ruins",
+    "mp_sector",
+    "mp_shrine",
+    "mp_skyjacked",
+    "mp_spire",
+    "mp_stronghold",
+    "mp_veiled",
+    "mp_veiled_heyday",
+    "mp_waterpark",
+    "mp_western",
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 51,
+   "name": "$gloss",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_ui",
+   "zones": [
+    "core_ui",
+    "en_cp_mi_cairo_aquifer",
+    "en_cp_mi_cairo_infection",
+    "en_cp_mi_cairo_lotus2",
+    "en_cp_mi_cairo_lotus3",
+    "en_cp_mrg_cairo_ramses"
+   ]
+  },
+  {
+   "class": "copy",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 98,
+    "height": 512,
+    "levels": 8,
+    "map_type": 1,
+    "parts": [
+     "190e56e434a0812c",
+     "2cb367af92d0984b",
+     "5de6c02a8f7f9447",
+     "70a072871412121c"
+    ],
+    "semantic": 4,
+    "streamed": true,
+    "width": 512
+   },
+   "id": 52,
+   "name": "i_mtl_p7_zm_zod_master_switch_set_01_n",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "i_mtl_p7_zm_zod_master_switch_set_01_n",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a material texture with no GDT entry",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 53,
+   "name": "$white_gloss",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_pre_gfx",
+   "zones": [
+    "core_patch",
+    "core_pre_gfx",
+    "en_core_common",
+    "en_cp_mi_cairo_aquifer_patch",
+    "en_cp_mi_cairo_ramses2_patch",
+    "en_cp_mi_cairo_ramses_patch",
+    "en_cp_mi_zurich_coalescence_patch",
+    "en_cp_mi_zurich_newworld_patch"
+   ]
+  },
+  {
+   "class": "local",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 72,
+    "height": 512,
+    "levels": 10,
+    "map_type": 1,
+    "parts": [
+     "00cef243d9d86616",
+     "2fdbab08b08c1aa6",
+     "58acb471413855b7"
+    ],
+    "semantic": 2,
+    "streamed": true,
+    "width": 512
+   },
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\t7_micro_materials.gdt",
+    "gdf": "image"
+   },
+   "id": 54,
+   "name": "i_t7_micro_metal_rust_01_c",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\t7_micro_materials.gdt)",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "core_frontend_patch",
+    "cp_doa_bo3",
+    "cp_mi_cairo_aquifer",
+    "cp_mi_cairo_infection",
+    "cp_mi_cairo_infection2",
+    "cp_mi_cairo_infection3",
+    "cp_mi_cairo_lotus3",
+    "cp_mi_cairo_ramses",
+    "cp_mi_cairo_ramses2",
+    "cp_mi_eth_prologue",
+    "cp_mi_sing_blackstation",
+    "cp_mi_sing_sgen",
+    "cp_mi_sing_vengeance",
+    "cp_mi_zurich_coalescence",
+    "cp_mi_zurich_newworld",
+    "cp_mrg_cairo_lotus",
+    "cp_mrg_sing_biodomes",
+    "cp_sh_cairo",
+    "cp_sh_mobile",
+    "cp_sh_singapore",
+    "mp_aerospace",
+    "mp_apartments",
+    "mp_arena",
+    "mp_banzai",
+    "mp_biodome",
+    "mp_chinatown",
+    "mp_city",
+    "mp_conduit",
+    "mp_crucible",
+    "mp_cryogen",
+    "mp_ethiopia",
+    "mp_havoc",
+    "mp_infection",
+    "mp_kung_fu",
+    "mp_metro",
+    "mp_nuketown_x",
+    "mp_redwood",
+    "mp_redwood_ice",
+    "mp_rise",
+    "mp_rome",
+    "mp_ruins",
+    "mp_sector",
+    "mp_shrine",
+    "mp_skyjacked",
+    "mp_spire",
+    "mp_stronghold",
+    "mp_veiled",
+    "mp_veiled_heyday",
+    "mp_waterpark",
+    "mp_western",
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 55,
+   "name": "$black_color",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_pre_gfx",
+   "zones": [
+    "core_pre_gfx",
+    "cp_doa_bo3_patch",
+    "cp_mi_cairo_infection_patch",
+    "cp_mi_cairo_lotus3_patch",
+    "cp_mi_cairo_lotus_patch",
+    "cp_mi_cairo_ramses2_patch",
+    "cp_mi_sing_blackstation_patch",
+    "cp_sh_cairo_patch",
+    "cp_sh_mobile_patch",
+    "cp_sh_singapore_patch",
+    "en_core_specialists",
+    "en_cp_mi_cairo_lotus",
+    "en_cp_mi_cairo_lotus2",
+    "en_mp_crucible",
+    "en_mp_nuketown_x",
+    "en_zm_genesis",
+    "en_zm_stalingrad",
+    "en_zm_theater",
+    "zm_zod_patch"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 56,
+   "name": "$specular_mask",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_common",
+   "zones": [
+    "core_common",
+    "cp_doa_bo3_patch",
+    "en_cp_mi_cairo_lotus",
+    "en_cp_mi_cairo_lotus2",
+    "en_mp_nuketown_x"
+   ]
+  },
+  {
+   "class": "rebuilt",
+   "id": 57,
+   "name": "mc/lit_micro_tile_blend_plus#e6142445",
+   "reason": "the linker builds techsets from the material",
+   "type": "TECHNIQUE_SET",
+   "zones": [
+    "core_frontend_patch",
+    "cp_common",
+    "en_cp_mi_cairo_lotus",
+    "mp_common",
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 98,
+    "height": 512,
+    "levels": 8,
+    "map_type": 1,
+    "parts": [
+     "05a73ea24101d4e2",
+     "274155c8c3be79fb",
+     "5d50b8faecec8778",
+     "61a95d86a2159964"
+    ],
+    "semantic": 4,
+    "streamed": true,
+    "width": 512
+   },
+   "id": 58,
+   "name": "i_t7_micro_metal_painted_rough_01_n",
+   "naming": {
+    "keep_allowed": false,
+    "must_rename": true,
+    "overrides_stock": false,
+    "proposed": "zm_guns_i_t7_micro_metal_painted_rough_01_n",
+    "why": "the map ignores core_common (the linker would stub the stock asset instead)"
+   },
+   "reason": "a material texture needs a GDT entry even when shipped (core_common (ignore), core_common (ignore_missing_shipped)); without one the linker substitutes a default image",
+   "type": "IMAGE",
+   "zone": "core_common",
+   "zones": [
+    "core_common",
+    "cp_mi_cairo_aquifer",
+    "cp_mi_cairo_infection",
+    "cp_mi_cairo_infection3",
+    "cp_mi_cairo_lotus3",
+    "cp_mi_eth_prologue",
+    "cp_mi_sing_blackstation",
+    "cp_mi_sing_sgen",
+    "cp_mi_sing_vengeance",
+    "cp_mi_zurich_coalescence",
+    "cp_mi_zurich_newworld",
+    "cp_mrg_cairo_lotus",
+    "cp_mrg_cairo_ramses",
+    "cp_mrg_sing_biodomes",
+    "cp_sh_cairo",
+    "cp_sh_mobile",
+    "cp_sh_singapore",
+    "en_mp_nuketown_x"
+   ]
+  },
+  {
+   "class": "copy",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 72,
+    "height": 512,
+    "levels": 10,
+    "map_type": 1,
+    "parts": [
+     "05218ec93207f084",
+     "37afc9897c071fe4",
+     "50e66ee867086a98"
+    ],
+    "semantic": 2,
+    "streamed": true,
+    "width": 512
+   },
+   "id": 59,
+   "name": "i_t7_micro_metal_painted_rough_01_c",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": true,
+    "proposed": "i_t7_micro_metal_painted_rough_01_c",
+    "why": "keeps its name and overrides the stock one (zm_levelcommon is ignore_missing_shipped)"
+   },
+   "reason": "a material texture needs a GDT entry even when shipped (zm_levelcommon (ignore_missing_shipped)); without one the linker substitutes a default image",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "core_frontend_patch",
+    "cp_mi_cairo_aquifer",
+    "cp_mi_cairo_infection",
+    "cp_mi_cairo_infection3",
+    "cp_mi_cairo_lotus2",
+    "cp_mi_eth_prologue",
+    "cp_mi_sing_blackstation",
+    "cp_mi_sing_sgen",
+    "cp_mi_sing_vengeance",
+    "cp_mi_zurich_coalescence",
+    "cp_mi_zurich_newworld",
+    "cp_mrg_cairo_ramses",
+    "cp_mrg_sing_biodomes",
+    "cp_sh_cairo",
+    "cp_sh_mobile",
+    "cp_sh_singapore",
+    "mp_aerospace",
+    "mp_arena",
+    "mp_banzai",
+    "mp_city",
+    "mp_crucible",
+    "mp_cryogen",
+    "mp_havoc",
+    "mp_metro",
+    "mp_miniature",
+    "mp_nuketown_x",
+    "mp_redwood",
+    "mp_redwood_ice",
+    "mp_rise",
+    "mp_rome",
+    "mp_waterpark",
+    "mp_western",
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "rebuilt",
+   "id": 60,
+   "name": "mc/lit_micro_tile_blend#e6142445",
+   "reason": "the linker builds techsets from the material",
+   "type": "TECHNIQUE_SET",
+   "zones": [
+    "core_common",
+    "cp_doa_bo3_patch",
+    "en_cp_mi_zurich_coalescence"
+   ]
+  },
+  {
+   "class": "copy",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 98,
+    "height": 512,
+    "levels": 8,
+    "map_type": 1,
+    "parts": [
+     "1b519cba6763d993",
+     "3f0627937ec6e0c2",
+     "4992031212325454",
+     "68578d6e068c15b4"
+    ],
+    "semantic": 4,
+    "streamed": true,
+    "width": 512
+   },
+   "id": 61,
+   "name": "i_t7_micro_plastic_01_n",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "i_t7_micro_plastic_01_n",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a material texture with no GDT entry",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "core_frontend_patch",
+    "cp_doa_bo3",
+    "cp_mi_cairo_ramses",
+    "cp_mi_cairo_ramses2",
+    "cp_mi_eth_prologue",
+    "cp_mi_sing_sgen",
+    "cp_mi_sing_vengeance",
+    "cp_mi_zurich_coalescence",
+    "cp_mi_zurich_newworld",
+    "cp_mrg_sing_biodomes",
+    "cp_sh_cairo",
+    "cp_sh_mobile",
+    "cp_sh_singapore",
+    "mp_aerospace",
+    "mp_arena",
+    "mp_banzai",
+    "mp_biodome",
+    "mp_city",
+    "mp_conduit",
+    "mp_crucible",
+    "mp_cryogen",
+    "mp_freerun_01",
+    "mp_freerun_02",
+    "mp_freerun_03",
+    "mp_freerun_04",
+    "mp_havoc",
+    "mp_infection",
+    "mp_kung_fu",
+    "mp_metro",
+    "mp_miniature",
+    "mp_nuketown_x",
+    "mp_redwood",
+    "mp_redwood_ice",
+    "mp_rise",
+    "mp_rome",
+    "mp_veiled",
+    "mp_veiled_heyday",
+    "mp_waterpark",
+    "mp_western",
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_genesis",
+    "zm_island",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 72,
+    "height": 512,
+    "levels": 10,
+    "map_type": 1,
+    "parts": [
+     "10b957cf211f689a",
+     "399e8477fe90126c",
+     "4fb01186dd90ae58"
+    ],
+    "semantic": 2,
+    "streamed": true,
+    "width": 512
+   },
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\t7_decal_damage.gdt",
+    "gdf": "image"
+   },
+   "id": 62,
+   "name": "i_t7_decal_damage_mold_02_c",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\t7_decal_damage.gdt)",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "cp_doa_bo3",
+    "mp_apartments",
+    "mp_chinatown",
+    "mp_infection",
+    "mp_western",
+    "zm_castle",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 72,
+    "height": 512,
+    "levels": 10,
+    "map_type": 1,
+    "parts": [
+     "054877e2edbec0a2",
+     "3d1722733aaee279",
+     "5e3772112fd21d7c"
+    ],
+    "semantic": 2,
+    "streamed": true,
+    "width": 512
+   },
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\t7_micro_materials.gdt",
+    "gdf": "image"
+   },
+   "id": 63,
+   "name": "i_t7_micro_plastic_01_c",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\t7_micro_materials.gdt)",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "core_frontend_patch",
+    "cp_doa_bo3",
+    "cp_mi_cairo_aquifer",
+    "cp_mi_cairo_infection",
+    "cp_mi_cairo_infection2",
+    "cp_mi_cairo_infection3",
+    "cp_mi_cairo_lotus2",
+    "cp_mi_cairo_lotus3",
+    "cp_mi_eth_prologue",
+    "cp_mi_sing_blackstation",
+    "cp_mi_sing_sgen",
+    "cp_mi_sing_vengeance",
+    "cp_mi_zurich_coalescence",
+    "cp_mi_zurich_newworld",
+    "cp_mrg_cairo_ramses",
+    "cp_mrg_sing_biodomes",
+    "cp_sh_cairo",
+    "cp_sh_mobile",
+    "cp_sh_singapore",
+    "mp_common",
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_genesis",
+    "zm_island",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 64,
+   "name": "$color",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_common",
+   "zones": [
+    "core_common",
+    "cp_doa_bo3_patch"
+   ]
+  },
+  {
+   "class": "copy",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 80,
+    "height": 256,
+    "levels": 9,
+    "map_type": 1,
+    "parts": [
+     "0dcb44be32f70c9e",
+     "3b97235ae33b80a0"
+    ],
+    "semantic": 9,
+    "streamed": true,
+    "width": 256
+   },
+   "id": 65,
+   "name": "i_mtl_p7_zm_zod_master_switch_set_02_m",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "i_mtl_p7_zm_zod_master_switch_set_02_m",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a material texture with no GDT entry",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "copy",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 98,
+    "height": 256,
+    "levels": 7,
+    "map_type": 1,
+    "parts": [
+     "1f3e23a7ded955f7",
+     "2e168358498f87d0",
+     "4d108cb201d23068"
+    ],
+    "semantic": 4,
+    "streamed": true,
+    "width": 256
+   },
+   "id": 66,
+   "name": "i_mtl_p7_zm_zod_master_switch_set_02_n",
+   "naming": {
+    "keep_allowed": true,
+    "must_rename": false,
+    "overrides_stock": false,
+    "proposed": "i_mtl_p7_zm_zod_master_switch_set_02_n",
+    "why": "no zone the map ignores defines it"
+   },
+   "reason": "a material texture with no GDT entry",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 98,
+    "height": 512,
+    "levels": 8,
+    "map_type": 1,
+    "parts": [
+     "00537b22326848a6",
+     "21760508cc22cafb",
+     "41199799d491ea8d",
+     "6efaaf402f7f6309"
+    ],
+    "semantic": 4,
+    "streamed": true,
+    "width": 512
+   },
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\t7_micro_materials.gdt",
+    "gdf": "image"
+   },
+   "id": 67,
+   "name": "i_t7_micro_metal_rust_n",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\t7_micro_materials.gdt)",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "core_frontend_patch",
+    "cp_doa_bo3",
+    "cp_mi_cairo_aquifer",
+    "cp_mi_cairo_infection",
+    "cp_mi_cairo_infection2",
+    "cp_mi_cairo_infection3",
+    "cp_mi_cairo_lotus3",
+    "cp_mi_eth_prologue",
+    "cp_mi_sing_blackstation",
+    "cp_mi_sing_sgen",
+    "cp_mi_sing_vengeance",
+    "cp_mi_zurich_coalescence",
+    "cp_mi_zurich_newworld",
+    "cp_mrg_cairo_lotus",
+    "cp_mrg_cairo_ramses",
+    "cp_mrg_sing_biodomes",
+    "cp_sh_cairo",
+    "cp_sh_mobile",
+    "cp_sh_singapore",
+    "mp_common",
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 72,
+    "height": 512,
+    "levels": 10,
+    "map_type": 1,
+    "parts": [
+     "06af8f8cbc2e9473",
+     "2d9619c0e9f98a89",
+     "521263b4690e65dc"
+    ],
+    "semantic": 2,
+    "streamed": true,
+    "width": 512
+   },
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\t7_micro_materials.gdt",
+    "gdf": "image"
+   },
+   "id": 68,
+   "name": "i_t7_micro_metal_rust_c",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\t7_micro_materials.gdt)",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "core_frontend_patch",
+    "cp_doa_bo3",
+    "cp_mi_cairo_aquifer",
+    "cp_mi_cairo_infection",
+    "cp_mi_cairo_infection2",
+    "cp_mi_cairo_infection3",
+    "cp_mi_cairo_lotus3",
+    "cp_mi_eth_prologue",
+    "cp_mi_sing_blackstation",
+    "cp_mi_sing_sgen",
+    "cp_mi_sing_vengeance",
+    "cp_mi_zurich_coalescence",
+    "cp_mi_zurich_newworld",
+    "cp_mrg_cairo_lotus",
+    "cp_mrg_cairo_ramses",
+    "cp_mrg_sing_biodomes",
+    "cp_sh_cairo",
+    "cp_sh_mobile",
+    "cp_sh_singapore",
+    "mp_aerospace",
+    "mp_apartments",
+    "mp_arena",
+    "mp_banzai",
+    "mp_biodome",
+    "mp_chinatown",
+    "mp_city",
+    "mp_conduit",
+    "mp_crucible",
+    "mp_cryogen",
+    "mp_ethiopia",
+    "mp_freerun_03",
+    "mp_havoc",
+    "mp_infection",
+    "mp_kung_fu",
+    "mp_metro",
+    "mp_miniature",
+    "mp_nuketown_x",
+    "mp_redwood",
+    "mp_rise",
+    "mp_rome",
+    "mp_ruins",
+    "mp_sector",
+    "mp_shrine",
+    "mp_skyjacked",
+    "mp_spire",
+    "mp_stronghold",
+    "mp_veiled",
+    "mp_veiled_heyday",
+    "mp_waterpark",
+    "mp_western",
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_factory",
+    "zm_genesis",
+    "zm_island",
+    "zm_levelcommon",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "facts": {
+    "category": 3,
+    "depth": 1,
+    "format": 80,
+    "height": 512,
+    "levels": 10,
+    "map_type": 1,
+    "parts": [
+     "1acd6b002dcec0fe",
+     "2723021985bb1f44",
+     "5179ca139c7e4f41"
+    ],
+    "semantic": 7,
+    "streamed": true,
+    "width": 512
+   },
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\t7_micro_materials.gdt",
+    "gdf": "image"
+   },
+   "id": 69,
+   "name": "i_t7_micro_metal_painted_rough_01_g",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\t7_micro_materials.gdt)",
+   "type": "IMAGE",
+   "zone": "zm_zod",
+   "zones": [
+    "core_frontend_patch",
+    "cp_doa_bo3",
+    "cp_mi_cairo_aquifer",
+    "cp_mi_cairo_infection",
+    "cp_mi_cairo_infection3",
+    "cp_mi_cairo_lotus3",
+    "cp_mi_eth_prologue",
+    "cp_mi_sing_blackstation",
+    "cp_mi_sing_sgen",
+    "cp_mi_sing_vengeance",
+    "cp_mi_zurich_coalescence",
+    "cp_mi_zurich_newworld",
+    "cp_mrg_cairo_lotus",
+    "cp_mrg_cairo_ramses",
+    "cp_mrg_sing_biodomes",
+    "cp_sh_cairo",
+    "cp_sh_mobile",
+    "cp_sh_singapore",
+    "mp_aerospace",
+    "mp_arena",
+    "mp_banzai",
+    "mp_chinatown",
+    "mp_conduit",
+    "mp_crucible",
+    "mp_cryogen",
+    "mp_havoc",
+    "mp_metro",
+    "mp_miniature",
+    "mp_redwood",
+    "mp_redwood_ice",
+    "mp_rise",
+    "mp_rome",
+    "mp_ruins",
+    "mp_sector",
+    "mp_shrine",
+    "mp_spire",
+    "mp_veiled_heyday",
+    "mp_waterpark",
+    "mp_western",
+    "zm_asylum",
+    "zm_castle",
+    "zm_cosmodrome",
+    "zm_genesis",
+    "zm_island",
+    "zm_moon",
+    "zm_prototype",
+    "zm_stalingrad",
+    "zm_sumpf",
+    "zm_temple",
+    "zm_theater",
+    "zm_tomb",
+    "zm_zod"
+   ]
+  },
+  {
+   "class": "local",
+   "gdt": {
+    "file": "i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt",
+    "gdf": "image"
+   },
+   "id": 70,
+   "name": "$white_specular",
+   "reason": "gdt.db defines it (image in i:\\steamlibrary\\steamapps\\common\\call of duty black ops iii\\texture_assets\\$defaults.gdt)",
+   "type": "IMAGE",
+   "zone": "core_pre_gfx",
+   "zones": [
+    "core_pre_gfx",
+    "cp_doa_bo3_patch",
+    "en_core_specialists",
+    "en_cp_mi_cairo_lotus",
+    "en_mp_crucible",
+    "en_zm_tomb"
+   ]
+  }
+ ],
+ "prefix": "zm_guns_",
+ "renames": [
+  {
+   "from": "i_t7_micro_metal_painted_rough_01_n",
+   "to": "zm_guns_i_t7_micro_metal_painted_rough_01_n",
+   "type": "IMAGE"
+  }
+ ],
+ "resolves_by_name": false,
+ "root": 0,
+ "target": {
+  "language": "english",
+  "mode": "zm",
+  "name": "zm_guns"
+ },
+ "unsupported": []
+}

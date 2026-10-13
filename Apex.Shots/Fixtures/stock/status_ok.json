@@ -1,0 +1,94 @@
+{
+  "assets": 460387,
+  "built_at": 1791759102,
+  "components": {
+    "blackbird": {
+      "entry": null,
+      "entry_stale": false,
+      "settings_path": "C:\\Users\\black\\AppData\\Roaming\\Blackbird\\settings.json",
+      "settings_use_bb_linker": true,
+      "source": "settings"
+    },
+    "dragon": {
+      "capabilities": [
+        "stock-carry"
+      ],
+      "carry_contract": 1,
+      "note": null,
+      "path": "I:\\SteamLibrary\\steamapps\\common\\Call of Duty Black Ops III\\bin\\bb-linker\\bb-linker.exe",
+      "present": true,
+      "source": "probe",
+      "stock_db_schema": [
+        1,
+        1
+      ],
+      "version": "0.1.0"
+    },
+    "others": [],
+    "radiant_plugin": {
+      "path": "I:\\SteamLibrary\\steamapps\\common\\Call of Duty Black Ops III\\bin\\plugins\\StockLibrary\\StockLibrary.dll",
+      "present": true,
+      "radiant_found": true
+    },
+    "stocklib": {
+      "cache_contract": 2,
+      "capabilities": [
+        "search",
+        "zones",
+        "deps",
+        "describe",
+        "cache",
+        "extract",
+        "undo",
+        "warm",
+        "status",
+        "carry-classify"
+      ],
+      "path": "J:\\Github\\stocklib\\target\\release\\stocklib.exe",
+      "present": true,
+      "protocol": 1,
+      "version": "0.1.0"
+    }
+  },
+  "defs": 1199206,
+  "install": "I:\\SteamLibrary\\steamapps\\common\\Call of Duty Black Ops III",
+  "install_path": "I:\\SteamLibrary\\steamapps\\common\\Call of Duty Black Ops III",
+  "reader_version": "walk4+poseidon-69b9bfd5b324",
+  "registry_dir": "C:\\Users\\black\\AppData\\Local\\BO3ModTools\\components\\6820b7c7f93ff5b3",
+  "schema_version": 1,
+  "stock_db": {
+    "error": null,
+    "exists": true,
+    "path": "C:\\Users\\black\\AppData\\Local\\BO3ModTools\\stock\\6820b7c7f93ff5b3\\stock.db",
+    "readable": true,
+    "schema_version": 1
+  },
+  "verdicts": {
+    "browse": {
+      "fix": null,
+      "ok": true,
+      "reason": "The index is current for this install.",
+      "warnings": []
+    },
+    "clone": {
+      "fix": null,
+      "ok": true,
+      "reason": "Assets can be copied into a map (Create local copy).",
+      "warnings": []
+    },
+    "radiant": {
+      "fix": null,
+      "ok": true,
+      "reason": "Radiant's model browser has the Stock Library plugin.",
+      "warnings": []
+    },
+    "use_directly": {
+      "fix": null,
+      "ok": true,
+      "reason": "Dragon 0.1.0 carries stock assets (Blackbird has not written blackbird.json yet; going by its settings (Use Dragon is on, the default) and the Dragon at I:\\SteamLibrary\\steamapps\\common\\Call of Duty Black Ops III\\bin\\bb-linker\\bb-linker.exe).",
+      "warnings": []
+    }
+  },
+  "zones": 264,
+  "zones_failed": 0
+}

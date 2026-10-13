@@ -61,6 +61,20 @@ public partial class Program
         // --search-live: the search menu's keystrokes on the real install (read-only).
         if (args.Contains("--search-live"))
             return await RunLiveOnly(LiveSearchMenuTiming);
+        // --stock-live: the stock library with the real helper on the real install; one clone into a throwaway target, undone.
+        if (args.Contains("--stock-live"))
+        {
+            var shotsDir = args.FirstOrDefault(a => !a.StartsWith("--", StringComparison.Ordinal)) ?? "shots";
+            Directory.CreateDirectory(shotsDir);
+            return await RunLiveOnly(() => RunLiveStockChecks(shotsDir));
+        }
+        // --stock-sounds-live: the Stock sounds view with the real helper on the real install; one copy into a throwaway folder, undone.
+        if (args.Contains("--stock-sounds-live"))
+        {
+            var shotsDir = args.FirstOrDefault(a => !a.StartsWith("--", StringComparison.Ordinal)) ?? "shots";
+            Directory.CreateDirectory(shotsDir);
+            return await RunLiveOnly(() => RunLiveStockSounds(shotsDir));
+        }
         if (args.Contains("--fields-live"))
             return await RunLiveOnly(RunLiveFieldChecks);
         // --notetracks-live: the install's xanim notetrack actions and their sound aliases (read-only).
@@ -74,6 +88,13 @@ public partial class Program
         {
             var shotsDir = args.FirstOrDefault(a => !a.StartsWith("--", StringComparison.Ordinal)) ?? "shots";
             return await RunLiveOnly(() => RunMaterialShots(shotsDir));
+        }
+        // --stock-shot <stockRoot> <outDir> [xmodel] [material]: a stock model from stock caches alone (read-only).
+        if (args.Contains("--stock-shot"))
+        {
+            var rest = args.Where(a => !a.StartsWith("--", StringComparison.Ordinal)).ToArray();
+            return await RunLiveOnly(() => RunStockShot(rest[0], rest[1], rest.ElementAtOrDefault(2) ?? "p7_zm_zod_master_switch",
+                rest.ElementAtOrDefault(3) ?? "mtl_p7_zm_zod_master_switch_metal_01"));
         }
         // --viewhands-live: first person's inferred viewhands on the real install (read-only).
         if (args.Contains("--viewhands-live"))

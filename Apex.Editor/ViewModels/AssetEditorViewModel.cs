@@ -293,7 +293,9 @@ public sealed partial class AssetEditorViewModel : ObservableObject, IFileProbeL
                 _categories.Insert(before < 0 ? _categories.Count : before, new CategoryViewModel(group.Category, []));
             }
 
-            AddExtensionSections(allProps, navigateToRef);
+            // The extensions add fields to a GDT's assets and save beside it: a stock asset has no GDT to hold them.
+            if (!record.IsStock)
+                AddExtensionSections(allProps, navigateToRef);
 
             // Union view (§4.4): real assets — and partial schemas like material — carry keys the
             // schema doesn't define. Surface them as Text rows in a trailing "Other" category so no
@@ -597,7 +599,9 @@ public sealed partial class AssetEditorViewModel : ObservableObject, IFileProbeL
                     _problemsMoved.Add(p);
                 visibilityChanged = true;
             }
-            p.IsRuleDisabled = rule is { Enabled: false };
+            // A stock asset is shown whole and cannot be changed: every row is off, whatever the deffile says.
+            p.ReadOnlyReason = IsStock ? StockReadOnlyReason : null;
+            p.IsRuleDisabled = IsStock || rule is { Enabled: false };
             // New options for this asset: the value is checked against them, never against the schema's.
             if (rule?.Choices is { } choices && p is ChoicePropertyViewModel choice
                 && choice.UpdateChoices(choices, rule.ChoiceLabels) && _checked)
@@ -823,6 +827,32 @@ public sealed partial class AssetEditorViewModel : ObservableObject, IFileProbeL
     public MainViewModel? Owner { get; set; }
 
     public string Name => Record.Name;
+
+    // ── A stock asset: shipped with the game, shown read-only (see MainViewModel.Stock.cs) ──
+    public bool IsStock => Record.IsStock;
+
+    /// <summary>Why every row is off: the tip on a stock asset's disabled rows.</summary>
+    public const string StockReadOnlyReason = "Read-only: this asset ships with Black Ops III. Create a local copy to edit it.";
+
+    /// <summary>The header of a stock asset: where it ships, the info line and the banner. Null for a local asset.</summary>
+    public Services.Stock.StockHeader? StockInfo { get; private set; }
+
+    /// <summary>Rebuilds <see cref="StockInfo"/> from what has been read since (the fields, then the dependencies).</summary>
+    public void RefreshStockInfo(Services.Stock.StockDb? db)
+    {
+        StockInfo = Record.Stock is { } origin ? Services.Stock.StockHeader.Build(origin, db, Owner?.StockUseOk == true) : null;
+        OnPropertyChanged(nameof(StockInfo));
+        if (IsStock && IsFormEmpty)
+            EmptyText = StockEmptyText;
+    }
+
+    private string StockEmptyText =>
+        Record.Stock is not { } origin ? ""
+        : origin.Problem.Length > 0 ? "Apex couldn't read this asset from the game's files: " + origin.Problem
+        : origin.Loading ? "Reading the asset from the game's files…"
+        : origin.Description is { Supported: false, Note: { Length: > 0 } note } ? "Apex doesn't show this type's fields yet. " + char.ToUpperInvariant(note[0]) + note[1..] + "."
+        : "No properties to show for this asset.";
+
     public bool IsWeapon => TypeStyles.IsWeaponType(Record.Type);
     public string TypeName => Record.Type;
     public string GdtName => Record.GdtName;
@@ -1264,7 +1294,8 @@ public sealed partial class AssetEditorViewModel : ObservableObject, IFileProbeL
     /// A row's problem: its own table's rows for a record table, else the value against its definition (a choice against
     /// the options the deffile offers this asset).
     /// </summary>
-    private string? Check(PropertyItemViewModel item) => item switch
+    // A stock asset is what the game ships: nothing about it is a problem to fix, so nothing is checked.
+    private string? Check(PropertyItemViewModel item) => IsStock ? null : item switch
     {
         RecordsPropertyViewModel table => table.Validate(),
         PartsPropertyViewModel parts => parts.Validate(),
@@ -2016,6 +2047,8 @@ public sealed partial class AssetEditorViewModel : ObservableObject, IFileProbeL
             : $" {hidden:N0} hidden propert{(hidden == 1 ? "y matches" : "ies match")}: this type's deffile hides {(hidden == 1 ? "it" : "them")} for the asset's current values.";
         if (_extensions is not null)
             hiddenNote += DescribeHiddenExtensionFields(query);
+        if (IsStock && query.Length == 0)
+            return StockEmptyText;
         if (query.Length > 0)
             return "No properties match the filter." + hiddenNote;
         return View switch

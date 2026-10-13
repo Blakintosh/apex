@@ -152,11 +152,16 @@ public sealed class ImageCache
     private readonly object _indexLock = new();
     private Dictionary<string, List<ImageCacheEntry>>? _byName;
 
-    public ImageCache(ToolsGfxInstall install)
+    /// <param name="extraRoots">Further <c>images20</c> folders indexed after <see cref="Root"/> (e.g. <see cref="StockCache.ImageCacheDir"/>).</param>
+    public ImageCache(ToolsGfxInstall install, IReadOnlyList<string>? extraRoots = null)
     {
         Install = install;
         Root = install.ImageCacheDir;
+        ExtraRoots = extraRoots ?? [];
     }
+
+    /// <summary>Folders indexed after <see cref="Root"/>; name-only matches from them compete like APE's own files.</summary>
+    public IReadOnlyList<string> ExtraRoots { get; }
 
     public ToolsGfxInstall Install { get; }
 
@@ -301,10 +306,11 @@ public sealed class ImageCache
             if (_byName is not null)
                 return _byName;
             var map = new Dictionary<string, List<ImageCacheEntry>>(StringComparer.OrdinalIgnoreCase);
-            if (Directory.Exists(Root))
+            var roots = new[] { Root }.Concat(ExtraRoots).Where(Directory.Exists).ToArray();
+            if (roots.Length > 0)
             {
                 // ~140 settings folders, ~30k files: list the folders in parallel, then merge in folder order.
-                var dirs = Directory.GetDirectories(Root);
+                var dirs = roots.SelectMany(Directory.GetDirectories).ToArray();
                 var perDir = new List<ImageCacheEntry>[dirs.Length];
                 Parallel.For(0, dirs.Length, i =>
                 {

@@ -25,7 +25,7 @@ public sealed partial class MainViewModel
 
     /// <summary>Whether Change weapon class applies to <paramref name="rec"/>: a weapon whose class Apex knows.</summary>
     public static bool CanChangeWeaponClass(AssetRecord? rec) =>
-        rec is not null && Services.Extensions.ExtensionManifest.IsWeapon(rec.Type)
+        rec is { IsStock: false } && Services.Extensions.ExtensionManifest.IsWeapon(rec.Type)
         && !rec.Type.Equals(GdtLoader.UnknownType, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Opens the dialog for <paramref name="rec"/>'s family (its root and everything derived from it).</summary>

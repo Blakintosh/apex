@@ -339,7 +339,7 @@ public sealed partial class MainViewModel
 
     private void Clip(IReadOnlyList<AssetRecord> assets, bool cut)
     {
-        if (assets.Count == 0)
+        if (assets.Count == 0 || assets.Any(a => a.IsStock))
             return;
         _assetClipboard = assets.ToList();
         _clipboardIsCut = cut;
@@ -405,7 +405,7 @@ public sealed partial class MainViewModel
 
     public void DuplicateTo(IReadOnlyList<AssetRecord> assets)
     {
-        if (assets.Count == 0)
+        if (assets.Count == 0 || assets.Any(a => a.IsStock))
             return;
         var what = assets.Count == 1 ? assets[0].Name : $"{assets.Count:N0} assets";
         OpenGdtPicker(new GdtPick($"Duplicate {what} to", "duplicate", null, gdt => CopyAssetsInto(assets, gdt)));
@@ -413,7 +413,7 @@ public sealed partial class MainViewModel
 
     public void MoveTo(IReadOnlyList<AssetRecord> assets)
     {
-        if (assets.Count == 0)
+        if (assets.Count == 0 || assets.Any(a => a.IsStock))
             return;
         var what = assets.Count == 1 ? assets[0].Name : $"{assets.Count:N0} assets";
         var from = GdtsOf(assets);
