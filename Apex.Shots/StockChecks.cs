@@ -36,6 +36,7 @@ public partial class Program
         AddSoundFixture(dbPath);
         StockUiChecks(dbPath, temp, outDir);
         StockHelperShutdownChecks(temp);
+        StockSchemaChecks(temp);
     }
 
     // ═══ The fixture database: the helper's schema (docs/schema.md), the columns Apex reads ════════════════════════════

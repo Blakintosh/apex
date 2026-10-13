@@ -53,5 +53,42 @@ public partial class Program
         {
             StockHelper.ShutdownGrace = saved;
         }
+
+        // Cancelling a request tells the helper (protocol "cancel"); a write is never cancelled that way.
+        var echoDir = Path.Combine(temp, "fake-helper-echo");
+        Directory.CreateDirectory(echoDir);
+        var heard = Path.Combine(echoDir, "in.txt");
+        var echo = Path.Combine(echoDir, "stocklib.cmd");
+        File.WriteAllText(echo, "@echo off\r\nfindstr \"^\" > \"" + heard + "\"\r\n");
+        var listener = StockHelper.TryStart(echo, null, null, out _);
+        if (listener is null)
+        {
+            Check("helper cancel: the fake helper starts", false);
+            return;
+        }
+        using (var cts = new CancellationTokenSource())
+        {
+            var describe = listener.CallAsync("describe", null, null, cts.Token);
+            var extract = listener.CallAsync("extract", null, null, cts.Token);
+            cts.Cancel();
+            describe.ContinueWith(_ => { }, TaskScheduler.Default);
+            extract.ContinueWith(_ => { }, TaskScheduler.Default);
+        }
+        listener.Dispose();
+        var deadline = Stopwatch.StartNew();
+        string text = "";
+        while (deadline.ElapsedMilliseconds < 5000 && !text.Contains("shutdown"))
+        {
+            Thread.Sleep(100);
+            try
+            {
+                text = File.Exists(heard) ? File.ReadAllText(heard) : "";
+            }
+            catch (IOException)
+            {
+            }
+        }
+        Check($"helper cancel: a cancelled read sends cancel for its id, a cancelled write doesn't ({text.Replace("\r\n", " | ").Trim()})",
+            text.Contains("\"method\":\"cancel\",\"params\":{\"id\":1}") && !text.Contains("\"params\":{\"id\":2}"));
     }
 }
