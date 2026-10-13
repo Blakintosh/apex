@@ -125,6 +125,10 @@ public sealed record AutoLodAlgo
     /// <summary>"hybrid-1".</summary>
     public string Name { get; }
 
+    /// <summary>Sources with fewer faces than this get the stock decimator from Dragon too (its <c>gate_faces</c>), so their
+    /// auto LODs are APE's own caches; 0: every auto LOD is this algorithm's.</summary>
+    public int GateFaces { get; init; }
+
     /// <summary>Chained into the xmesh key: <c>"lodalt-hybrid-1"</c>.</summary>
     public string Tag => "lodalt-" + Name;
 

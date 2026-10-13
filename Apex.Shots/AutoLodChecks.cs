@@ -251,6 +251,10 @@ public partial class Program
         Check("auto lod: auto-lod without an algorithm is not trusted (its caches can't be keyed)", AutoLodPreview.Find(install) is null);
         WriteComponent(install, "dragon", DragonEntry(exe, new object[] { "stock-carry", new { id = "auto-lod", algo = "hybrid-1" } }));
         Check("auto lod: the capability as an object in the list", AutoLodPreview.Find(install)?.Algo.Name == "hybrid-1");
+        WriteComponent(install, "dragon", DragonEntry(exe, new[] { "auto-lod" }, new { algo = "hybrid-1", gate_faces = 40000, max_faces = 1000000 }));
+        Check($"auto lod: the gate comes with the algorithm ({AutoLodPreview.Find(install)?.Algo.GateFaces})", AutoLodPreview.Find(install)?.Algo.GateFaces == 40000);
+        WriteComponent(install, "dragon", DragonEntry(exe, new[] { "auto-lod" }, new { algo = "stock", max_faces = 220000 }));
+        Check("auto lod: a Dragon whose auto LODs are stock leaves the preview on APE's caches (they are the same)", AutoLodPreview.Find(install) is null);
         WriteComponent(install, "dragon", DragonEntry(exe, new Dictionary<string, object> { ["auto-lod"] = new { algo = "hybrid-2" } }));
         Check("auto lod: capabilities as an object keyed by name", AutoLodPreview.Find(install)?.Algo.Name == "hybrid-2");
 
@@ -375,7 +379,15 @@ public partial class Program
             },
             elapsed_ms = 12,
         });
-        var ok = WriteFakeDragon(temp, "ok", $"echo xmesh-from-fake-dragon> \"{lod1}\"\r\necho xmesh-from-fake-dragon> \"{lod2}\"\r\necho {json}");
+        // The preview reads ToolsGfx xmeshes: the fake hands back a copy of one of APE's (the install, read-only), or a
+        // linker-format stand-in without the install.
+        var sample = Directory.Exists(Path.Combine(ToolsGfxInstall.FromRoot(InstallRoot).XMeshCacheDir, "aac_armoire_closed_body_lod0"))
+            ? Directory.GetFiles(Path.Combine(ToolsGfxInstall.FromRoot(InstallRoot).XMeshCacheDir, "aac_armoire_closed_body_lod0"), "pct50_*.lz4").FirstOrDefault()
+            : null;
+        var write = sample is null
+            ? $"echo xmesh-from-fake-dragon> \"{lod1}\"\r\necho xmesh-from-fake-dragon> \"{lod2}\""
+            : $"copy /y \"{sample}\" \"{lod1}\" >nul\r\ncopy /y \"{sample}\" \"{lod2}\" >nul";
+        var ok = WriteFakeDragon(temp, "ok", $"{write}\r\necho {json}");
         var request = new AutoLodPreview.Request("lodtest", "lodtest|hybrid-1|ok",
             [(new XModelLodSlot(1, "lodtest\\lodtest_lod0.xmodel_bin", 50, true), bin), (new XModelLodSlot(2, "lodtest\\lodtest_lod0.xmodel_bin", 25, true), bin)], p);
         var dragon = new DragonAutoLod(ok, "0.2.0", hybrid);
@@ -383,10 +395,24 @@ public partial class Program
         var result = AutoLodPreview.GenerateAsync(dragon, root, request, CancellationToken.None).GetAwaiter().GetResult();
         var args = File.ReadAllText(Path.Combine(Path.GetDirectoryName(ok)!, "args.txt")).Trim();
         Check($"auto lod: Dragon is asked for the model's LODs on the install ({args})", args == $"-xmodel-lods lodtest -root {(root.Contains(' ') ? $"\"{root}\"" : root)} -json");
-        Check($"auto lod: its answer is read (algo {result.Algo}, faces {string.Join("/", result.Lods.Select(l => l.Faces))}, {result.ElapsedMs} ms)",
-            result is { Ok: true, Algo: "hybrid-1", ElapsedMs: 12 } && result.Lods.Select(l => l.Faces).SequenceEqual(new long[] { 1000, 498, 251 }));
-        Check("auto lod: the LODs it wrote are found for the preview",
-            locator.FindAutogenXMesh(bin, p, 50, hybrid)?.Path == lod1 && locator.FindAutogenXMesh(bin, p, 25, hybrid)?.Path == lod2);
+        if (sample is null)
+        {
+            Check($"auto lod: LODs in a format the preview can't read are refused, not loaded ({result.Error})",
+                !result.Ok && result.Error!.Contains("format") && locator.FindAutogenXMesh(bin, p, 50, hybrid) is null);
+            Console.WriteLine("SKIP  auto lod: the answer and its LODs (no APE xmesh to hand back without the install)");
+        }
+        else
+        {
+            Check($"auto lod: its answer is read (algo {result.Algo}, faces {string.Join("/", result.Lods.Select(l => l.Faces))}, {result.ElapsedMs} ms)",
+                result is { Ok: true, Algo: "hybrid-1", ElapsedMs: 12 } && result.Lods.Select(l => l.Faces).SequenceEqual(new long[] { 1000, 498, 251 }));
+            Check("auto lod: the LODs it wrote are found for the preview",
+                locator.FindAutogenXMesh(bin, p, 50, hybrid)?.Path == lod1 && locator.FindAutogenXMesh(bin, p, 25, hybrid)?.Path == lod2);
+        }
+        var v6 = json.Replace("lodtest_pct", "lodtest_v6_pct");
+        var linkerFormat = WriteFakeDragon(temp, "linker-format", $"echo linker-xmesh-v6> \"{lod1.Replace("lodtest_pct", "lodtest_v6_pct")}\"\r\necho linker-xmesh-v6> \"{lod2.Replace("lodtest_pct", "lodtest_v6_pct")}\"\r\necho {v6}");
+        result = AutoLodPreview.GenerateAsync(dragon with { Exe = linkerFormat }, root, request with { Key = "linker-format" }, CancellationToken.None).GetAwaiter().GetResult();
+        Check($"auto lod: caches in the linker's format (what Dragon writes today) are refused, so the preview keeps APE's ({result.Error})",
+            !result.Ok && result.Error!.Contains("linker's cache format"));
 
         var fail = WriteFakeDragon(temp, "fail", "echo {\"error\":\"xmodel 'lodtest' not found in the GDTs\"}\r\nexit /b 3");
         result = AutoLodPreview.GenerateAsync(dragon with { Exe = fail }, root, request with { Key = "fail" }, CancellationToken.None).GetAwaiter().GetResult();
@@ -407,7 +433,7 @@ public partial class Program
 
         var missing = WriteFakeDragon(temp, "missing", "echo " + json.Replace(lod2.Replace("\\", "\\\\"), "C:\\\\nowhere\\\\x.lz4"));
         result = AutoLodPreview.GenerateAsync(dragon with { Exe = missing }, root, request with { Key = "missing" }, CancellationToken.None).GetAwaiter().GetResult();
-        Check($"auto lod: a LOD Dragon claims but didn't write fails the run ({result.Error})", !result.Ok);
+        Check($"auto lod: a LOD Dragon claims but didn't write fails the run ({result.Error})", !result.Ok && result.Error!.Contains("did not write"));
 
         var slow = WriteFakeDragon(temp, "slow", "ping -n 30 127.0.0.1 >nul\r\necho {}");
         using (var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(600)))

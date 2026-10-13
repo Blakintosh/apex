@@ -243,33 +243,52 @@ public sealed class PreviewModelLoader
         var slots = XModelLodSlots.Read(entry.Fields);
         if (slots.Count == 0)
             throw new InvalidDataException($"{xmodelName}: no LOD files");
-        // Auto LODs are looked up first (cheap, no parsing): the list ends at the first one without a cache.
-        var located = new CacheLocation?[slots.Count];
-        int count = slots.Count;
-        for (int i = 0; i < slots.Count; i++)
+        // Authored LODs first, in parallel; a failure only counts if the list reaches that LOD.
+        var meshes = new GpuMesh?[slots.Count];
+        var failures = new Exception?[slots.Count];
+        var authored = slots.Where(s => !s.Autogen).Select(s => s.Index).ToArray();
+        ForEachInOrder(authored.Length, cancellationToken, k =>
         {
-            if (!slots[i].Autogen)
-                continue;
-            located[i] = data.Models.FindAutogenXMesh(data.Models.ResolveModelExportPath(slots[i].File), lodParams, slots[i].Percent, options?.AutoLod);
-            if (located[i] is null)
-            {
-                count = i;
-                break;
-            }
-        }
-        var lodMeshes = new GpuMesh[count];
-        ForEachInOrder(count, cancellationToken, i =>
-        {
-            var loc = located[i];
-            if (loc is null)
+            int i = authored[k];
+            try
             {
                 var bin = data.Models.ResolveModelExportPath(slots[i].File);
-                loc = data.Models.FindXMesh(bin, lodParams)
+                var loc = data.Models.FindXMesh(bin, lodParams)
                     ?? throw new FileNotFoundException($"{xmodelName}: no xmesh cache for {Path.GetFileName(slots[i].File)} (open the model in APE once to convert it)");
+                meshes[i] = GpuMesh.FromXMesh(loc.Payload is { } payload ? XMeshData.Parse(payload, loc.Path) : XMeshData.Load(loc.Path));
             }
-            lodMeshes[i] = GpuMesh.FromXMesh(loc.Payload is { } payload ? XMeshData.Parse(payload, loc.Path) : XMeshData.Load(loc.Path));
+            catch (Exception ex) when (ex is not (OutOfMemoryException or OperationCanceledException))
+            {
+                failures[i] = ex;
+            }
         });
-        return PrepareMeshes(data, xmodelName, lodMeshes, entry.Fields.GetValueOrDefault("skinOverride"), options, materialDefaults, cancellationToken);
+        // Then the auto LODs, in order: each from its source's cache (Dragon's decimator when the source is at or above
+        // its gate, else APE's). The list ends, quietly, at the first auto LOD with no readable cache.
+        var lodMeshes = new List<GpuMesh>();
+        int sourceFaces = 0;
+        for (int i = 0; i < slots.Count; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!slots[i].Autogen)
+            {
+                if (failures[i] is { } failure)
+                    System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(failure);
+                lodMeshes.Add(meshes[i]!);
+                sourceFaces = meshes[i]!.Surfaces.Sum(s => s.TriangleCount);
+                continue;
+            }
+            var algo = options?.AutoLod is { } dragon && sourceFaces >= dragon.GateFaces ? dragon : null;
+            if (data.Models.FindAutogenXMesh(data.Models.ResolveModelExportPath(slots[i].File), lodParams, slots[i].Percent, algo) is not { } loc)
+                break;
+            try
+            {
+                lodMeshes.Add(GpuMesh.FromXMesh(loc.Payload is { } payload ? XMeshData.Parse(payload, loc.Path) : XMeshData.Load(loc.Path)));
+            }
+            catch (Exception ex) when (ex is IOException or InvalidDataException or IndexOutOfRangeException or ArgumentException or NotSupportedException)
+            {
+                break;
+            }
+        }        return PrepareMeshes(data, xmodelName, lodMeshes, entry.Fields.GetValueOrDefault("skinOverride"), options, materialDefaults, cancellationToken);
     }
 
     /// <summary>

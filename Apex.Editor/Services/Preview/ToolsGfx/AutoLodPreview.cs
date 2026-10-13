@@ -116,10 +116,16 @@ public static class AutoLodPreview
         var missing = new List<(XModelLodSlot, string)>();
         var key = new StringBuilder(xmodelName).Append('|').Append(algo.Name);
         bool any = false;
+        int sourceFaces = 0;
         foreach (var slot in XModelLodSlots.Read(entry.Fields))
         {
             if (!slot.Autogen)
+            {
+                sourceFaces = algo.GateFaces > 0 ? SourceFaces(data, slot.File, parameters) : 0;
                 continue;
+            }
+            if (sourceFaces < algo.GateFaces)
+                continue; // below the gate Dragon decimates as the stock tools do: APE's caches are its LODs
             any = true;
             var bin = data.Models.ResolveModelExportPath(slot.File);
             if (ModelCacheLocator.AutoLodFileName(bin, parameters, slot.Percent, algo) is not { } name)
@@ -129,6 +135,37 @@ public static class AutoLodPreview
                 missing.Add((slot, bin));
         }
         return any ? new Request(xmodelName, key.ToString(), missing, parameters) : null;
+    }
+
+    /// <summary>Faces of an authored LOD (its cache, as the preview loads it); 0 when it has none.</summary>
+    private static int SourceFaces(ToolsGfxData data, string file, XModelLodParameters parameters)
+    {
+        try
+        {
+            var loc = data.Models.FindXMesh(data.Models.ResolveModelExportPath(file), parameters);
+            if (loc is null)
+                return 0;
+            var mesh = loc.Payload is { } payload ? XMeshData.Parse(payload, loc.Path) : XMeshData.Load(loc.Path);
+            return GpuMesh.FromXMesh(mesh).Surfaces.Sum(s => s.TriangleCount);
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or IndexOutOfRangeException or ArgumentException or NotSupportedException)
+        {
+            return 0;
+        }
+    }
+
+    /// <summary>True when <paramref name="path"/> is an xmesh the preview can read (ToolsGfx <c>xmeshes\v39</c>).</summary>
+    public static bool IsPreviewXMesh(string path)
+    {
+        try
+        {
+            _ = XMeshData.Load(path);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or IndexOutOfRangeException or ArgumentException or NotSupportedException or UnauthorizedAccessException)
+        {
+            return false;
+        }
     }
 
     // One run per model and inputs at a time; a failure is remembered for the session, so editing other fields or
@@ -182,6 +219,9 @@ public static class AutoLodPreview
             var lod = result.Lods.FirstOrDefault(l => l.Index == slot.Index && l.Autogen);
             if (lod is not { Cache.Length: > 0 } || !File.Exists(lod.Cache))
                 return result with { Error = $"Dragon did not write LOD {slot.Index}." };
+            // Dragon writes the linker's cache (xmesh\v6); the preview reads ToolsGfx xmeshes (v39)
+            if (!IsPreviewXMesh(lod.Cache))
+                return result with { Error = $"Dragon's LOD {slot.Index} is in the linker's cache format, which the preview can't read yet." };
             ModelCacheLocator.RememberAutoLod(bin, request.Parameters, slot.Percent, dragon.Algo, lod.Cache);
         }
         return result;

@@ -209,11 +209,13 @@ public static class DragonComponent
         if (FindAutoLod(entry) is not { } capability)
             return null;
         var algo = capability.ValueKind == JsonValueKind.Object ? Str(capability, "algo") : "";
-        if (algo.Length == 0)
+        // "stock": Dragon decimates as the stock tools do, so APE's own caches already show its LODs
+        if (algo.Length == 0 || algo == "stock")
             return null;
+        var gate = capability.TryGetProperty("gate_faces", out var g) && g.TryGetInt32(out var faces) && faces > 0 ? faces : 0;
         try
         {
-            return new DragonAutoLod(exe, Str(entry, "version"), new AutoLodAlgo(algo));
+            return new DragonAutoLod(exe, Str(entry, "version"), new AutoLodAlgo(algo) { GateFaces = gate });
         }
         catch (ArgumentException)
         {
