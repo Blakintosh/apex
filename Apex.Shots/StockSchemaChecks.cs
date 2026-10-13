@@ -52,6 +52,25 @@ public partial class Program
         using (var library = new StockLibrary(Path.Combine(temp, "no-such-install"), Path.Combine(temp, "none", "stocklib.exe"), good))
             Check("stock schema: ... and uses a good one", library.CanSearch && library.State == StockState.Ready);
 
+        // Helper installed, no index: nothing starts on its own; the user asks.
+        var dummy = Path.Combine(temp, "dummy-helper", "stocklib.exe");
+        Directory.CreateDirectory(Path.GetDirectoryName(dummy)!);
+        File.WriteAllText(dummy, "not a program");
+        using (var library = new StockLibrary(Path.Combine(temp, "no-such-install"), dummy, Path.Combine(temp, "no-index", "stock.db")))
+        {
+            var changes = 0;
+            library.Changed += () => changes++;
+            library.StartRefresh();
+            Thread.Sleep(300);
+            Check($"stock index: with the helper and no index the library waits to be asked ({library.State}, refreshing {library.IsRefreshing}, '{library.Progress}')",
+                library.State == StockState.NeedsIndex && !library.IsRefreshing && library.Progress.Length == 0 && library.Problem.Length == 0);
+            library.StartRefresh(userAsked: true);
+            var deadline = Environment.TickCount64 + 5000;
+            while (library.IsRefreshing && Environment.TickCount64 < deadline)
+                Thread.Sleep(20);
+            Check($"stock index: asking starts it ({library.State}: {library.Problem})", library.State != StockState.NeedsIndex || library.Problem.Length > 0 || changes > 1);
+        }
+
         using var cancelled = new CancellationTokenSource();
         cancelled.Cancel();
         bool stopped;

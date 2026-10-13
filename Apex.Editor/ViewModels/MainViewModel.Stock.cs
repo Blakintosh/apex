@@ -101,6 +101,10 @@ public sealed partial class MainViewModel
     {
         OnPropertyChanged(nameof(StockSearchable));
         OnPropertyChanged(nameof(ShowStockOffer));
+        OnPropertyChanged(nameof(ShowStockIndexOffer));
+        OnPropertyChanged(nameof(ShowStockIndexProgress));
+        OnPropertyChanged(nameof(StockIndexOfferText));
+        OnPropertyChanged(nameof(StockIndexProgressText));
         OnPropertyChanged(nameof(StockOfferText));
         OnPropertyChanged(nameof(ShowSourceFilter));
         OnPropertyChanged(nameof(StockNote));
@@ -121,6 +125,37 @@ public sealed partial class MainViewModel
 
     private bool _stockOfferDismissed;
 
+    /// <summary>No stock index yet (helper installed): the card explains the one-time index and offers to build it.</summary>
+    public bool ShowStockIndexOffer => Stock.State == StockState.NeedsIndex && !_stockIndexOfferDismissed && ReserveFacetRow;
+
+    /// <summary>The first index is running: the card shows its progress and Cancel.</summary>
+    public bool ShowStockIndexProgress => Stock.State == StockState.Indexing && ReserveFacetRow;
+
+    public string StockIndexOfferText => (Stock.Problem.Length > 0 ? Stock.Problem + " " : "")
+        + "Searching the game's own assets needs a one-time index of them: about 1-3 minutes and a fair amount of memory while it runs. It can be cancelled and picks up where it stopped. Your own assets are searchable meanwhile.";
+
+    public string StockIndexProgressText => Stock.Progress.Length > 0 ? Stock.Progress : "Indexing stock assets…";
+
+    private bool _stockIndexOfferDismissed;
+
+    [RelayCommand]
+    private void BuildStockIndex()
+    {
+        _stockIndexOfferDismissed = false;
+        Stock.StartRefresh(userAsked: true);
+        NotifyStockState();
+    }
+
+    [RelayCommand]
+    private void CancelStockIndex() => Stock.CancelIndex();
+
+    [RelayCommand]
+    private void DismissStockIndexOffer()
+    {
+        _stockIndexOfferDismissed = true;
+        NotifyStockState();
+    }
+
     [RelayCommand]
     private void DismissStockOffer()
     {
@@ -132,6 +167,7 @@ public sealed partial class MainViewModel
     public string StockNote => Stock.State switch
     {
         StockState.Indexing when Stock.ExePath is not null => "Stock assets are being indexed. They appear here when it is done.",
+        StockState.NeedsIndex when Stock.Problem.Length > 0 => "The stock index can't be used: " + Stock.Problem,
         StockState.Failed when Stock.Problem.Length > 0 => "The stock library couldn't start: " + Stock.Problem,
         _ => "",
     };

@@ -125,7 +125,7 @@ public sealed partial class ComponentsViewModel : ObservableObject
         else if (!s.Browse.Ok && s.Known)
             rows.Add(new(ComponentState.Warn, "Stock Library", s.StocklibVersion.Length > 0 ? s.StocklibVersion + " · no usable index" : "no usable index", s.Browse.Note, library.IsRefreshing ? "" : "Build index", new RelayCommand(buildIndex), primary: true));
         else if (!s.Known)
-            rows.Add(new(ComponentState.Off, "Stock Library", library.Db is { Exists: true } ? "checking" : "no index yet", library.Db is { Exists: true } ? "Asking the helper how the install stands…" : "The index is built the first time Apex starts with the helper installed.", library.IsRefreshing || library.Db is { Exists: true } ? "" : "Build index", new RelayCommand(buildIndex), primary: true));
+            rows.Add(new(ComponentState.Off, "Stock Library", library.Db is { Exists: true } ? "checking" : "no index yet", library.Db is { Exists: true } ? "Asking the helper how the install stands…" : "Built once, when you ask or first open a stock view (about 1-3 minutes).", library.IsRefreshing || library.Db is { Exists: true } ? "" : "Build index", new RelayCommand(buildIndex), primary: true));
         else
         {
             var version = s.StocklibVersion.Length > 0 ? s.StocklibVersion + " · " : "";

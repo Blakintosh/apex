@@ -166,6 +166,8 @@ public sealed partial class MainViewModel
         OnPropertyChanged(nameof(ReserveFacetRow));
         OnPropertyChanged(nameof(ShowSourceFilter));
         OnPropertyChanged(nameof(ShowStockOffer));
+        OnPropertyChanged(nameof(ShowStockIndexOffer));
+        OnPropertyChanged(nameof(ShowStockIndexProgress));
         OnPropertyChanged(nameof(HasStockNote));
         // A chip added or removed is a click, not typing: it applies at once.
         if (chipsChanged)
@@ -183,6 +185,8 @@ public sealed partial class MainViewModel
         OnPropertyChanged(nameof(ReserveFacetRow));
         OnPropertyChanged(nameof(ShowSourceFilter));
         OnPropertyChanged(nameof(ShowStockOffer));
+        OnPropertyChanged(nameof(ShowStockIndexOffer));
+        OnPropertyChanged(nameof(ShowStockIndexProgress));
         OnPropertyChanged(nameof(HasStockNote));
     }
 

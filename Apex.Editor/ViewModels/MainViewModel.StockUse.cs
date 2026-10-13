@@ -104,7 +104,7 @@ public sealed partial class MainViewModel
             },
             () =>
             {
-                Stock.StartRefresh();
+                Stock.StartRefresh(userAsked: true);
                 Components?.Update();
             });
         // what the page shows is checked again now: the install may have changed since Apex started

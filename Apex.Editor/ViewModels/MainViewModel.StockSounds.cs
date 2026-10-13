@@ -54,6 +54,9 @@ public sealed partial class MainViewModel
             InstallStockHelper();
             return;
         }
+        // the first stock view asks for the one-time index (progress and Cancel show in the Explorer's card)
+        if (Stock.Db is null)
+            Stock.StartRefresh(userAsked: true);
         StockSounds = new StockSoundsViewModel(Stock, CloseStockSounds, OpenSoundCopy, SoundPreviewFactory?.Invoke(Stock));
     }
 

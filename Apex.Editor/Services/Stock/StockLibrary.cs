@@ -16,7 +16,10 @@ public enum StockState
     /// <summary>The helper (stocklib.exe) is not installed or not found: the library offers to install it.</summary>
     HelperMissing,
 
-    /// <summary>The helper is there and the first index is being built (or has not started).</summary>
+    /// <summary>The helper is there, no usable index exists, and none is being built: it starts when the user asks.</summary>
+    NeedsIndex,
+
+    /// <summary>The helper is there and the first index is being built.</summary>
     Indexing,
 
     /// <summary>stock.db can be searched. A refresh may still be running; the old index answers meanwhile.</summary>
@@ -96,7 +99,7 @@ public sealed class StockLibrary : IStockBackend, IDisposable
             : Db is not null ? StockState.Ready
             : Problem.Length > 0 && ExePath is null ? StockState.Failed
             : ExePath is null ? StockState.HelperMissing
-            : StockState.Indexing;
+            : StockState.NeedsIndex;
     }
 
     /// <summary>
@@ -199,7 +202,7 @@ public sealed class StockLibrary : IStockBackend, IDisposable
         }
         ExePath = located;
         Problem = "";
-        State = Db is not null ? StockState.Ready : located is null ? StockState.HelperMissing : StockState.Indexing;
+        State = Db is not null ? StockState.Ready : located is null ? StockState.HelperMissing : StockState.NeedsIndex;
         Changed?.Invoke();
         if (located is not null)
             StartRefresh();
@@ -258,14 +261,34 @@ public sealed class StockLibrary : IStockBackend, IDisposable
     /// Builds or refreshes the index in the background (cheap when nothing changed: the helper compares the fastfiles'
     /// fingerprints and writes nothing). Searches keep reading the old index until the refresh commits.
     /// </summary>
-    public void StartRefresh()
+    public void StartRefresh(bool userAsked = false)
     {
-        if (ExePath is null || Backend is not null || Interlocked.CompareExchange(ref _refreshing, 1, 0) != 0)
+        if (ExePath is null || Backend is not null)
             return;
-        _ = Task.Run(RefreshAsync);
+        // No index yet: building one reads every fastfile (minutes, gigabytes of memory), so it starts only when the user
+        // asks (Build index now, or opening a stock view), never silently at launch.
+        if (Db is null && !userAsked)
+        {
+            if (!IsRefreshing && State != StockState.NeedsIndex)
+            {
+                State = StockState.NeedsIndex;
+                Changed?.Invoke();
+            }
+            return;
+        }
+        if (Interlocked.CompareExchange(ref _refreshing, 1, 0) != 0)
+            return;
+        _indexCancel = new CancellationTokenSource();
+        var token = _indexCancel.Token;
+        _ = Task.Run(() => RefreshAsync(token));
     }
 
-    private async Task RefreshAsync()
+    private CancellationTokenSource? _indexCancel;
+
+    /// <summary>Stops a running index or refresh (the helper drops it; what it has done is kept and resumes next time).</summary>
+    public void CancelIndex() => _indexCancel?.Cancel();
+
+    private async Task RefreshAsync(CancellationToken cancel)
     {
         try
         {
@@ -287,10 +310,14 @@ public sealed class StockLibrary : IStockBackend, IDisposable
                 ProgressFraction = total > 0 ? Math.Min(1, (double)done / total) : 0;
                 Progress = Db is null ? $"Indexing stock assets… {ProgressFraction:P0}" : $"Refreshing stock assets… {ProgressFraction:P0}";
                 Changed?.Invoke();
-            }, CancellationToken.None).ConfigureAwait(false);
+            }, cancel).ConfigureAwait(false);
             Problem = "";
         }
-        catch (Exception ex) when (ex is StockHelperException or TimeoutException or OperationCanceledException)
+        catch (OperationCanceledException)
+        {
+            Problem = "";
+        }
+        catch (Exception ex) when (ex is StockHelperException or TimeoutException)
         {
             Problem = ex.Message;
         }
@@ -304,7 +331,7 @@ public sealed class StockLibrary : IStockBackend, IDisposable
             if (Problem.Length == 0)
                 Problem = problem;
             ShippedAssets.UseDatabase(Db);
-            State = Db is not null ? StockState.Ready : Problem.Length > 0 || ExePath is null ? StockState.Failed : StockState.Indexing;
+            State = Db is not null ? StockState.Ready : Problem.Length > 0 || ExePath is null ? StockState.Failed : StockState.NeedsIndex;
             Volatile.Write(ref _refreshing, 0);
             Changed?.Invoke();
             // a new index changes what may be used directly (Dragon accepts the schema, the helper's own entry)

@@ -233,7 +233,7 @@ public sealed partial class MainViewModel
 
     /// <summary>A free-text query is active: the Explorer shows flat, ranked results.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsTreeMode), nameof(ReserveFacetRow), nameof(ShowSourceFilter), nameof(ShowStockOffer), nameof(HasStockNote))]
+    [NotifyPropertyChangedFor(nameof(IsTreeMode), nameof(ReserveFacetRow), nameof(ShowSourceFilter), nameof(ShowStockOffer), nameof(ShowStockIndexOffer), nameof(ShowStockIndexProgress), nameof(HasStockNote))]
     private bool _isSearchResults;
 
     /// <summary>

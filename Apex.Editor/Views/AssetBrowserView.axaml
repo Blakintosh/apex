@@ -367,6 +367,29 @@
     </Button>
     <TextBlock DockPanel.Dock="Bottom" Name="StockNoteText" Classes="faint" FontSize="{StaticResource FontSizeXs}" TextWrapping="Wrap"
                Margin="14,4,14,4" Text="{Binding StockNote}" IsVisible="{Binding HasStockNote}"/>
+    <!-- No stock index yet, or the first one is being built: said calmly, started only on request. -->
+    <Border DockPanel.Dock="Bottom" Name="StockIndexOffer" Classes="stockcard" Margin="4,6,4,8" IsVisible="{Binding ShowStockIndexOffer}">
+      <StackPanel Spacing="8">
+        <TextBlock FontWeight="SemiBold" FontSize="{StaticResource FontSizeBase}" TextWrapping="Wrap" Text="Stock library needs a one-time index"/>
+        <TextBlock Classes="dim" FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" Text="{Binding StockIndexOfferText}"/>
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Name="StockBuildIndexButton" Classes="accent small" Command="{Binding BuildStockIndexCommand}" AutomationProperties.Name="Build the stock index now">
+            <TextBlock Text="Build index now"/>
+          </Button>
+          <Button Classes="link dim" Command="{Binding DismissStockIndexOfferCommand}" VerticalAlignment="Center">
+            <TextBlock Text="Not now" FontSize="{StaticResource FontSizeSm}"/>
+          </Button>
+        </StackPanel>
+      </StackPanel>
+    </Border>
+    <Border DockPanel.Dock="Bottom" Name="StockIndexProgress" Classes="stockcard" Margin="4,6,4,8" IsVisible="{Binding ShowStockIndexProgress}">
+      <StackPanel Spacing="8">
+        <TextBlock FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" Text="{Binding StockIndexProgressText}"/>
+        <Button Name="StockCancelIndexButton" Classes="small" HorizontalAlignment="Left" Command="{Binding CancelStockIndexCommand}" AutomationProperties.Name="Cancel indexing">
+          <TextBlock Text="Cancel"/>
+        </Button>
+      </StackPanel>
+    </Border>
     <!-- The helper that reads the game's own assets isn't installed: said once, calmly, with the way to get it. -->
     <Border DockPanel.Dock="Bottom" Name="StockOffer" Classes="stockcard" Margin="4,6,4,8" IsVisible="{Binding ShowStockOffer}">
       <StackPanel Spacing="8">
