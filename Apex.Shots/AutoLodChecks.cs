@@ -77,6 +77,9 @@ public partial class Program
         Check("auto lod: the list stops at the first slot with neither a file nor auto-generate", s.All(x => x.Index < 3));
         Check("auto lod: no filename, no LODs (auto-generate needs a LOD0)",
             XModelLodSlots.Read(new Dictionary<string, string> { ["autogenMediumLod"] = "1" }).Count == 0);
+        var defaults = XModelLodSlots.Read(new Dictionary<string, string> { ["filename"] = "a", ["autogenMediumLod"] = "1", ["autogenLowLod"] = "1", ["autogenLowestLod"] = "1", ["autogenLod4"] = "1" });
+        Check($"auto lod: a percent the GDT leaves out is xmodel.gdf's default ({string.Join("/", defaults.Skip(1).Select(x => x.Percent))})",
+            defaults.Skip(1).Select(x => x.Percent).SequenceEqual(new[] { 50, 25, 13, 13 }));
         Check("auto lod: percents are clamped and rounded",
             XModelLodSlots.Read(new Dictionary<string, string> { ["filename"] = "a", ["autogenMediumLod"] = "1", ["autogenMediumLodPercent"] = "140" })[1].Percent == 100
             && XModelLodSlots.Read(new Dictionary<string, string> { ["filename"] = "a", ["autogenMediumLod"] = "1", ["autogenMediumLodPercent"] = "12.6" })[1].Percent == 13);
@@ -221,6 +224,25 @@ public partial class Program
         Check($"auto lod: none {none}, stocklib only {stockOnly}, Dragon only {dragonOnly}, both {both}",
             none == "off" && stockOnly == "off" && dragonOnly == "hybrid-1" && both == "hybrid-1");
         Check("auto lod: no install, no Dragon", AutoLodPreview.Find(null) is null && AutoLodPreview.Find("") is null);
+
+        // Components without the Stock Library: Dragon and Blackbird come from the registry itself (rule 9).
+        Matrix(false, true);
+        WriteComponent(install, "blackbird", new Dictionary<string, object> { ["id"] = "blackbird", ["version"] = "0.9.2", ["path"] = exe });
+        using (var noHelper = new StockLibrary(install, Path.Combine(temp, "none", "stocklib.exe")))
+        {
+            var rows = Apex.Editor.ViewModels.ComponentsViewModel.Build(noHelper, "0.4.0", () => { }, () => { }, install);
+            string Row(string name) => rows.FirstOrDefault(r => r.Name == name) is { } r ? $"{r.State} {r.Status}" : "missing";
+            Check($"components: without stocklib, Dragon ({Row("Dragon")}), Blackbird ({Row("Blackbird")}) and Ultrasound ({Row("Ultrasound")}) come from the registry",
+                Row("Dragon").StartsWith("Ok 0.2.0") && Row("Dragon").Contains("auto-lod") && Row("Blackbird") == "Ok 0.9.2" && Row("Ultrasound") == "Off not reported");
+            RemoveComponent(install, "dragon");
+            rows = Apex.Editor.ViewModels.ComponentsViewModel.Build(noHelper, "0.4.0", () => { }, () => { }, install);
+            Check($"components: no dragon.json, Dragon not installed ({Row("Dragon")})", Row("Dragon") == "Off not installed");
+            WriteComponent(install, "ultrasound", new Dictionary<string, object> { ["id"] = "ultrasound", ["version"] = "1.1.0", ["path"] = exe });
+            rows = Apex.Editor.ViewModels.ComponentsViewModel.Build(noHelper, "0.4.0", () => { }, () => { }, install);
+            Check($"components: an ultrasound.json, once Ultrasound writes one, shows ({Row("Ultrasound")})", Row("Ultrasound") == "Ok 1.1.0");
+            RemoveComponent(install, "ultrasound");
+            RemoveComponent(install, "blackbird");
+        }
 
         // Today's Dragon (stock carry and sound, no auto-lod) gates nothing.
         WriteComponent(install, "dragon", DragonEntry(exe, new[] { "stock-carry", "stock-sound" }));

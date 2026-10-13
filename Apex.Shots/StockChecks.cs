@@ -35,6 +35,7 @@ public partial class Program
         StockDbChecks(dbPath);
         AddSoundFixture(dbPath);
         StockUiChecks(dbPath, temp, outDir);
+        StockHelperShutdownChecks(temp);
     }
 
     // ═══ The fixture database: the helper's schema (docs/schema.md), the columns Apex reads ════════════════════════════
@@ -186,6 +187,8 @@ public partial class Program
         public readonly List<string> Calls = new();
         public string? ExtractedName;
         public StockExtractRequest? LastRequest;
+        /// <summary>Set: extract fails part way and names this manifest (<c>error.data.manifest</c>).</summary>
+        public string? FailExtractManifest;
 
         private static string Fixture(string name) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "stock", name));
 
@@ -209,6 +212,11 @@ public partial class Program
         {
             Calls.Add($"extract {request.Type} {request.Name} {request.Map} keep={request.KeepName} all={request.RenameAll} gdt={request.Gdt}");
             LastRequest = request;
+            if (FailExtractManifest is { } failed)
+            {
+                await Task.Delay(20, cancel);
+                throw new StockHelperException("Writing p7_zm_zod_master_switch_image_2.png failed: the disk is full.", failed);
+            }
             ExtractedName = request.Name;
             for (var i = 1; i <= 3; i++)
             {
@@ -456,6 +464,21 @@ public partial class Program
         Check($"link: the map from the link is the target ({linked.Target?.Name}) and the plan was made against it",
             linked.Target is { Name: "zm_moreguns" } && fake.Calls.Any(c => c.StartsWith("deps XMODEL wpn_t7_smg_standard_view mods/zm_moreguns")));
         Capture(window, Path.Combine(outDir, "stock-link-clone.png"));
+
+        // A copy that fails part way: the helper names the manifest of what it wrote, and the dialog offers Undo for it.
+        fake.FailExtractManifest = Path.Combine(Path.GetTempPath(), "apex-stock-fixture-failed.json");
+        linked.CreateCommand.Execute(null);
+        WaitFor(() => linked.Stage == CloneStage.Ready && linked.Error.Length > 0);
+        Pump(100);
+        window.UpdateLayout();
+        var undoFailed = window.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "CloneUndoFailedButton");
+        Check($"clone: a failed copy that wrote files offers Undo ({linked.Error})",
+            linked.CanUndoFailed && linked.Error.Contains("Undo takes it back") && undoFailed is { IsEffectivelyVisible: true });
+        linked.UndoFailedCommand.Execute(null);
+        WaitFor(() => linked.Stage == CloneStage.Undone);
+        Check($"clone: Undo after a failure takes back what that copy wrote ({linked.ResultTitle})",
+            linked.Stage == CloneStage.Undone && fake.Calls.LastOrDefault(c => c.StartsWith("undo ")) == "undo " + fake.FailExtractManifest && !linked.CanUndoFailed);
+        fake.FailExtractManifest = null;
         linked.CloseCommand.Execute(null);
         vm.Registry[CommandCatalog.CloseTab].Execute();
         vm.OpenLink("asset://no_such_stock_asset_zz.xmodel?stock=clone&map=zm_guns");
