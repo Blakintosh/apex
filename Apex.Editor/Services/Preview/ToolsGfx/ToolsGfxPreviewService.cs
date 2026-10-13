@@ -175,7 +175,7 @@ public static class ToolsGfxPreviewService
         CancellationToken ct = default)
     {
         options ??= new PreviewModelOptions();
-        return Reuse(data, "xmodel|" + xmodelName, options, () =>
+        return Reuse(data, ModelKey(xmodelName), options, () =>
         {
             using var scope = ConversionScope.Begin();
             var prepared = PreviewModelLoader.Prepare(data, xmodelName, options, cancellationToken: ct);
@@ -246,6 +246,23 @@ public static class ToolsGfxPreviewService
         }
         return model;
     }
+
+    /// <summary>Drops the prepared models of <paramref name="key"/> (new caches appeared that its sources don't show, such as
+    /// LODs Dragon just made), so the next <see cref="Reuse"/> prepares again.</summary>
+    public static void ForgetPrepared(string key)
+    {
+        lock (PreparedGate)
+            for (var node = Prepared.First; node is not null;)
+            {
+                var next = node.Next;
+                if (node.Value.Key.Equals(key, StringComparison.OrdinalIgnoreCase))
+                    Prepared.Remove(node);
+                node = next;
+            }
+    }
+
+    /// <summary>The <see cref="Reuse"/> key of an xmodel prepared by <see cref="PrepareModel"/>.</summary>
+    public static string ModelKey(string xmodelName) => "xmodel|" + xmodelName;
 
     private static long Ticks(string path) => File.GetLastWriteTimeUtc(path).Ticks;
 

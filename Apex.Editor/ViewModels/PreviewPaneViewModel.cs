@@ -14,6 +14,7 @@ using Apex.Editor.Services.Stock;
 using Apex.Render.Assets;
 using Apex.Render.Data.Animation;
 using Apex.Render.Data.Gdt;
+using Apex.Render.Data.Hashing;
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
@@ -965,6 +966,9 @@ public sealed partial class ModelPreviewViewModel : ObservableObject, IPreviewCo
         propertyKey.Equals("filename", StringComparison.OrdinalIgnoreCase)
         || propertyKey.Equals("skinOverride", StringComparison.OrdinalIgnoreCase)
         || (Gfx.IsActive && propertyKey.EndsWith("Lod", StringComparison.OrdinalIgnoreCase))
+        // auto LODs: which slots, how far, and the priorities their caches are keyed by
+        || (Gfx.IsActive && (propertyKey.StartsWith("autogen", StringComparison.OrdinalIgnoreCase) || propertyKey.EndsWith("Priority", StringComparison.OrdinalIgnoreCase)
+                             || propertyKey.Equals("customAutogenParams", StringComparison.OrdinalIgnoreCase) || propertyKey.EndsWith("File", StringComparison.Ordinal)))
         || (SchemaRegistry.Get(_record.Type)?.Find(propertyKey)?.FileKind == PropertyFileKind.Model);
 
     /// <summary>The ToolsGfx viewport cannot draw this model: switch to the OpenGL approximation.</summary>
@@ -1022,16 +1026,22 @@ public sealed partial class ModelPreviewViewModel : ObservableObject, IPreviewCo
             if (!_forceGl)
             {
                 var name = _record.Name;
+                var (autoLod, autoLodNote) = _stock is null ? await PrepareAutoLodsAsync(name, cts.Token) : (null, null);
+                if (cts.IsCancellationRequested)
+                    return;
                 if (await Gfx.TryLoadAsync(_env, _resolve,
-                        data => ToolsGfxPreviewService.PrepareModel(data, name, new PreviewModelOptions { SkipBrokenMaterials = true }, cts.Token),
+                        data => ToolsGfxPreviewService.PrepareModel(data, name, new PreviewModelOptions { SkipBrokenMaterials = true, AutoLod = autoLod }, cts.Token),
                         cts.Token))
                 {
                     var m = Gfx.Model!;
                     Scene = null;
                     Error = null;
                     int bones = m.Lods[0].Bones.Count;
-                    Stats = $"{m.TriangleCount(0):N0} tris  ·  {m.Lods.Count} LOD{(m.Lods.Count == 1 ? "" : "s")}  ·  {bones} bone{(bones == 1 ? "" : "s")}  ·  {m.Materials.Count} materials"
+                    var lods = m.Lods.Count == 1 ? "1 LOD"
+                        : $"{m.Lods.Count} LODs ({string.Join(" / ", Enumerable.Range(0, m.Lods.Count).Select(i => m.TriangleCount(i).ToString("N0")))})";
+                    Stats = $"{m.TriangleCount(0):N0} tris  ·  {lods}  ·  {bones} bone{(bones == 1 ? "" : "s")}  ·  {m.Materials.Count} materials"
                             + (m.BrokenMaterialCount > 0 ? $" ({m.BrokenMaterialCount} missing)" : "")
+                            + (autoLodNote is not null ? "  ·  " + autoLodNote : "")
                             + (ToolsGfxPreviewService.ConversionNote(m) is { } converted ? "  ·  " + converted : "");
                     return;
                 }
@@ -1090,6 +1100,40 @@ public sealed partial class ModelPreviewViewModel : ObservableObject, IPreviewCo
         {
             if (_cts == cts)
                 _loading.End();
+        }
+    }
+
+    /// <summary>
+    /// With Dragon's <c>auto-lod</c> on the install: the decimator the preview's auto LODs come from, after asking Dragon
+    /// for the ones it has not made yet (the overlay says "Generating LODs…" meanwhile), and a note for the info line.
+    /// Without Dragon (or for a model with no auto LODs): (null, null), and the preview reads APE's autogen caches. When
+    /// Dragon fails, the preview falls back to APE's caches and the note says why.
+    /// </summary>
+    private async Task<(AutoLodAlgo? Algo, string? Note)> PrepareAutoLodsAsync(string name, CancellationToken ct)
+    {
+        if (_env.Bo3Root is not { } root || AutoLodPreview.Find(root) is not { } dragon
+            || ToolsGfxPreviewService.UnavailableReason is not null || ToolsGfxPreviewService.GetData(_env, _resolve) is not { } data)
+            return (null, null);
+        ToolsGfxPreviewService.BeginLoad(_resolve);
+        var request = await Task.Run(() => AutoLodPreview.Missing(data, name, dragon.Algo), ct);
+        if (request is null)
+            return (dragon.Algo, null);
+        var note = $"auto LODs by Dragon ({dragon.Algo})";
+        if (request.Missing.Count == 0)
+            return (dragon.Algo, note);
+        LoadingText = AutoLodPreview.GeneratingText;
+        try
+        {
+            var result = await AutoLodPreview.GenerateAsync(dragon, root, request, ct);
+            if (!result.Ok)
+                return (null, "Dragon couldn't make the auto LODs: " + result.Error);
+            ToolsGfxPreviewService.ForgetPrepared(ToolsGfxPreviewService.ModelKey(name));
+            return (dragon.Algo, note);
+        }
+        finally
+        {
+            if (!ct.IsCancellationRequested)
+                LoadingText = "Loading…";
         }
     }
 
