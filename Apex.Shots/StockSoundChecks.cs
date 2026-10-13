@@ -93,10 +93,18 @@ public partial class Program
             return Task.FromResult(new StockSoundDefs(name, made));
         }
 
+        /// <summary>The variant whose export writes part of a file and then fails (-1: none).</summary>
+        public int FailExportAt { get; set; } = -1;
+
         public Task<StockSoundExport> SoundExportAsync(string name, string? zone, int variant, string format, string outPath, CancellationToken cancel = default)
         {
             Calls.Add($"sound_export {name} zone={zone} variant={variant} format={format}");
             Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
+            if (variant == FailExportAt)
+            {
+                File.WriteAllText(outPath, "half a stream");
+                throw new StockHelperException("the disk is full");
+            }
             if (format == "flac")
                 File.Copy(Path.Combine(AppContext.BaseDirectory, "Fixtures", "stock", "uin_up.flac"), outPath, overwrite: true);
             else
@@ -449,5 +457,23 @@ public partial class Program
         var clash = StockSoundCopier.Problems(Plan("amb_y", "loaded", false, new[] { 0 }, Path.Combine(root, "new.csv")));
         Check($"copier: an audio file already in sound_assets is refused, not overwritten ('{clash.FirstOrDefault()}')", clash.Any(p => p.Contains("already exists")));
         Directory.Delete(Path.Combine(assets, "stock"), recursive: true);
+
+        // the helper fails part way through a variant: what it half-wrote goes with the rest
+        fake.FailExportAt = 1;
+        var failed = false;
+        try
+        {
+            StockSoundCopier.CopyAsync(fake, Plan("amb_z", "loaded", false, new[] { 0, 1, 2 }, Path.Combine(root, "fail.csv")), null).GetAwaiter().GetResult();
+        }
+        catch (StockHelperException)
+        {
+            failed = true;
+        }
+        finally
+        {
+            fake.FailExportAt = -1;
+        }
+        Check("copier: a variant the helper fails part way leaves no file, folder or CSV behind",
+            failed && !Directory.Exists(Path.Combine(assets, "stock")) && !File.Exists(Path.Combine(root, "fail.csv")));
     }
 }
