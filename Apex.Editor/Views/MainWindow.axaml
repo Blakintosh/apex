@@ -850,6 +850,9 @@
                 <Button Name="CloneUndoButton" Classes="outline" Command="{Binding UndoCommand}" IsVisible="{Binding ShowResult}" IsEnabled="{Binding CanUndo}">
                   <TextBlock Text="Undo"/>
                 </Button>
+                <Button Name="CloneUndoFailedButton" Classes="outline" Command="{Binding UndoFailedCommand}" IsVisible="{Binding CanUndoFailed}">
+                  <TextBlock Text="Undo"/>
+                </Button>
                 <Button Name="CloneCancelButton" Classes="outline" Command="{Binding CloseCommand}" IsVisible="{Binding !ShowResult}" IsEnabled="{Binding !IsRunning}">
                   <TextBlock Text="Cancel"/>
                 </Button>

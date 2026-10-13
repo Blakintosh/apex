@@ -561,6 +561,8 @@ public sealed partial class StockCloneViewModel : ObservableObject
         var target = Target;
         Stage = CloneStage.Running;
         Error = "";
+        CanUndoFailed = false; // a new attempt writes its own manifest
+        _failedManifest = null;
         ProgressText = "Starting…";
         ProgressKnown = false;
         ProgressFraction = 0;
@@ -591,8 +593,36 @@ public sealed partial class StockCloneViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is StockHelperException or TimeoutException or OperationCanceledException)
         {
-            Error = ex.Message;
+            // A copy that failed part way may have written files (and the GDT): the helper says where its manifest is.
+            _failedManifest = (ex as StockHelperException)?.Manifest;
+            CanUndoFailed = _failedManifest is not null;
+            Error = CanUndoFailed ? ex.Message + " Part of the copy was written; Undo takes it back." : ex.Message;
             Stage = CloneStage.Ready;
+        }
+    }
+
+    private string? _failedManifest;
+
+    /// <summary>A failed copy left files behind and the helper named its manifest: the footer offers Undo.</summary>
+    [ObservableProperty]
+    private bool _canUndoFailed;
+
+    /// <summary>Takes back what a failed copy wrote.</summary>
+    [RelayCommand]
+    private async Task UndoFailedAsync()
+    {
+        if (_failedManifest is not { } manifest || !CanUndoFailed)
+            return;
+        CanUndoFailed = false;
+        _failedManifest = null;
+        Error = "";
+        await UndoManifestAsync(manifest).ConfigureAwait(true);
+        if (Stage != CloneStage.Undone)
+        {
+            // the undo failed: keep offering it
+            _failedManifest = manifest;
+            CanUndoFailed = true;
+            Error = AfterText;
         }
     }
 
@@ -648,6 +678,11 @@ public sealed partial class StockCloneViewModel : ObservableObject
         if (Result?.Manifest is not { Length: > 0 } manifest || !CanUndo)
             return;
         CanUndo = false;
+        await UndoManifestAsync(manifest).ConfigureAwait(true);
+    }
+
+    private async Task UndoManifestAsync(string manifest)
+    {
         AfterText = "Undoing…";
         try
         {
@@ -667,7 +702,7 @@ public sealed partial class StockCloneViewModel : ObservableObject
         catch (Exception ex) when (ex is StockHelperException or TimeoutException or OperationCanceledException)
         {
             AfterText = "Undo failed: " + ex.Message;
-            CanUndo = true;
+            CanUndo = Result?.Manifest is { Length: > 0 };
         }
     }
 
