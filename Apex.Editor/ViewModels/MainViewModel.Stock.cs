@@ -274,6 +274,8 @@ public sealed partial class MainViewModel
     /// Asks the database for this search off the UI thread. When the answer lands (and is still the one wanted) the rows
     /// are built again from the hits already in hand, so the local rows are never searched twice.
     /// </summary>
+    private CancellationTokenSource? _stockSearchCancel;
+
     private void RequestStock(StockQuery query, IReadOnlyList<AssetRecord> localShown)
     {
         var key = query.Key;
@@ -281,18 +283,25 @@ public sealed partial class MainViewModel
         var library = Stock;
         var sample = localShown.Take(300).Select(a => (Kind: StockTypes.KindOfApex(a.Type), a.Name)).ToList();
         var typeKinds = TypeKinds(_tokens);
+        // a newer keystroke's search makes this one's answer useless: stop its SQL rather than let it run to the end
+        _stockSearchCancel?.Cancel();
+        var cancel = (_stockSearchCancel = new CancellationTokenSource()).Token;
         _ = Task.Run(() =>
         {
             StockSearchState state;
             try
             {
                 var db = library.Db!;
-                var result = db.Search(query);
+                var result = db.Search(query, cancel);
                 var overrides = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var group in sample.GroupBy(s => s.Kind))
                     foreach (var name in db.NamesOfKind(group.Key, group.Select(g => g.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList()))
                         overrides.Add(group.Key + "\0" + name);
                 state = new StockSearchState(key, query.Limit, Narrowed(result, typeKinds), overrides, db.AssetCount());
+            }
+            catch (OperationCanceledException)
+            {
+                return;
             }
             catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or System.IO.IOException or NullReferenceException)
             {

@@ -210,8 +210,34 @@ public sealed class StockHelper : IDisposable
             _pending.TryRemove(id, out _);
             throw new StockHelperException("The stock helper is not answering.");
         }
-        await using var registration = cancel.Register(() => pending.Done.TrySetCanceled(cancel));
+        await using var registration = cancel.Register(() =>
+        {
+            // Stop waiting, and tell the helper (protocol.md "cancel"): a queued request is dropped, a running reader's
+            // answer is replaced. Writes (extract, undo, sound_export) are left alone: they answer with what they wrote.
+            // A helper without cancel answers "unknown method" to an id nobody waits for.
+            if (pending.Done.TrySetCanceled(cancel) && !WritingMethods.Contains(method))
+                SendCancel(id);
+        });
         return await pending.Done.Task.ConfigureAwait(false);
+    }
+
+    private void SendCancel(long id)
+    {
+        if (_disposed)
+            return;
+        _pending.TryRemove(id, out _);
+        var request = new Dictionary<string, object?> { ["id"] = Interlocked.Increment(ref _nextId), ["method"] = "cancel", ["params"] = new Dictionary<string, object?> { ["id"] = id } };
+        try
+        {
+            lock (_write)
+            {
+                _process.StandardInput.WriteLine(JsonSerializer.Serialize(request));
+                _process.StandardInput.Flush();
+            }
+        }
+        catch (Exception ex) when (ex is IOException or InvalidOperationException or ObjectDisposedException)
+        {
+        }
     }
 
     /// <summary>Methods that write into the install: the helper must be allowed to finish them.</summary>
