@@ -44,7 +44,10 @@ public sealed class StockDb
     public StockDb(string path)
     {
         Path = path;
-        _connection = new SqliteConnectionStringBuilder { DataSource = path, Mode = SqliteOpenMode.ReadOnly, Pooling = false }.ToString();
+        // A short wait for a lock: some reads run on the UI thread (shipped-name checks, a stock tab's header), and a
+        // refresh that cannot rename the new index into place copies it in under a write lock for as long as the copy
+        // takes. Failing fast lets those reads answer "not known" instead of freezing the window for the default 30 s.
+        _connection = new SqliteConnectionStringBuilder { DataSource = path, Mode = SqliteOpenMode.ReadOnly, Pooling = false, DefaultTimeout = 2 }.ToString();
     }
 
     public string Path { get; }
@@ -184,9 +187,14 @@ public sealed class StockDb
     /// <summary>How many assets of every kind the index holds (without the hidden LOD meshes).</summary>
     public int AssetCount()
     {
+        // a full scan (~30 ms on the 460k-row index) that every search asked again; a refreshed index is a new StockDb
+        if (_assetCount is { } known)
+            return known;
         using var db = Open();
-        return (int)Scalar(db, $"SELECT COUNT(*) FROM asset WHERE type <> '{StockTypes.HiddenEngineType}'");
+        return (_assetCount = (int)Scalar(db, $"SELECT COUNT(*) FROM asset WHERE type <> '{StockTypes.HiddenEngineType}'")).Value;
     }
+
+    private int? _assetCount;
 
     // ── Search ──────────────────────────────────────────────────────────────
 
