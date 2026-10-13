@@ -168,11 +168,12 @@ public readonly record struct XModelLodParameters(
         if (Read("customAutogenParams", 0) == 0)
             return d with { Scale = scale };
 
+        // A key the GDT leaves out has xmodel.gdf's default (12, 1.54, 3.5, 0.008), not the non-custom constants.
         return new XModelLodParameters(
-            Read("lodPositionPriority", d.PositionPriority),
-            Read("lodNormalPriority", d.NormalPriority),
-            Read("LodUvPriority", d.UvPriority),
-            Read("LodColorPriority", d.ColorPriority),
+            Read("lodPositionPriority", 12f),
+            Read("lodNormalPriority", 1.54f),
+            Read("LodUvPriority", 3.5f),
+            Read("LodColorPriority", 0.008f),
             scale);
 
         float Read(string key, float fallback)

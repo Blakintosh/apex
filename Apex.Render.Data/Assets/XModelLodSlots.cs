@@ -13,17 +13,18 @@ public readonly record struct XModelLodSlot(int Index, string File, int Percent,
 
 public static class XModelLodSlots
 {
-    /// <summary>File field, auto flag and auto percent of each slot, in LOD order (the case-sensitive GDT keys).</summary>
-    private static readonly (string File, string Auto, string Pct)[] Slots =
+    /// <summary>File field, auto flag and auto percent of each slot, in LOD order (the case-sensitive GDT keys). A GDT
+    /// stores only values that differ from the GDF, so a missing percent is xmodel.gdf's default (50, 25, then 13).</summary>
+    private static readonly (string File, string Auto, string Pct, int DefaultPct)[] Slots =
     [
-        ("filename", "", ""),
-        ("mediumLod", "autogenMediumLod", "autogenMediumLodPercent"),
-        ("lowLod", "autogenLowLod", "autogenLowLodPercent"),
-        ("lowestLod", "autogenLowestLod", "autogenLowestLodPercent"),
-        ("lod4File", "autogenLod4", "autogenLod4Percent"),
-        ("lod5File", "autogenLod5", "autogenLod5Percent"),
-        ("lod6File", "autogenLod6", "autogenLod6Percent"),
-        ("lod7File", "autogenLod7", "autogenLod7Percent"),
+        ("filename", "", "", 100),
+        ("mediumLod", "autogenMediumLod", "autogenMediumLodPercent", 50),
+        ("lowLod", "autogenLowLod", "autogenLowLodPercent", 25),
+        ("lowestLod", "autogenLowestLod", "autogenLowestLodPercent", 13),
+        ("lod4File", "autogenLod4", "autogenLod4Percent", 13),
+        ("lod5File", "autogenLod5", "autogenLod5Percent", 13),
+        ("lod6File", "autogenLod6", "autogenLod6Percent", 13),
+        ("lod7File", "autogenLod7", "autogenLod7Percent", 13),
     ];
 
     /// <summary>
@@ -34,7 +35,7 @@ public static class XModelLodSlots
     {
         var list = new List<XModelLodSlot>();
         string previous = "";
-        foreach (var (fileKey, autoKey, pctKey) in Slots)
+        foreach (var (fileKey, autoKey, pctKey, defaultPct) in Slots)
         {
             bool auto = autoKey.Length > 0 && Int(fields, autoKey) != 0;
             string file;
@@ -44,7 +45,7 @@ public static class XModelLodSlots
                 if (previous.Length == 0)
                     break;
                 file = previous;
-                percent = (int)Math.Clamp(Math.Round(Float(fields, pctKey)), 0, 100);
+                percent = (int)Math.Clamp(Math.Round(Float(fields, pctKey, defaultPct)), 0, 100);
             }
             else
             {
@@ -62,8 +63,8 @@ public static class XModelLodSlots
     /// <summary>True when any LOD of <paramref name="fields"/> is auto-generated.</summary>
     public static bool HasAutogen(IReadOnlyDictionary<string, string> fields) => Read(fields).Any(s => s.Autogen);
 
-    private static double Float(IReadOnlyDictionary<string, string> fields, string key) =>
-        fields.TryGetValue(key, out var v) && double.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out var d) ? d : 0;
+    private static double Float(IReadOnlyDictionary<string, string> fields, string key, double fallback = 0) =>
+        fields.TryGetValue(key, out var v) && double.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out var d) ? d : fallback;
 
     private static int Int(IReadOnlyDictionary<string, string> fields, string key) => (int)Float(fields, key);
 }
