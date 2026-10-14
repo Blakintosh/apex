@@ -41,6 +41,12 @@ public sealed class GameEnvironment
     /// <summary>Animation GDTs (recursive): <c>xanim_export</c>.</summary>
     public string? XanimExportDir { get; }
 
+    /// <summary>Image and material GDTs (recursive): <c>texture_assets</c>, e.g. <c>t7_concrete.gdt</c>.</summary>
+    public string? TextureAssetsDir { get; }
+
+    /// <summary>Legacy and library GDTs (recursive): <c>art_assets</c>, e.g. <c>t6_legacy	exture_assets\*.gdt</c>.</summary>
+    public string? ArtAssetsDir { get; }
+
     /// <summary>True when the root, deffiles, and source_data all exist and mock mode is not forced.</summary>
     public bool IsAvailable { get; }
 
@@ -66,6 +72,8 @@ public sealed class GameEnvironment
         SourceDataDir = Path.Combine(root, "source_data");
         ModelExportDir = Path.Combine(root, "model_export");
         XanimExportDir = Path.Combine(root, "xanim_export");
+        TextureAssetsDir = Path.Combine(root, "texture_assets");
+        ArtAssetsDir = Path.Combine(root, "art_assets");
         IsAvailable = true;
     }
 

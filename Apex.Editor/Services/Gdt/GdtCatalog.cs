@@ -10,8 +10,10 @@ public readonly record struct GdtSource(string FullPath, string RelativeName);
 
 /// <summary>
 /// Enumerates the .gdt files under a <see cref="GameEnvironment"/> in load priority order:
-/// source_data root files, then source_data subdirectories, then xanim_export, then the
-/// (lowest-priority) model_export per-model sidecars. Names are relative to the BO3 root with
+/// source_data root files, then source_data subdirectories, then xanim_export, texture_assets and
+/// art_assets, then the (lowest-priority) model_export per-model sidecars. These are the roots the GDT
+/// database (<c>gdtdb\gdt.db</c>) indexes, so Radiant and APE see the same assets: stock GDTs such as
+/// <c>texture_assets/t7_concrete.gdt</c> live outside source_data. Names are relative to the BO3 root with
 /// forward slashes so browser grouping is unambiguous (e.g. <c>source_data/blak_iw9/foo.gdt</c>).
 /// </summary>
 public static class GdtCatalog
@@ -26,25 +28,31 @@ public static class GdtCatalog
         // Each root's directory tree is walked ONCE, parallelizing the deep walk across the root's
         // immediate subdirectories (the tree walk is I/O-latency bound, so fanning subdirectories out
         // across cores hides most of it). source_data buckets root-level vs subdirectory files during
-        // that single walk; xanim_export/model_export are flat buckets. The three roots are walked
-        // concurrently. Ordering is unchanged: source_data root files (by name), source_data subdir
-        // files (by full path), xanim_export (by full path), model_export (by full path).
+        // that single walk; the other roots are flat buckets. The roots are walked concurrently.
+        // Ordering: source_data root files (by name), source_data subdir files (by full path), then
+        // xanim_export, texture_assets, art_assets and model_export (each by full path).
         var srcRoot = new List<string>();
         var srcSub = new List<string>();
         List<string> xanim = new();
+        List<string> texture = new();
+        List<string> art = new();
         List<string> model = new();
 
         Parallel.Invoke(
             () => WalkBucketed(env.SourceDataDir, srcRoot, srcSub),
             () => xanim = WalkAll(env.XanimExportDir),
+            () => texture = WalkAll(env.TextureAssetsDir),
+            () => art = WalkAll(env.ArtAssetsDir),
             () => model = WalkAll(env.ModelExportDir));
 
         srcRoot.Sort(static (a, b) => string.Compare(Path.GetFileName(a), Path.GetFileName(b), StringComparison.OrdinalIgnoreCase));
         srcSub.Sort(PathCompare);
         xanim.Sort(PathCompare);
+        texture.Sort(PathCompare);
+        art.Sort(PathCompare);
         model.Sort(PathCompare);
 
-        var result = new List<GdtSource>(srcRoot.Count + srcSub.Count + xanim.Count + model.Count);
+        var result = new List<GdtSource>(srcRoot.Count + srcSub.Count + xanim.Count + texture.Count + art.Count + model.Count);
         void AddAll(List<string> files)
         {
             foreach (var f in files)
@@ -53,6 +61,8 @@ public static class GdtCatalog
         AddAll(srcRoot);
         AddAll(srcSub);
         AddAll(xanim);
+        AddAll(texture);
+        AddAll(art);
         AddAll(model);
 
         return result;

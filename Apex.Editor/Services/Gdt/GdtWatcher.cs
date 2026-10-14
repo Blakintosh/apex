@@ -50,6 +50,8 @@ public sealed class GdtWatcher : IDisposable
     {
         Watch(env.SourceDataDir);
         Watch(env.XanimExportDir);
+        Watch(env.TextureAssetsDir);
+        Watch(env.ArtAssetsDir);
         Watch(env.ModelExportDir);
     }
 
