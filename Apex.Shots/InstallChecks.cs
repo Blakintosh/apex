@@ -238,5 +238,76 @@ public partial class Program
             Apex.Editor.Models.SchemaRegistry.ResetToMock();
             try { Directory.Delete(scratch, recursive: true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
         }
+
+        InstallGdtRootChecks();
+    }
+
+    /// <summary>
+    /// Every GDT root the GDT database indexes is loaded and watched, as Radiant and APE see them: stock GDTs live in
+    /// texture_assets (t7_concrete.gdt holds t7_concrete_sidewalk_2x2_01) and art_assets, not only source_data.
+    /// </summary>
+    private static void InstallGdtRootChecks()
+    {
+        var scratch = NewScratch("gdt-roots");
+        var install = Path.Combine(scratch, "Call of Duty Black Ops III");
+        Directory.CreateDirectory(Path.Combine(install, "deffiles"));
+        static string Gdt(string name, string gdf) =>
+            "{\r\n\t\"" + name + "\" ( \"" + gdf + "\" )\r\n\t{\r\n\t\t\"filename\" \"x\"\r\n\t}\r\n}\r\n";
+        void Write(string rel, string text)
+        {
+            var path = Path.Combine(install, rel);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, text);
+        }
+        Write(@"source_data\apex_roots.gdt", Gdt("apex_roots_source", "xmodel.gdf"));
+        Write(@"xanim_export\apex_roots.gdt", Gdt("apex_roots_anim", "xanim.gdf"));
+        Write(@"model_export\apex\apex_roots.gdt", Gdt("apex_roots_model", "xmodel.gdf"));
+        Write(@"texture_assets\t7_concrete.gdt", Gdt("t7_concrete_sidewalk_2x2_01", "material.gdf"));
+        Write(@"art_assets\t6_legacy\texture_assets\iw_asphalt.gdt", Gdt("apex_roots_legacy", "material.gdf"));
+
+        var saved = (Mock: Environment.GetEnvironmentVariable("APEX_FORCE_MOCK"), Root: Environment.GetEnvironmentVariable("APEX_BO3_ROOT"));
+        Environment.SetEnvironmentVariable("APEX_FORCE_MOCK", null);
+        Environment.SetEnvironmentVariable("APEX_BO3_ROOT", install);
+        GdtWatcher? watcher = null;
+        try
+        {
+            var env = new GameEnvironment(null);
+            var names = GdtCatalog.Enumerate(env).Select(s => s.RelativeName).ToList();
+            Check("gdt roots: the catalog lists source_data, xanim_export, texture_assets, art_assets, model_export in that order",
+                names.SequenceEqual(new[]
+                {
+                    "source_data/apex_roots.gdt", "xanim_export/apex_roots.gdt", "texture_assets/t7_concrete.gdt",
+                    "art_assets/t6_legacy/texture_assets/iw_asphalt.gdt", "model_export/apex/apex_roots.gdt",
+                }));
+
+            var db = GdtLoader.LoadAll(env);
+            var concrete = db.Assets.FirstOrDefault(a => a.Name == "t7_concrete_sidewalk_2x2_01");
+            Check("gdt roots: a texture_assets asset (t7_concrete_sidewalk_2x2_01) loads, from texture_assets/t7_concrete.gdt",
+                concrete?.GdtName == "texture_assets/t7_concrete.gdt");
+            Check("gdt roots: an art_assets asset loads", db.Assets.Any(a => a.Name == "apex_roots_legacy"));
+
+            // A texture_assets GDT changed on disk reaches the app like a source_data one.
+            var changed = new System.Collections.Concurrent.ConcurrentBag<string>();
+            using var seen = new System.Threading.ManualResetEventSlim();
+            watcher = new GdtWatcher(debounceMs: 50, maxDelayMs: 200);
+            watcher.Changed += b => { foreach (var p in b.Changed) changed.Add(p); seen.Set(); };
+            watcher.WatchAll(env);
+            var added = Path.Combine(install, "texture_assets", "apex_roots_new.gdt");
+            File.WriteAllText(added, Gdt("apex_roots_added", "material.gdf"));
+            seen.Wait(TimeSpan.FromSeconds(5));
+            Check("gdt roots: the watcher reports a GDT written to texture_assets",
+                changed.Any(p => p.Equals(added, StringComparison.OrdinalIgnoreCase)));
+        }
+        catch (Exception ex)
+        {
+            Check($"gdt roots: {ex}", false);
+        }
+        finally
+        {
+            watcher?.Dispose();
+            Environment.SetEnvironmentVariable("APEX_FORCE_MOCK", saved.Mock);
+            Environment.SetEnvironmentVariable("APEX_BO3_ROOT", saved.Root);
+            try { Directory.Delete(scratch, recursive: true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+        }
     }
 }
