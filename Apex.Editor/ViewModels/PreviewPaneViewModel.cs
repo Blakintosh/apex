@@ -237,7 +237,7 @@ public sealed partial class ChannelModeOption : ObservableObject
     private void Select() => _owner.SetMode(Mode);
 }
 
-/// <summary>Preview for an image asset: decodes the baseImage source (.tif/.tiff/.png/.tga).</summary>
+/// <summary>Preview for an image asset: decodes the baseImage source (.tif/.tiff/.png/.tga/.exr).</summary>
 public sealed partial class ImagePreviewViewModel : ObservableObject, IPreviewContent
 {
     private readonly AssetRecord _record;

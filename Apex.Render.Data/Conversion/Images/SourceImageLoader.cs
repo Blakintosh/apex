@@ -134,14 +134,7 @@ public static unsafe class SourceImageLoader
 
     public static FloatImage LoadExr(ToolsGfxInstall install, string path)
     {
-        // Imf throws C++ exceptions on bad files; check the magic first so the common failure is a managed one.
-        using (var fs = File.OpenRead(path))
-        {
-            Span<byte> magic = stackalloc byte[4];
-            if (fs.Read(magic) != 4 || magic[0] != 0x76 || magic[1] != 0x2F || magic[2] != 0x31 || magic[3] != 0x01)
-                throw new InvalidDataException($"Not an OpenEXR file: '{path}'.");
-        }
-
+        CheckExrMagic(path);
         var halves = ReadExrHalves(install, path, out int w, out int h);
         var img = FloatImage.Uninitialized(w, h, 4);
         var d = img.Data;
@@ -154,6 +147,35 @@ public static unsafe class SourceImageLoader
             }
         });
         return img;
+    }
+
+    /// <summary>
+    /// An EXR read as <see cref="LoadExr"/> reads it, as RGBA8 for display: each value clamped to 0..1 and scaled to
+    /// 0..255 (NaN as 0). Goes from the halves straight to bytes, so an 8K sky costs its halves and bytes, not floats too.
+    /// </summary>
+    public static byte[] LoadExrRgba8(ToolsGfxInstall install, string path, out int w, out int h)
+    {
+        CheckExrMagic(path);
+        var halves = ReadExrHalves(install, path, out w, out h);
+        var rgba = GC.AllocateUninitializedArray<byte>(halves.Length);
+        ImageProcessing.ForRanges(halves.Length, (from, to) =>
+        {
+            for (int i = from; i < to; i++)
+            {
+                float v = (float)BitConverter.UInt16BitsToHalf(halves[i]);
+                rgba[i] = v >= 1f ? (byte)255 : v > 0f ? (byte)(v * 255f + 0.5f) : (byte)0;
+            }
+        });
+        return rgba;
+    }
+
+    // Imf throws C++ exceptions on bad files; check the magic first so the common failure is a managed one.
+    private static void CheckExrMagic(string path)
+    {
+        using var fs = File.OpenRead(path);
+        Span<byte> magic = stackalloc byte[4];
+        if (fs.Read(magic) != 4 || magic[0] != 0x76 || magic[1] != 0x2F || magic[2] != 0x31 || magic[3] != 0x01)
+            throw new InvalidDataException($"Not an OpenEXR file: '{path}'.");
     }
 
     // Imf_2_1 crashes when several threads read files at once (e.g. a cube's faces converted in parallel).

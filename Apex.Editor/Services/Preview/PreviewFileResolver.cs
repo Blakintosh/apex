@@ -10,14 +10,14 @@ namespace Apex.Editor.Services.Preview;
 /// Empirical shapes found in BO3 source_data: every value is game-root-relative and prefixed with
 /// either <c>model_export\...</c> or <c>texture_assets\...</c>; separators appear as escaped
 /// backslashes (<c>\\</c>) or forward slashes; the extension is always present (.png/.tiff/.tif,
-/// occasionally upper-cased, a handful of unsupported .exr). No absolute/drive-letter values were seen.
+/// occasionally upper-cased, a handful of .exr). No absolute/drive-letter values were seen.
 /// Resolution therefore tries the value as-given under the game root first, then under
 /// texture_assets / model_export, with case-insensitive extension probing as the final fallback.
 /// Pure path logic + File.Exists probing; no caching. Blocking I/O: call off the UI thread.
 /// </summary>
 public static class PreviewFileResolver
 {
-    private static readonly string[] ImageExtensions = { ".tif", ".tiff", ".png", ".tga" };
+    private static readonly string[] ImageExtensions = { ".tif", ".tiff", ".png", ".tga", ".exr" };
 
     /// <summary>Resolves a raw image path value to an absolute file, or null when nothing exists.</summary>
     public static string? ResolveImage(GameEnvironment env, string rawValue)

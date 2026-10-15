@@ -34,8 +34,8 @@ public sealed record LoadedImage(Bitmap Bitmap, int SourceWidth, int SourceHeigh
 
 /// <summary>
 /// Decodes image files (via ImageSharp) into Avalonia bitmaps for preview, entirely off the UI thread.
-/// Supports .png/.tif/.tiff/.tga through ImageSharp's built-in decoders; unsupported formats (e.g. .exr)
-/// resolve to null. The decoded pixels are kept in a bounded LRU keyed by path+size+file-mtime, so tab switching and
+/// Supports .png/.tif/.tiff/.tga through ImageSharp's built-in decoders and .exr through the install's OpenEXR reader;
+/// other formats resolve to null. The decoded pixels are kept in a bounded LRU keyed by path+size+file-mtime, so tab switching and
 /// channel-mode changes only re-run the cheap channel projection into a new bitmap.
 /// </summary>
 public static class ImagePreviewLoader
@@ -109,7 +109,9 @@ public static class ImagePreviewLoader
     /// (aspect kept, each side rounded); throws when the file cannot be decoded.</summary>
     internal static Image<Rgba32> LoadScaled(string path, int maxDimension, out int sourceWidth, out int sourceHeight)
     {
-        var image = path.EndsWith(".lz4", StringComparison.OrdinalIgnoreCase) ? LoadCacheLevel(path) : Image.Load<Rgba32>(path);
+        var image = path.EndsWith(".lz4", StringComparison.OrdinalIgnoreCase) ? LoadCacheLevel(path)
+            : path.EndsWith(".exr", StringComparison.OrdinalIgnoreCase) ? LoadExr(path)
+            : Image.Load<Rgba32>(path);
         sourceWidth = image.Width;
         sourceHeight = image.Height;
         int longest = Math.Max(image.Width, image.Height);
@@ -133,6 +135,30 @@ public static class ImagePreviewLoader
         return Image.LoadPixelData<Rgba32>(texels, level.Width, level.Height);
     }
 
+    /// <summary>
+    /// An OpenEXR source as RGBA8, read by the install's <c>bin\openexr64r.dll</c> as APE and the linker read it. The
+    /// converter treats an EXR's values like any other source image's (a colour image is taken as sRGB), so the preview
+    /// shows them as a PNG holding the same values would look: 0 to 1, with brighter (HDR) values clipped to white.
+    /// </summary>
+    private static Image<Rgba32> LoadExr(string path)
+    {
+        var root = ExrInstallRoot(path) ?? throw new FileNotFoundException("No Black Ops III install with bin\\openexr64r.dll holds this file.", path);
+        var rgba = Apex.Render.Data.Conversion.Images.SourceImageLoader.LoadExrRgba8(
+            Apex.Render.Data.ToolsGfxInstall.FromRoot(root), path, out int w, out int h);
+        return Image.LoadPixelData<Rgba32>(rgba, w, h);
+    }
+
+    /// <summary>The install whose <c>bin\openexr64r.dll</c> reads <paramref name="path"/>: the nearest folder above the
+    /// file that has one (sources live under the install), else the install the environment names.</summary>
+    private static string? ExrInstallRoot(string path)
+    {
+        static bool HasReader(string dir) => File.Exists(Path.Combine(dir, "bin", "openexr64r.dll"));
+        for (var dir = Path.GetDirectoryName(Path.GetFullPath(path)); !string.IsNullOrEmpty(dir); dir = Path.GetDirectoryName(dir))
+            if (HasReader(dir))
+                return dir;
+        return Apex.Render.Data.ToolsGfxInstall.Locate() is { } install && HasReader(install.Root) ? install.Root : null;
+    }
+
     private static Decoded? Decode(string key, string path, int maxDimension, CancellationToken ct)
     {
         Image<Rgba32> image;
@@ -143,7 +169,7 @@ public static class ImagePreviewLoader
         }
         catch
         {
-            // Undecodable format (e.g. .exr) or corrupt/missing file — degrade gracefully.
+            // Undecodable format or corrupt/missing file — degrade gracefully.
             return null;
         }
 
