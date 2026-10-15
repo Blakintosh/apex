@@ -45,14 +45,11 @@ public sealed class GdtWatcher : IDisposable
         _timer = new Timer(_ => Flush(), null, Timeout.Infinite, Timeout.Infinite);
     }
 
-    /// <summary>Watches all present GDT roots of the environment.</summary>
+    /// <summary>Watches all present GDT roots of the environment (<see cref="GdtCatalog.Roots"/>).</summary>
     public void WatchAll(GameEnvironment env)
     {
-        Watch(env.SourceDataDir);
-        Watch(env.XanimExportDir);
-        Watch(env.TextureAssetsDir);
-        Watch(env.ArtAssetsDir);
-        Watch(env.ModelExportDir);
+        foreach (var dir in GdtCatalog.Roots(env))
+            Watch(dir);
     }
 
     /// <summary>Starts watching a single directory recursively. No-op if it doesn't exist / fails.</summary>
