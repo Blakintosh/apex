@@ -38,13 +38,37 @@ public sealed partial class MainViewModel
         }
         if (FindLinked(parsed) is not { } rec)
         {
-            Alert(parsed.Type.Length == 0
-                ? $"There's no asset named {parsed.Name} in the loaded GDTs."
-                : $"There's no {parsed.Type} named {parsed.Name} in the loaded GDTs.", isError: false);
+            // Radiant's model browser lists the shipped models too, and its Open in Apex sends them as plain links
+            if (FindStock(parsed) is { } hit)
+            {
+                OpenAsset(StockRecordFor(hit));
+                Status = $"Opened {parsed.Name} from a link";
+                return;
+            }
+            Alert(Stock.State == Services.Stock.StockState.Indexing
+                ? $"{parsed.Name} isn't in the loaded GDTs, and the stock library is still being indexed. Open the link again when it is done."
+                : parsed.Type.Length == 0
+                    ? $"There's no asset named {parsed.Name} in the loaded GDTs or the stock library."
+                    : $"There's no {parsed.Type} named {parsed.Name} in the loaded GDTs or the stock library.", isError: false);
             return;
         }
         OpenAsset(rec);
         Status = $"Opened {rec.Name} from a link";
+    }
+
+    /// <summary>The shipped asset a link names, or null when there is none or the stock library can't be searched.</summary>
+    private Services.Stock.StockHit? FindStock(AssetLink link)
+    {
+        if (!Stock.CanSearch || Stock.Db is not { } db)
+            return null;
+        try
+        {
+            return db.Find(link.Type, link.Name, LinkKinds);
+        }
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or System.IO.IOException)
+        {
+            return null;
+        }
     }
 
     private static readonly string[] LinkKinds = ["xmodel", "material", "image", "weapon", "xanim", "attachmentunique"];
@@ -55,23 +79,14 @@ public sealed partial class MainViewModel
     /// </summary>
     private void OpenStockClone(AssetLink link)
     {
-        if (!Stock.CanSearch || Stock.Db is not { } db)
+        if (!Stock.CanSearch || Stock.Db is null)
         {
             Alert(Stock.State == Services.Stock.StockState.Indexing
                 ? "The stock library is still being indexed. Open the link again when it is done."
                 : "The stock library isn't available, so Apex can't offer a copy of a shipped asset.", isError: false);
             return;
         }
-        Services.Stock.StockHit? hit;
-        try
-        {
-            hit = db.Find(link.Type, link.Name, LinkKinds);
-        }
-        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or System.IO.IOException)
-        {
-            hit = null;
-        }
-        if (hit is null)
+        if (FindStock(link) is not { } hit)
         {
             Alert(link.Type.Length == 0
                 ? $"The game doesn't ship an asset named {link.Name}."
