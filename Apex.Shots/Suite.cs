@@ -78,6 +78,8 @@ public partial class Program
         new("material-render", Tier.Full, false, "material render checks", RunMaterialRenderChecks),
         // Real D3D11 on the install (read-only): a custom transparent shader over the opaque scene, shot to the shots folder.
         new("custom-shader", Tier.Full, false, "custom shader checks", RunCustomShaderChecks),
+        // The install's OpenEXR reader (bin\openexr64r.dll) decoding .exr sources for the image preview.
+        new("exr", Tier.Full, false, "exr checks", RunExrChecks),
         new("editor-pass", Tier.Fast, true, "editor pass checks", RunEditorPassChecks),
         new("editor-review", Tier.Fast, false, "editor review checks", RunEditorReviewChecks),
         new("live-smoke", Tier.Full, false, null, _ => LiveSmoke(), AfterSession: true),
@@ -95,7 +97,7 @@ public partial class Program
         ["placement"] = 20, ["weapon-class"] = 10, ["links"] = 3, ["radiant-sync"] = 8, ["buttons"] = 25, ["save"] = 30, ["perf"] = 30, ["scroll"] = 4, ["tabs"] = 2, ["fields"] = 6,
         ["lists"] = 5, ["set-view"] = 6, ["key-grid"] = 4, ["notetracks"] = 4, ["install"] = 5, ["layout"] = 4, ["themes"] = 4, ["appmenu"] = 4, ["anim-layout"] = 31, ["search"] = 12, ["stock"] = 8,
         ["extensions"] = 29, ["records"] = 64, ["hardening"] = 18, ["xmodel-schema"] = 1, ["auto-lod"] = 3, ["simulator"] = 8, ["recoil"] = 1, ["recoil-draw"] = 1,
-        ["recoil-app"] = 37, ["recoil-render"] = 2, ["material-render"] = 15, ["shader-compile"] = 2, ["custom-shader"] = 15, ["editor-pass"] = 25, ["live-smoke"] = 2,
+        ["recoil-app"] = 37, ["recoil-render"] = 2, ["material-render"] = 15, ["shader-compile"] = 2, ["custom-shader"] = 15, ["exr"] = 2, ["editor-pass"] = 25, ["live-smoke"] = 2,
     };
 
     private const double DefaultCost = 20;
