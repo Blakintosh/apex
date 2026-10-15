@@ -64,19 +64,7 @@ public partial class Program
         FieldFiles.Root = env.Bo3Root;
         try
         {
-            string? file = null;
-            string[]? names = null;
-            foreach (var path in Directory.EnumerateFiles(env.ModelExportDir, "*.xmodel_bin", SearchOption.AllDirectories).Take(300))
-            {
-                var relative = Path.GetRelativePath(env.ModelExportDir, path);
-                names = FieldFiles.SurfaceMaterialsAsync(relative).GetAwaiter().GetResult();
-                if (names is { Length: >= 2 })
-                {
-                    file = relative;
-                    break;
-                }
-            }
-            if (file is null || names is null)
+            if (ModelWithSurfaces(env.ModelExportDir) is not var (file, names))
             {
                 Console.WriteLine("lists surfaces: no model with two materials in model_export — skipped");
                 return;
@@ -92,13 +80,64 @@ public partial class Program
                 !list.CanAdd && list.Items.Count == names.Length && list.RowCount == names.Length);
             Check("lists surfaces: the left column says it is the model's, the right that it overrides",
                 list.SurfaceTitle == "Material in model" && list.ReplacementTitle == "Override");
-            list.Items[0].GoToCommand?.Execute(null);
-            Check($"lists surfaces: a material's name opens it ('{opened}')",
-                list.Items.All(i => i.CanGoTo) && opened is not null && opened.Equals(list.Items[0].Surface, StringComparison.Ordinal));
+            Check("lists surfaces: the model's materials are slots, with no column titles over them",
+                list.Items.All(i => i.IsModelSurface) && !list.ShowsPairTitles);
+            var slot = list.Items[0];
+            var surface = slot.Surface;
+            Check($"slots: a slot at rest shows the model's material, and isn't an override ('{slot.Title}')",
+                slot.Shown == surface && slot.Title == surface && !slot.IsOverridden && !slot.IsReplaced && !slot.IsHidden
+                && slot.ResetCommand?.CanExecute(null) == false && slot.HideCommand?.CanExecute(null) == true);
+            slot.OpenCommand?.Execute(null);
+            Check($"slots: Open material opens what the slot shows ('{opened}')",
+                list.Items.All(i => i.OpenCommand?.CanExecute(null) == true) && opened == surface);
+
+            LineItemViewModel? asked = null;
+            list.ChooseRequested += i => asked = i;
+            slot.ChooseCommand?.Execute(null);
+            Check("slots: Choose material… shows the slot's field and asks the view to focus it", slot.IsChoosing && asked == slot);
+            slot.IsChoosing = false;
+
+            slot.Replacement!.RawValue = "mtl_apex_swap";
+            Check($"slots: a chosen material is written as the surface's override, and the slot shows it ('{list.RawValue}', '{slot.Title}')",
+                list.RawValue == $@"{surface} mtl_apex_swap\r\n" && slot.IsReplaced && slot.Shown == "mtl_apex_swap"
+                && slot.Title == "mtl_apex_swap" && slot.IsOverridden && slot.ResetCommand?.CanExecute(null) == true);
+            slot.HideCommand?.Execute(null);
+            Check($"slots: Hide replaces it with nodraw, and the slot shows nodraw ('{list.RawValue}', '{slot.Title}')",
+                list.RawValue == $@"{surface} nodraw\r\n" && slot.IsHidden && !slot.IsReplaced && slot.Shown == surface
+                && slot.Title == "nodraw" && slot.HideCommand?.CanExecute(null) == false && slot.OpenCommand?.CanExecute(null) == false);
+            slot.ResetCommand?.Execute(null);
+            Check($"slots: Use the model's material drops the override and the slot shows the model's again ('{list.RawValue}')",
+                list.RawValue == "" && list.Items.Contains(slot) && !slot.IsOverridden && slot.Shown == surface && slot.Title == surface);
+
             var missing = new LinesPropertyViewModel(def, "", (_, _) => { }, k => k == "filename" ? file : "", (_, _) => false);
             for (var i = 0; i < 100 && missing.CanAdd; i++)
                 Pump(30);
-            Check("lists surfaces: a material with no asset is plain text, not a link", !missing.CanAdd && missing.Items.All(i => i.IsPlainSurface));
+            Check("slots: a material with no asset can't be opened", !missing.CanAdd && missing.Items.All(i => i.OpenCommand?.CanExecute(null) == false));
+
+            // The swatch is the colour map's source image: material → colorMap (an image asset) → baseImage (the file).
+            var png = Path.Combine(Path.GetTempPath(), "apex-swatch-" + Guid.NewGuid().ToString("N")[..8] + ".png");
+            File.WriteAllBytes(png, Convert.FromBase64String(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="));
+            try
+            {
+                var material = new AssetRecord { Name = surface, Type = "material", GdtName = "swatch.gdt" };
+                material.Properties["colorMap"] = "apex_swatch_image";
+                var image = new AssetRecord { Name = "apex_swatch_image", Type = "image", GdtName = "swatch.gdt" };
+                image.Properties["baseImage"] = png;
+                AssetRecord? Resolve(string type, string name) =>
+                    type == "material" && name == surface ? material : type == "image" && name == image.Name ? image : null;
+                var swatched = new LinesPropertyViewModel(def, "", (_, _) => { }, k => k == "filename" ? file : "", (_, _) => true, Resolve);
+                for (var i = 0; i < 100 && (swatched.CanAdd || !swatched.Items[0].HasThumbnail); i++)
+                    Pump(30);
+                Check("slots: a slot's swatch is its material's colour map image, and a material without one has none",
+                    swatched.Items[0].HasThumbnail && swatched.Items.Skip(1).All(i => !i.HasThumbnail));
+                swatched.Items[0].HideCommand?.Execute(null);
+                Check("slots: a hidden slot has no swatch", !swatched.Items[0].HasThumbnail);
+            }
+            finally
+            {
+                File.Delete(png);
+            }
         }
         finally
         {
@@ -106,6 +145,19 @@ public partial class Program
         }
     }
 
+
+    /// <summary>A model in model_export with at least two surface materials (its path relative to model_export), or null.
+    /// Reads through <see cref="FieldFiles.Root"/>, so set it to the install first.</summary>
+    private static (string File, string[] Names)? ModelWithSurfaces(string modelExportDir)
+    {
+        foreach (var path in Directory.EnumerateFiles(modelExportDir, "*.xmodel_bin", SearchOption.AllDirectories).Take(300))
+        {
+            var relative = Path.GetRelativePath(modelExportDir, path);
+            if (FieldFiles.SurfaceMaterialsAsync(relative).GetAwaiter().GetResult() is { Length: >= 2 } names)
+                return (relative, names);
+        }
+        return null;
+    }
 
     private static void RunLineChecks(string outDir)
     {
@@ -142,6 +194,7 @@ public partial class Program
             window.Activate();
             Pump();
             LineChecksInWindow(window, vm, outDir);
+            SlotChecksInWindow(window, vm, outDir);
         }
         finally
         {
