@@ -359,7 +359,7 @@ public sealed partial class TableViewModel : ObservableObject, IFileProbeListene
     {
         var def = column.Def;
         var editor = AssetEditorViewModel.Create(def, ValueOf(row.Record, def), null,
-            key => row.Record.Properties.GetValueOrDefault(key), AssetExists);
+            key => row.Record.Properties.GetValueOrDefault(key), AssetExists, _resolve);
         editor.InitBaseline(BaselineOf(row.Record, def));
         editor.Problem = Validator.Check(def, editor.RawValue, AssetExists);
         var cell = new TableCellViewModel(row, column, editor);

@@ -95,7 +95,8 @@ public sealed class GlyphIcon : Control, Avalonia.Rendering.ICustomHitTest
         ["pin"] = "M12 17v5M9 3h6l-1 7 3 3v2H7v-2l3-3z",
         ["lock"] = "M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4",
         ["unlock"] = "M6 11h12v10H6zM8 11V7a4 4 0 0 1 7.5-1.5",
-        ["check"] = "M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18zM8 12.5l3 3 5-6",
+        ["eye-off"] = "M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.1A9 9 0 0 1 12 5c4 0 7.3 2.3 10 7a17 17 0 0 1-3 3.7M6.6 6.6C4.9 7.8 3.4 9.6 2 12c2.7 4.7 6 7 10 7 1.8 0 3.4-.5 4.9-1.4",
+        ["check"] ="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18zM8 12.5l3 3 5-6",
     };
 
     // The older Unicode glyphs buttons and the command catalog use, onto the line set.

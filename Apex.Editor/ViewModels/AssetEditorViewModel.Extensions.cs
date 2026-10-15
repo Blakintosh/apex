@@ -96,7 +96,7 @@ public sealed partial class AssetEditorViewModel
                         var value = block?.Properties.GetValueOrDefault(field.Def.Key) ?? ext.Unowned(field.Def);
                         item = field.Parts is { } parts
                             ? new PartsPropertyViewModel(field.Def, parts, value, AssetExists)
-                            : Create(field.Def, value, navigateToRef, ValueOf, AssetExists);
+                            : Create(field.Def, value, navigateToRef, ValueOf, AssetExists, _resolve);
                         ext.Fields[item] = field;
                         if (field.Def.Key.Equals(schema.EnabledBy, StringComparison.OrdinalIgnoreCase))
                             ext.Switch = item;

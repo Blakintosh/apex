@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Apex.Editor.Models;
 using Apex.Editor.Services;
+using Apex.Editor.Services.Preview;
 
 namespace Apex.Editor.ViewModels;
 
@@ -37,13 +39,6 @@ public sealed class LineItemViewModel : ObservableObject
     public PropertyItemViewModel? Replacement { get; }
 
     public bool IsPair => Replacement is not null;
-
-    /// <summary>Opens the surface's material (a surface of the model whose material exists); null otherwise.</summary>
-    public IRelayCommand? GoToCommand { get; internal set; }
-
-    public bool CanGoTo => GoToCommand is not null;
-
-    public bool IsPlainSurface => IsModelSurface && !CanGoTo;
 
     public int Columns => IsPair ? 2 : 1;
 
@@ -77,11 +72,85 @@ public sealed class LineItemViewModel : ObservableObject
                 return;
             OnPropertyChanged(nameof(IsOverridden));
             OnPropertyChanged(nameof(CanRemove));
+            if (IsModelSurface)
+                SlotChanged();
         }
     }
 
     /// <summary>Where the line sits in the value: the order it was read in, or after them all once it is added.</summary>
     internal int Order { get; set; }
+
+    // ── A surface of the model, drawn as a material slot ─────────────────────
+    // What renders on the surface leads (its swatch and name, which opens it); an override has the model's material
+    // under it, struck through. Replace ▾ chooses, hides or resets it. The replacement field shows only while choosing.
+
+    private string ReplacementValue => Replacement?.RawValue.Trim() ?? "";
+
+    /// <summary>The surface is hidden: its replacement is <c>nodraw</c>.</summary>
+    public bool IsHidden => IsModelSurface && IsOverridden && ReplacementValue.Equals(LineList.NoDraw, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Another material draws on the surface.</summary>
+    public bool IsReplaced => IsModelSurface && IsOverridden && !IsHidden;
+
+    /// <summary>The material that draws on the surface (the model's own when nothing replaces it, or it is hidden).</summary>
+    public string Shown => IsReplaced ? ReplacementValue : Surface;
+
+    /// <summary>The slot's name: what draws there, or <c>nodraw</c> while hidden.</summary>
+    public string Title => IsHidden ? LineList.NoDraw : Shown;
+
+    /// <summary>The slot's replacement field is showing, for a material to be chosen.</summary>
+    private bool _isChoosing;
+    public bool IsChoosing
+    {
+        get => _isChoosing;
+        set => SetProperty(ref _isChoosing, value);
+    }
+
+    /// <summary>The shown material's swatch; null while it loads, or when it has none.</summary>
+    private Avalonia.Media.Imaging.Bitmap? _thumbnail;
+    public Avalonia.Media.Imaging.Bitmap? Thumbnail
+    {
+        get => _thumbnail;
+        set
+        {
+            if (SetProperty(ref _thumbnail, value))
+                OnPropertyChanged(nameof(HasThumbnail));
+        }
+    }
+
+    public bool HasThumbnail => Thumbnail is not null;
+
+    /// <summary>A swatch without an image shows the material type's glyph.</summary>
+    public string SwatchGlyph => TypeStyles.Glyph("material");
+
+    public Avalonia.Media.IBrush SwatchBrush => TypeStyles.Brush("material");
+
+    /// <summary>Replace ▾: shows the replacement field and opens its list.</summary>
+    public IRelayCommand? ChooseCommand { get; internal set; }
+
+    /// <summary>Replace ▾: replaces the surface with <c>nodraw</c>.</summary>
+    public IRelayCommand? HideCommand { get; internal set; }
+
+    /// <summary>Replace ▾: drops the override, so the model's own material draws.</summary>
+    public IRelayCommand? ResetCommand { get; internal set; }
+
+    /// <summary>Replace ▾: opens the material that draws on the surface.</summary>
+    public IRelayCommand? OpenCommand { get; internal set; }
+
+    /// <summary>The shown material changed (its swatch reloads).</summary>
+    internal event Action<LineItemViewModel>? ShownChanged;
+
+    private void SlotChanged()
+    {
+        OnPropertyChanged(nameof(IsHidden));
+        OnPropertyChanged(nameof(IsReplaced));
+        OnPropertyChanged(nameof(Shown));
+        OnPropertyChanged(nameof(Title));
+        HideCommand?.NotifyCanExecuteChanged();
+        ResetCommand?.NotifyCanExecuteChanged();
+        OpenCommand?.NotifyCanExecuteChanged();
+        ShownChanged?.Invoke(this);
+    }
 }
 
 /// <summary>
@@ -96,16 +165,19 @@ public sealed partial class LinesPropertyViewModel : PropertyItemViewModel
     private readonly Action<string, string>? _navigateToRef;
     private readonly Func<string, string?>? _valueOf;
     private readonly Func<string, string, bool>? _exists;
+    private readonly Func<string, string, AssetRecord?>? _resolve;
     private bool _writing;
     private bool _resetting;
 
+    /// <param name="resolve">An asset by type and name, for a material slot's swatch (none without it).</param>
     public LinesPropertyViewModel(PropertyDef def, string value, Action<string, string>? navigateToRef,
-        Func<string, string?>? valueOf, Func<string, string, bool>? exists) : base(def)
+        Func<string, string?>? valueOf, Func<string, string, bool>? exists, Func<string, string, AssetRecord?>? resolve = null) : base(def)
     {
         _value = value;
         _navigateToRef = navigateToRef;
         _valueOf = valueOf;
         _exists = exists;
+        _resolve = resolve;
         Shape = LineList.ShapeOf(def);
         _items = Build(value);
         AddItem = MakeItem("", isAdd: true);
@@ -123,6 +195,7 @@ public sealed partial class LinesPropertyViewModel : PropertyItemViewModel
 
     /// <summary>The list ends in an Add field (skinOverride lists the model's surfaces instead, once they are known).</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsPairTitles), nameof(MaxListHeight))]
     private bool _canAdd = true;
 
     /// <summary>The xmodel's model files, as the deffile names its LODs.</summary>
@@ -155,6 +228,15 @@ public sealed partial class LinesPropertyViewModel : PropertyItemViewModel
     public LineShape Shape { get; }
 
     public bool IsPairList => Shape == LineShape.SkinOverride;
+
+    /// <summary>
+    /// How tall the list grows before it scrolls: eight 26 px lines, or twenty 39 px material slots (a model's materials
+    /// are worth seeing at once, and a weapon has a dozen or more).
+    /// </summary>
+    public double MaxListHeight => CanAdd ? 8 * 26 : 20 * 39;
+
+    /// <summary>Pair rows say which side is which; the model's slots say it on each slot.</summary>
+    public bool ShowsPairTitles => IsPairList && CanAdd;
 
     public override bool IsMultiLine => true;
 
@@ -290,14 +372,55 @@ public sealed partial class LinesPropertyViewModel : PropertyItemViewModel
                 break;
         }
         var item = new LineItemViewModel(main, replacement, line, isAdd, isAdd ? placeholder : "", surface is not null, order);
-        // A surface of the model is a material of its own: its name opens it, when there is one to open.
-        if (surface is not null && _navigateToRef is not null && (_exists?.Invoke("material", surface) ?? true))
-            item.GoToCommand = new RelayCommand(() => _navigateToRef("material", surface));
+        if (surface is not null)
+            MakeSlot(item);
         main.Edited += _ => ItemEdited(item);
         if (replacement is not null)
             replacement.Edited += _ => ItemEdited(item);
         Validate(item);
         return item;
+    }
+
+    /// <summary>A slot's Choose material… asks the view to show its field and open the list.</summary>
+    public event Action<LineItemViewModel>? ChooseRequested;
+
+    /// <summary>The Replace menu of a surface of the model, and its swatch.</summary>
+    private void MakeSlot(LineItemViewModel item)
+    {
+        item.ChooseCommand = new RelayCommand(() =>
+        {
+            item.IsChoosing = true;
+            ChooseRequested?.Invoke(item);
+        });
+        item.HideCommand = new RelayCommand(() => item.Replacement!.RawValue = LineList.NoDraw, () => !item.IsHidden);
+        item.ResetCommand = new RelayCommand(() => Remove(item), () => item.IsOverridden);
+        item.OpenCommand = new RelayCommand(() => _navigateToRef?.Invoke("material", item.Shown),
+            () => _navigateToRef is not null && !item.IsHidden && (_exists?.Invoke("material", item.Shown) ?? true));
+        item.ShownChanged += LoadThumbnail;
+        LoadThumbnail(item);
+    }
+
+    /// <summary>Loads the swatch of what the slot shows (none while hidden); a later change supersedes an earlier load.</summary>
+    private async void LoadThumbnail(LineItemViewModel item)
+    {
+        var shown = item.Shown;
+        var raw = _resolve is null || item.IsHidden ? null : MaterialThumbnail.ColorMapRaw(_resolve, shown);
+        if (raw is null)
+        {
+            item.Thumbnail = null;
+            return;
+        }
+        try
+        {
+            var bitmap = await MaterialThumbnail.LoadAsync(FieldFiles.Root, raw, CancellationToken.None);
+            // Swatches are small and shared with nothing: one a later change replaced is left to the GC.
+            if (item.Shown == shown && !item.IsHidden)
+                item.Thumbnail = bitmap;
+        }
+        catch (Exception ex) when (CrashGuard.IsRecoverable(ex))
+        {
+            CrashGuard.WriteLog(ex, $"material swatch {shown}");
+        }
     }
 
     private PropertyDef ItemDef(PropertyKind kind) =>

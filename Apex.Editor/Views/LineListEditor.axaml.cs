@@ -70,10 +70,29 @@ public partial class LineListEditor : UserControl
     /// row's field does. (Asking would let skinOverride's two halves widen the value column and shift it off the
     /// column every other row lines up on.)
     /// </summary>
+    /// <summary>The width the list was last laid out in (0 before its first layout).</summary>
+    private double _laidOutWidth;
+
+    /// <remarks>
+    /// The row measures the list without a width (it takes the value column's), and a control laid out narrower than
+    /// it asked is drawn at what it asked, spilling past the column: a material slot asks for its whole name. So the
+    /// content is measured in the width the list was last laid out in, and a new width measures it again.
+    /// </remarks>
     protected override Size MeasureOverride(Size availableSize)
     {
-        var size = base.MeasureOverride(availableSize);
+        var within = !IsCompact && _laidOutWidth > 0 ? availableSize.WithWidth(Math.Min(availableSize.Width, _laidOutWidth)) : availableSize;
+        var size = base.MeasureOverride(within);
         return IsCompact ? size : size.WithWidth(0);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        if (!IsCompact && finalSize.Width != _laidOutWidth)
+        {
+            _laidOutWidth = finalSize.Width;
+            InvalidateMeasure();
+        }
+        return base.ArrangeOverride(finalSize);
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -84,12 +103,59 @@ public partial class LineListEditor : UserControl
             _flyout.IsOpen = false;
     }
 
+    private LinesPropertyViewModel? _subscribed;
+
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
         if (_flyout is { IsOpen: true })
             _flyout.IsOpen = false;
+        if (_subscribed is not null)
+            _subscribed.ChooseRequested -= Choose;
+        _subscribed = Vm;
+        if (_subscribed is not null)
+            _subscribed.ChooseRequested += Choose;
         Dispatcher.UIThread.Post(SetPlaceholders, DispatcherPriority.Loaded);
+    }
+
+    // ── Material slots: choosing shows the field, focused, its list open ─────
+
+    /// <summary>A slot's Choose material…: its field shows (once laid out), takes focus and lists every material.</summary>
+    private void Choose(LineItemViewModel item)
+    {
+        // The list a table cell opened chooses in its own copy; the cell's summary has no rows.
+        if (IsCompact || Vm is not { } vm)
+            return;
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (ItemsList.ContainerFromIndex(vm.Items.IndexOf(item)) is not { } row || Boxes(row) is not [RefField field, ..])
+            {
+                item.IsChoosing = false;
+                return;
+            }
+            row.BringIntoView();
+            field.Focus(NavigationMethod.Directional);
+            field.SelectAll();
+            field.OpenAll();
+        }, DispatcherPriority.Loaded);
+    }
+
+    /// <summary>
+    /// A slot's field let go (picked, typed and left, or Esc): the slot shows what draws again. Waits for the field's own
+    /// commit, and for focus to settle (a pick from its list returns focus to it).
+    /// </summary>
+    private void EndChoosing(LineItemViewModel item, RefField field) =>
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (item.IsChoosing && !field.IsKeyboardFocusWithin && !field.IsSuggesting)
+                item.IsChoosing = false;
+        }, DispatcherPriority.Input);
+
+    /// <summary>Focuses a slot's Replace button (the slot's stop while it isn't choosing).</summary>
+    private static void FocusReplace(Control row)
+    {
+        if (row.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Classes.Contains("lreplace")) is { } replace)
+            replace.Focus(NavigationMethod.Directional);
     }
 
     /// <summary>The Add field says what it adds ("Add a material"); skinOverride's halves say which is which.</summary>
@@ -171,7 +237,8 @@ public partial class LineListEditor : UserControl
     {
         if (source is not Visual v)
             return null;
-        var row = v.GetSelfAndVisualAncestors().TakeWhile(a => a != this).OfType<Grid>().FirstOrDefault(g => g.Classes.Contains("litem"));
+        var row = v.GetSelfAndVisualAncestors().TakeWhile(a => a != this).OfType<Grid>()
+            .FirstOrDefault(g => g.Classes.Contains("litem") || g.Classes.Contains("lslot"));
         if (row?.DataContext is not LineItemViewModel item)
             return null;
         var boxes = Boxes(row);
@@ -200,8 +267,45 @@ public partial class LineListEditor : UserControl
         if ((e.Source as Visual)?.FindAncestorOfType<SuggestBox>() is { IsOpen: true })
             return;
         var index = item.IsAdd ? vm.Items.Count : vm.Items.IndexOf(item);
+        // A slot's Replace button: Enter and Space open its menu, Delete resets the slot, ↑↓ walk the slots.
+        if (item.IsModelSurface && e.Source is not TextBox)
+        {
+            switch (e.Key)
+            {
+                case Key.Delete when !e.Handled && item.IsOverridden:
+                    vm.Remove(item);
+                    e.Handled = true;
+                    break;
+                case Key.Up when !e.Handled && index > 0:
+                case Key.Down when !e.Handled && index < vm.Items.Count:
+                    e.Handled = true;
+                    FocusItem(index + (e.Key == Key.Down ? 1 : -1), last: false);
+                    break;
+            }
+            return;
+        }
+        // Esc in a slot's field puts back what it held and shows the slot again; an Esc that closed the field's list is
+        // the list's (the row editor may have handled it too, putting the text back).
+        if (item.IsModelSurface && item.IsChoosing && e.Key == Key.Escape && e.Source is RefField choosing
+            && !ReferenceEquals(choosing.ClosingKey, e))
+        {
+            PropertyEditorView.DiscardPending(choosing);
+            e.Handled = true;
+            item.IsChoosing = false;
+            if (ItemsList.ContainerFromIndex(index) is { } row)
+                Dispatcher.UIThread.Post(() => FocusReplace(row), DispatcherPriority.Loaded);
+            return;
+        }
         switch (e.Key)
         {
+            case Key.Enter when item.IsModelSurface:
+                // A slot's field: the pick (or the typing) is committed and the slot shows it, its Replace button focused.
+                PropertyEditorView.CommitPending(e.Source);
+                e.Handled = true;
+                item.IsChoosing = false;
+                if (ItemsList.ContainerFromIndex(index) is { } slot)
+                    Dispatcher.UIThread.Post(() => FocusReplace(slot), DispatcherPriority.Loaded);
+                break;
             case Key.Enter:
                 // A field the row editor didn't see (the table's popup) commits here; otherwise this is a no-op.
                 PropertyEditorView.CommitPending(e.Source);
@@ -235,7 +339,12 @@ public partial class LineListEditor : UserControl
     }
 
     /// <summary>A field the row editor didn't see (the table's popup) commits when it loses focus.</summary>
-    private void List_LostFocus(object? sender, RoutedEventArgs e) => PropertyEditorView.CommitPending(e.Source);
+    private void List_LostFocus(object? sender, RoutedEventArgs e)
+    {
+        PropertyEditorView.CommitPending(e.Source);
+        if (e.Source is RefField field && ItemOf(field) is ({ IsChoosing: true } item, _))
+            EndChoosing(item, field);
+    }
 
     /// <summary>Focuses item <paramref name="index"/> (the Add field past the last item), scrolling it into view.</summary>
     public void FocusItem(int index, bool last)
@@ -254,7 +363,10 @@ public partial class LineListEditor : UserControl
         row.BringIntoView();
         var boxes = Boxes(row);
         if (boxes.Count == 0)
+        {
+            FocusReplace(row);
             return;
+        }
         var box = last ? boxes[^1] : boxes[0];
         box.Focus(NavigationMethod.Directional);
         box.SelectAll();

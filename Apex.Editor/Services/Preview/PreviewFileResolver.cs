@@ -20,9 +20,11 @@ public static class PreviewFileResolver
     private static readonly string[] ImageExtensions = { ".tif", ".tiff", ".png", ".tga", ".exr" };
 
     /// <summary>Resolves a raw image path value to an absolute file, or null when nothing exists.</summary>
-    public static string? ResolveImage(GameEnvironment env, string rawValue)
+    public static string? ResolveImage(GameEnvironment env, string rawValue) => ResolveImage(env.Bo3Root, rawValue);
+
+    /// <summary>Resolves a raw image path value under the install at <paramref name="root"/>, or null when nothing exists.</summary>
+    public static string? ResolveImage(string? root, string rawValue)
     {
-        var root = env.Bo3Root;
         if (string.IsNullOrEmpty(root))
             return null;
 
@@ -31,17 +33,14 @@ public static class PreviewFileResolver
             return null;
 
         // 1. As-given relative to the game root (the observed shape: value already carries its prefix).
-        var hit = ResolveRelative(env, root, norm, ImageExtensions);
-        if (hit is not null)
-            return hit;
-
         // 2/3. Fallbacks for values missing the standard prefix.
-        hit = ResolveRelative(env, Path.Combine(root, "texture_assets"), norm, ImageExtensions);
-        if (hit is not null)
-            return hit;
-
-        return ResolveRelative(env, Path.Combine(root, "model_export"), norm, ImageExtensions);
+        return ImageUnder(root, norm)
+            ?? ImageUnder(Path.Combine(root, "texture_assets"), norm)
+            ?? ImageUnder(Path.Combine(root, "model_export"), norm);
     }
+
+    private static string? ImageUnder(string dir, string norm) =>
+        ProbePath(Path.IsPathRooted(norm) ? norm : Path.Combine(dir, norm), ImageExtensions);
 
     /// <summary>
     /// Generic resolver used for image/model_export/xanim_export files: probes <paramref name="rawValue"/>

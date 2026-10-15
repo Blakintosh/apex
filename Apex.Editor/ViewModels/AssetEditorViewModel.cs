@@ -273,7 +273,7 @@ public sealed partial class AssetEditorViewModel : ObservableObject, IFileProbeL
             foreach (var group in schema.Properties.GroupBy(p => p.Category))
             {
                 var items = group
-                    .Select(def => Create(def, record.Properties.GetValueOrDefault(def.Key) ?? Unowned(def), navigateToRef, ValueOf, AssetExists))
+                    .Select(def => Create(def, record.Properties.GetValueOrDefault(def.Key) ?? Unowned(def), navigateToRef, ValueOf, AssetExists, _resolve))
                     .ToList();
                 foreach (var item in items)
                 {
@@ -2169,15 +2169,17 @@ public sealed partial class AssetEditorViewModel : ObservableObject, IFileProbeL
 
     /// <param name="valueOf">Another property's value on the same asset (a bone field reads its model's key).</param>
     /// <param name="exists">Whether an asset of a type is in the index (a line list's items show their own ⚠).</param>
+    /// <param name="resolve">An asset by type and name (a material slot's swatch reads its colour map).</param>
     internal static PropertyItemViewModel Create(PropertyDef def, string value, Action<string, string>? navigateToRef,
-        Func<string, string?>? valueOf = null, Func<string, string, bool>? exists = null) =>
+        Func<string, string?>? valueOf = null, Func<string, string, bool>? exists = null,
+        Func<string, string, AssetRecord?>? resolve = null) =>
         def.Kind switch
         {
             PropertyKind.Number => new NumberPropertyViewModel(def, value),
             PropertyKind.Toggle => new TogglePropertyViewModel(def, value),
             PropertyKind.Choice => new ChoicePropertyViewModel(def, value),
             PropertyKind.AssetRef => new RefPropertyViewModel(def, value, navigateToRef is null ? null : r => navigateToRef(r.RefType, r.Value)),
-            _ when def.TextEditor == PropertyTextEditor.Lines => new LinesPropertyViewModel(def, value, navigateToRef, valueOf, exists),
+            _ when def.TextEditor == PropertyTextEditor.Lines => new LinesPropertyViewModel(def, value, navigateToRef, valueOf, exists, resolve),
             _ => CreateText(def, value, valueOf),
         };
 

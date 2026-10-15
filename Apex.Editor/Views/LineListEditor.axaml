@@ -10,10 +10,11 @@
 
   <!--
     A line-list field (hideTags, xmodel materials and skinOverride, comments…): one row per item and an "Add" field at
-    the end. skinOverride lists every surface material of the model (its LODs too), each with its replacement, as APE
-    does; it has an Add field only when the model file can't be read. Each item edits like the field it holds (a material suggests materials, a tag suggests the model's bones)
+    the end. skinOverride lists every surface material of the model (its LODs too), as APE does, each as a material slot
+    (what draws there, and a Replace menu); it has pair rows and an Add field only when the model file can't be read.
+    Each item edits like the field it holds (a material suggests materials, a tag suggests the model's bones)
     and commits like any text field (Enter or focus loss; Esc reverts). Enter moves on to the next item, Delete in an
-    empty item removes it, ↑↓ walk the items. Past eight items the list scrolls. In a table cell the list is a one-line
+    empty item removes it, ↑↓ walk the items. Past eight items (twenty slots) the list scrolls. In a table cell the list is a one-line
     summary ("3 tags") that opens it below the cell.
   -->
   <UserControl.Styles>
@@ -32,31 +33,81 @@
     <Style Selector="Grid.litem:pointerover Button.lremove, Grid.litem:focus-within Button.lremove">
       <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
     </Style>
-    <!-- A surface of the model: its name, set where the field's text sits, dim while nothing replaces it. Trimmed from
-         the front: a model's surfaces often share a long prefix and differ at the end (…_image_off, …_image_on). -->
-    <Style Selector="TextBlock.lsurface">
+    <!-- A material slot's face (swatch and name) opens what draws there: a link, not a field. It never fills; the name
+         underlines under the pointer. A slot with nothing to open (hidden, or a material that isn't loaded) looks the
+         same, it just doesn't open. -->
+    <Style Selector="Button.lslotface">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="2"/>
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button.lslotface:pointerover /template/ ContentPresenter, Button.lslotface:pressed /template/ ContentPresenter,
+                     Button.lslotface:disabled /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent"/>
+    </Style>
+    <Style Selector="Button.lslotface:disabled">
+      <Setter Property="Opacity" Value="1"/>
+      <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+    <Style Selector="Button.lslotface:pointerover TextBlock.lslotname">
+      <Setter Property="TextDecorations" Value="Underline"/>
+    </Style>
+    <Style Selector="Border.lswatch">
+      <Setter Property="Width" Value="32"/>
+      <Setter Property="Height" Value="32"/>
+      <Setter Property="CornerRadius" Value="{StaticResource RadiusXs}"/>
+      <Setter Property="ClipToBounds" Value="True"/>
+      <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+    <!-- Hidden: the swatch is covered, the eye crossed out. -->
+    <Style Selector="Border.lswatchhidden">
+      <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+    </Style>
+    <!-- The name is what draws (nodraw, dim, while hidden), trimmed from the front: a model's materials often share a
+         long prefix and differ at the end (…_image_off, …_image_on). -->
+    <Style Selector="TextBlock.lslotname">
       <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
       <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
       <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-      <Setter Property="Margin" Value="8,0"/>
-      <Setter Property="VerticalAlignment" Value="Center"/>
       <Setter Property="TextTrimming" Value="PrefixCharacterEllipsis"/>
     </Style>
-    <!-- The same name as a link: it takes the button's colour, so hover and press show it opens. -->
-    <Style Selector="Button.lsurfacelink TextBlock">
-      <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
-      <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
-      <Setter Property="TextTrimming" Value="PrefixCharacterEllipsis"/>
-      <Setter Property="VerticalAlignment" Value="Center"/>
-    </Style>
-    <Style Selector="Button.lsurfacelink">
-      <Setter Property="Margin" Value="8,0,0,0"/>
-      <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
-      <Setter Property="HorizontalAlignment" Value="Stretch"/>
-      <Setter Property="HorizontalContentAlignment" Value="Left"/>
-    </Style>
-    <Style Selector="TextBlock.lsurface.plain">
+    <Style Selector="TextBlock.lslotname.hidden">
       <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    </Style>
+    <!-- An override's second line: the model's own material, struck through. -->
+    <Style Selector="TextBlock.lslotoriginal">
+      <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSizeXs}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}"/>
+      <Setter Property="TextDecorations" Value="Strikethrough"/>
+      <Setter Property="TextTrimming" Value="PrefixCharacterEllipsis"/>
+    </Style>
+    <Style Selector="Border.lchip">
+      <Setter Property="Padding" Value="6,1"/>
+      <Setter Property="CornerRadius" Value="{StaticResource RadiusXs}"/>
+      <Setter Property="Background" Value="{DynamicResource BgFieldBrush}"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="Border.lchip TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource FontSizeXs}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextDimBrush}"/>
+    </Style>
+    <Style Selector="Border.lchip.override">
+      <Setter Property="Background" Value="{DynamicResource AccentDimBrush}"/>
+    </Style>
+    <Style Selector="Border.lchip.override TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}"/>
+    </Style>
+    <!-- Replace ▾: the app's menu button, with a hairline so it reads as the slot's control at rest. -->
+    <Style Selector="Button.lreplace">
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+      <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
     </Style>
   </UserControl.Styles>
 
@@ -79,26 +130,75 @@
     </DataTemplate>
 
     <DataTemplate DataType="vm:LineItemViewModel">
-      <Grid Classes="litem" ColumnDefinitions="*,24" Margin="0,0,0,2">
-        <!-- skinOverride: surface material | replacement, half each. A surface of the model is its name, not a field. -->
+      <Panel>
+      <!--
+        A surface of the model is a material slot: what draws there leads (its swatch and name, which open it), an
+        override has the model's own material under it, struck through, and Replace ▾ chooses, hides or resets it. The
+        material field shows only while choosing.
+      -->
+      <Grid Classes="lslot" ColumnDefinitions="*,Auto" Margin="0,0,0,2" IsVisible="{Binding IsModelSurface}">
+        <Panel>
+          <Button Classes="lslotface" Command="{Binding OpenCommand}" Focusable="False" IsVisible="{Binding !IsChoosing}"
+                  ToolTip.Tip="{Binding Shown, StringFormat='Open {0}'}"
+                  AutomationProperties.Name="{Binding Shown, StringFormat='Open {0}'}">
+            <Grid ColumnDefinitions="Auto,*">
+              <Border Classes="lswatch" Classes.hidden="{Binding IsHidden}">
+                <Panel>
+                  <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" IsVisible="{Binding HasThumbnail}"/>
+                  <TextBlock Text="{Binding SwatchGlyph}" Foreground="{Binding SwatchBrush}" FontSize="{StaticResource FontSizeSm}"
+                             HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !HasThumbnail}"
+                             IsHitTestVisible="False"/>
+                  <Border Classes="lswatchhidden" IsVisible="{Binding IsHidden}">
+                    <controls:GlyphIcon Glyph="eye-off" Size="14" Foreground="{DynamicResource TextDimBrush}"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                  </Border>
+                </Panel>
+              </Border>
+              <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" Spacing="1">
+                <TextBlock Classes="lslotname" Classes.hidden="{Binding IsHidden}" Text="{Binding Title}"/>
+                <TextBlock Classes="lslotoriginal" Text="{Binding Surface}" IsVisible="{Binding IsOverridden}"/>
+              </StackPanel>
+            </Grid>
+          </Button>
+          <ContentControl Content="{Binding Replacement}" HorizontalContentAlignment="Stretch" VerticalAlignment="Center"
+                          Focusable="False" IsVisible="{Binding IsChoosing}"/>
+        </Panel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="8,0,0,0">
+          <Border Classes="lchip override" IsVisible="{Binding IsReplaced}">
+            <TextBlock Text="Override"/>
+          </Border>
+          <Border Classes="lchip" IsVisible="{Binding IsHidden}">
+            <TextBlock Text="Hidden"/>
+          </Border>
+          <Button Classes="menu lreplace" AutomationProperties.Name="{Binding Surface, StringFormat='Replace {0}'}"
+                  ToolTip.Tip="Choose, hide or reset this material (Delete resets it)">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <TextBlock Text="Replace" VerticalAlignment="Center"/>
+              <controls:GlyphIcon Glyph="chevron-down" Size="12" Foreground="{DynamicResource TextFaintBrush}" VerticalAlignment="Center"/>
+            </StackPanel>
+            <Button.Flyout>
+              <MenuFlyout Placement="BottomEdgeAlignedRight">
+                <MenuItem Header="Choose material…" Command="{Binding ChooseCommand}"/>
+                <MenuItem Header="Hide (nodraw)" Command="{Binding HideCommand}"/>
+                <MenuItem Header="Use the model's material" Command="{Binding ResetCommand}" InputGesture="Delete"/>
+                <Separator/>
+                <MenuItem Header="Open material" Command="{Binding OpenCommand}"/>
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+        </StackPanel>
+      </Grid>
+      <Grid Classes="litem" ColumnDefinitions="*,24" Margin="0,0,0,2" IsVisible="{Binding !IsModelSurface}">
+        <!-- skinOverride (a surface the model doesn't list, or a model that can't be read): surface | replacement, half each. -->
         <UniformGrid Rows="1" Columns="{Binding Columns}">
-          <Panel>
-            <ContentControl Content="{Binding Main}" HorizontalContentAlignment="Stretch" Focusable="False"
-                            IsVisible="{Binding !IsModelSurface}"/>
-            <TextBlock Classes="lsurface" Classes.plain="{Binding !IsOverridden}" Text="{Binding Surface}"
-                       ToolTip.Tip="{Binding Surface}" IsVisible="{Binding IsPlainSurface}"/>
-            <Button Classes="link lsurfacelink" Classes.dim="{Binding !IsOverridden}" Command="{Binding GoToCommand}" Focusable="False"
-                    IsVisible="{Binding CanGoTo}" ToolTip.Tip="{Binding Surface, StringFormat='Open {0}'}"
-                    AutomationProperties.Name="{Binding Surface, StringFormat='Open {0}'}">
-              <TextBlock Text="{Binding Surface}"/>
-            </Button>
-          </Panel>
+          <ContentControl Content="{Binding Main}" HorizontalContentAlignment="Stretch" Focusable="False"/>
           <ContentControl Content="{Binding Replacement}" HorizontalContentAlignment="Stretch" Focusable="False" Margin="4,0,0,0"
                           IsVisible="{Binding IsPair}"/>
         </UniformGrid>
         <Button Grid.Column="1" Classes="rowaction lremove" Content="✕" Focusable="False" ClickMode="Press" IsVisible="{Binding CanRemove}"
                 ToolTip.Tip="Remove" AutomationProperties.Name="Remove"/>
       </Grid>
+      </Panel>
     </DataTemplate>
   </UserControl.DataTemplates>
 
@@ -111,19 +211,21 @@
                  TextTrimming="CharacterEllipsis"/>
     </Button>
 
-    <StackPanel Name="Full" Margin="0,3,0,1">
+    <!-- A grid, not a stack: a stack lays a child out at least as wide as it asks, and a slot asks for its whole name
+         (its trimming only applies within the width it is given), so it would spill past the value column. -->
+    <Grid Name="Full" RowDefinitions="Auto,Auto,Auto" Margin="0,3,0,1">
       <!-- A pair list says which side is which: the right is what replaces the left. -->
-      <Grid ColumnDefinitions="*,24" Margin="0,0,0,2" IsVisible="{Binding IsPairList}">
+      <Grid ColumnDefinitions="*,24" Margin="0,0,0,2" IsVisible="{Binding ShowsPairTitles}">
         <UniformGrid Rows="1" Columns="2">
           <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding SurfaceTitle}" Margin="8,0,0,0"/>
           <TextBlock Classes="faint" FontSize="{StaticResource FontSizeXs}" Text="{Binding ReplacementTitle}" Margin="12,0,0,0"/>
         </UniformGrid>
       </Grid>
-      <ScrollViewer Name="ItemsScroll" MaxHeight="208" HorizontalScrollBarVisibility="Disabled">
+      <ScrollViewer Grid.Row="1" Name="ItemsScroll" MaxHeight="{Binding MaxListHeight}" HorizontalScrollBarVisibility="Disabled">
         <ItemsControl Name="ItemsList" ItemsSource="{Binding Items}" Focusable="False"/>
       </ScrollViewer>
-      <ContentControl Name="AddRow" Content="{Binding AddItem}" HorizontalContentAlignment="Stretch" Focusable="False"
+      <ContentControl Grid.Row="2" Name="AddRow" Content="{Binding AddItem}" HorizontalContentAlignment="Stretch" Focusable="False"
                       IsVisible="{Binding CanAdd}"/>
-    </StackPanel>
+    </Grid>
   </Panel>
 </UserControl>

@@ -211,7 +211,7 @@ public sealed class RefField : TextBox
     }
 
     /// <summary>Alt+↓ / F4: every asset of the type, by name, the field's value highlighted (or the nearest name in view).</summary>
-    private void OpenAll()
+    public void OpenAll()
     {
         _browse = true;
         Suggest();
@@ -311,6 +311,13 @@ public sealed class RefField : TextBox
 
     // ── The list's keys, taken at the window while it is open ────────────────
 
+    /// <summary>
+    /// The key that last closed the list (Esc, Alt+↑↓, F4). The list takes its keys at the window, before the field's
+    /// own handlers see them, so by then it is closed either way: a handler compares its key with this to tell whether
+    /// the key was the list's.
+    /// </summary>
+    public KeyEventArgs? ClosingKey { get; private set; }
+
     private void Host_KeyDown(object? sender, KeyEventArgs e)
     {
         if (!IsSuggesting || !IsKeyboardFocusWithin || _list is not { } list)
@@ -355,6 +362,7 @@ public sealed class RefField : TextBox
             case Key.Up when mods == KeyModifiers.Alt:
             case Key.Down when mods == KeyModifiers.Alt:
             case Key.F4 when mods == KeyModifiers.None:
+                ClosingKey = e;
                 Close();
                 break;
             default:
