@@ -243,8 +243,9 @@ public partial class Program
     }
 
     /// <summary>
-    /// Every GDT root the GDT database indexes is loaded and watched, as Radiant and APE see them: stock GDTs live in
-    /// texture_assets (t7_concrete.gdt holds t7_concrete_sidewalk_2x2_01) and art_assets, not only source_data.
+    /// Every GDT folder the GDT database indexes is loaded and watched, as Radiant and APE see them. gdtdb.exe takes the
+    /// folders from bin\converter_gdt_dirs_0.txt: stock GDTs live in texture_assets (t7_concrete.gdt holds
+    /// t7_concrete_sidewalk_2x2_01) and art_assets, map and mod GDTs in usermaps and mods, not only in source_data.
     /// </summary>
     private static void InstallGdtRootChecks()
     {
@@ -264,6 +265,10 @@ public partial class Program
         Write(@"model_export\apex\apex_roots.gdt", Gdt("apex_roots_model", "xmodel.gdf"));
         Write(@"texture_assets\t7_concrete.gdt", Gdt("t7_concrete_sidewalk_2x2_01", "material.gdf"));
         Write(@"art_assets\t6_legacy\texture_assets\iw_asphalt.gdt", Gdt("apex_roots_legacy", "material.gdf"));
+        Write(@"archetypes\archetypes.gdt", Gdt("apex_roots_archetype", "archetype.gdf"));
+        Write(@"usermaps\zm_apex\gdts\zm_apex.gdt", Gdt("apex_roots_map", "xmodel.gdf"));
+        Write(@"mods\apex_mod\apex_mod.gdt", Gdt("apex_roots_mod", "xmodel.gdf"));
+        Write(@"apex_extra\apex_extra.gdt", Gdt("apex_roots_extra", "xmodel.gdf"));
 
         var saved = (Mock: Environment.GetEnvironmentVariable("APEX_FORCE_MOCK"), Root: Environment.GetEnvironmentVariable("APEX_BO3_ROOT"));
         Environment.SetEnvironmentVariable("APEX_FORCE_MOCK", null);
@@ -272,19 +277,37 @@ public partial class Program
         try
         {
             var env = new GameEnvironment(null);
+            // No bin\converter_gdt_dirs_0.txt: the list the Mod Tools ship.
             var names = GdtCatalog.Enumerate(env).Select(s => s.RelativeName).ToList();
-            Check("gdt roots: the catalog lists source_data, xanim_export, texture_assets, art_assets, model_export in that order",
+            Check("gdt roots: without the folder list, the catalog loads the stock GDT folders, source_data first and model_export last",
                 names.SequenceEqual(new[]
                 {
-                    "source_data/apex_roots.gdt", "xanim_export/apex_roots.gdt", "texture_assets/t7_concrete.gdt",
-                    "art_assets/t6_legacy/texture_assets/iw_asphalt.gdt", "model_export/apex/apex_roots.gdt",
+                    "source_data/apex_roots.gdt", "archetypes/archetypes.gdt", "texture_assets/t7_concrete.gdt",
+                    "xanim_export/apex_roots.gdt", "art_assets/t6_legacy/texture_assets/iw_asphalt.gdt",
+                    "usermaps/zm_apex/gdts/zm_apex.gdt", "mods/apex_mod/apex_mod.gdt", "model_export/apex/apex_roots.gdt",
                 }));
 
             var db = GdtLoader.LoadAll(env);
             var concrete = db.Assets.FirstOrDefault(a => a.Name == "t7_concrete_sidewalk_2x2_01");
             Check("gdt roots: a texture_assets asset (t7_concrete_sidewalk_2x2_01) loads, from texture_assets/t7_concrete.gdt",
                 concrete?.GdtName == "texture_assets/t7_concrete.gdt");
-            Check("gdt roots: an art_assets asset loads", db.Assets.Any(a => a.Name == "apex_roots_legacy"));
+            Check("gdt roots: art_assets, archetypes, usermaps and mods assets load",
+                new[] { "apex_roots_legacy", "apex_roots_archetype", "apex_roots_map", "apex_roots_mod" }
+                    .All(n => db.Assets.Any(a => a.Name == n)));
+
+            // The install's own list, as gdtdb.exe reads it: its folders in its order, a folder inside another loaded
+            // once, a blank line skipped; source_data, xanim_export and model_export are always loaded.
+            var dirList = Path.Combine(install, "bin", "converter_gdt_dirs_0.txt");
+            Write(dirList, "texture_assets\r\n\r\napex_extra\\\r\nart_assets\r\nart_assets\\t6_legacy\r\nmodel_export\r\n");
+            names = GdtCatalog.Enumerate(env).Select(s => s.RelativeName).ToList();
+            Check("gdt roots: with the install's folder list, the catalog loads its folders in its order, each GDT once",
+                names.SequenceEqual(new[]
+                {
+                    "source_data/apex_roots.gdt", "texture_assets/t7_concrete.gdt", "apex_extra/apex_extra.gdt",
+                    "art_assets/t6_legacy/texture_assets/iw_asphalt.gdt", "xanim_export/apex_roots.gdt",
+                    "model_export/apex/apex_roots.gdt",
+                }));
+            File.Delete(dirList);
 
             // A texture_assets GDT changed on disk reaches the app like a source_data one.
             var changed = new System.Collections.Concurrent.ConcurrentBag<string>();
@@ -297,6 +320,14 @@ public partial class Program
             seen.Wait(TimeSpan.FromSeconds(5));
             Check("gdt roots: the watcher reports a GDT written to texture_assets",
                 changed.Any(p => p.Equals(added, StringComparison.OrdinalIgnoreCase)));
+
+            // ...and one written to a map's folder.
+            seen.Reset();
+            var mapGdt = Path.Combine(install, "usermaps", "zm_apex", "gdts", "zm_apex_new.gdt");
+            File.WriteAllText(mapGdt, Gdt("apex_roots_map_added", "xmodel.gdf"));
+            seen.Wait(TimeSpan.FromSeconds(5));
+            Check("gdt roots: the watcher reports a GDT written to usermaps",
+                changed.Any(p => p.Equals(mapGdt, StringComparison.OrdinalIgnoreCase)));
         }
         catch (Exception ex)
         {
